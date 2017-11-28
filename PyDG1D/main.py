@@ -6,14 +6,15 @@
 # | This script simulates propagation of an EM wave in 1-D using a DGTD   |
 # | algorithm.                                                            |
 # +=======================================================================+
-# ======= List Physical and mathematical constants ========================
 import scipy.constants
+import numpy as np
+import dgtd
+
+# ======= List Physical and mathematical constants ========================
 # -------- Physical constants ---------------------------------------------
 c0   = scipy.constants.speed_of_light
 eps0 = scipy.constants.epsilon_0
 mu0  = scipy.constants.mu_0
-
-import numpy as np
 # -------- Low storage Runge-Kutta coefficients ---------------------------
 rk4a = np.array([                    
                                      0.0, 
@@ -33,11 +34,15 @@ rk4c = np.array([
          2526269341429.0/6820363962896.0,
          2006345519317.0/3224310063776.0,
          2802321613138.0/2924317926251.0]);
-# ============== Initialization ===============================================
+
+# ============== Global conditions ============================================
 # -------Simulation general parameters ----------------------------------------
+D = 1;        # D    := Dimension
 N = 4;        # N    := Degree of polynomials forming the basis.
 h = 0.25;     # h    := Spatial resolution. [meters]
 alpha = 0.0;  # 1 = Central , 0 = Upwind
+
+# ============== Meshing ======================================================
 xMin = 0.0;
 xMax = 1.0;
 h = 0.1;
@@ -47,26 +52,10 @@ vx = np.array([
     np.linspace(xMin  , xMax-h, K),
     np.linspace(xMin+h, xMax  , K)
 ]); # vx := Element vertices.
+x = dgtd.meshGrid(D,N,vx) # x    := Nodes in equispaced positions.
 
-import dg1d
-x = dg1d.setNodes(N,vx) # x    := Nodes in equispaced positions.
-
-# # ------- Material properties -----------------------------------------------
-# Ns = 1e3;
-# freqMin = 1e2;
-# freqMax = 1e9;
-# fq = linspace(freqMin, freqMax, Ns);
-# omega = 2 * pi * fq;
-# matLib = loadMatLib(omega');
-# m1 = matLib(1);
-# e = setMaterial(e, m1, 1, K);
-
-print "Hello"
-# # ------- Initial conditions ----------------------------------------------
-# [ e ] = setZeroField(e); # Sets initial fields to zero.
-# # ------- Analytical matrices definitions ---------------------------------
-# addpath 'Analytical matrices';
-# T    = TmatA(N,1);     # General Mass Matrix for that order.
+# ============== Initializing solver ==========================================
+massMatrix = dgtd.massMatrix(D,N); # General Mass Matrix for that order.
 # D{1} = Dmatrix1D(N,1); # Derivative matrix for simplex coordinate 1.
 # D{2} = Dmatrix1D(N,2); # Derivative matrix for simplex coordiante 2.
 # # ------- Computes element parameters -------------------------------------
@@ -76,6 +65,9 @@ print "Hello"
 #     e(k).S =  (D{2} - D{1})' / (e(k).x(Np)-e(k).x(1));  # S := Stiffness Matrix.
 #     e(k).LIFT = e(k).invM ;              # LIFT := Fluxes operator.
 # end
+
+
+print "Hello"
 # # ------------- Time parameters initialization ----------------------------
 # dt     = computeTimeStep(e, CFL); # dt     := Time step.
 # Nsteps = floor(finalTime / dt);   # Nsteps := Number of iterations needed. 
