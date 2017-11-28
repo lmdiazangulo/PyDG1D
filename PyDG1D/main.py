@@ -42,16 +42,15 @@ xMin = 0.0;
 xMax = 1.0;
 h = 0.1;
 # -----------------------------------------------------------------------------
-K = xMax - xMin / h;
+K = (xMax - xMin) / h;
 vx = np.array([
     np.linspace(xMin  , xMax-h, K),
     np.linspace(xMin+h, xMax  , K)
-]);                             # vx := Element vertices.
-x = setNodes1D(N,vx); # x    := Nodes in equispaced positions.
-# Creates element structure.
-#for k=1:K
-#    e(k) = struct('x', x(:,k));
-#end
+]); # vx := Element vertices.
+
+import dg1d
+x = dg1d.setNodes(N,vx) # x    := Nodes in equispaced positions.
+
 # # ------- Material properties -----------------------------------------------
 # Ns = 1e3;
 # freqMin = 1e2;
@@ -61,6 +60,8 @@ x = setNodes1D(N,vx); # x    := Nodes in equispaced positions.
 # matLib = loadMatLib(omega');
 # m1 = matLib(1);
 # e = setMaterial(e, m1, 1, K);
+
+print "Hello"
 # # ------- Initial conditions ----------------------------------------------
 # [ e ] = setZeroField(e); # Sets initial fields to zero.
 # # ------- Analytical matrices definitions ---------------------------------
