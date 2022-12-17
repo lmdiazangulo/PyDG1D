@@ -1,16 +1,6 @@
-'''
-Created on Nov 23, 2017
-
-@author: luis
-'''
-
 import numpy as np
 import scipy.special
 import math
-
-if __name__ == '__main__':
-    pass
-
 
 def set_nodes_1d(N, vertices):
     """ 
@@ -47,7 +37,7 @@ def _node_indices_1d(N):
     return nId.astype(int)
     
     
-def jacobi_gauss_lobatto(alpha, beta, N):
+def jacobiGL(alpha, beta, N):
     """
     Compute the order N Gauss Lobatto quadrature points, x, associated
     with the Jacobi polynomial.
@@ -128,12 +118,5 @@ def vandermonde_1d(N, r):
     for j in range(N+1):
         res[j] = jacobi_polynomial(r, 0, 0, j)
         
-    return res.transpose()
-
-if __name__ == '__main__':
-    import doctest
-    
-    doctest.testmod()
-    
-    
+    return res.transpose()   
     
