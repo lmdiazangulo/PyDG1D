@@ -64,3 +64,4 @@ def mesh_generator(xmin,xmax,k_elem):
         etov[i,1] = i+2
 
     return [n_v,vx,k_elem,etov]
+    

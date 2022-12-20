@@ -21,9 +21,6 @@ def test_jacobi_gauss():
     
 def test_jacobi_polynomial():
     assert np.allclose(np.array([-1.87082869, 0.83666003, -0.83666003,  1.87082869]) ,
-                       dg.jacobi_polynomial(dg.jacobiGL(0.0, 0.0, 3.),0. , 0. , 3.)
-    # assert np.allclose(np.array([[-0.54691816,  0.26120387], [0.76094757, 0.57238576]]) , 
-    #                    dg.jacobi_polynomial(2, 1, 1))
-    # assert np.allclose(np.array([[-0.70882014, -0.13230082,  0.50778763] , 
-    #                             [0.39524241,  0.72312171,  0.21496922]]) , 
-    #                             dg.jacobi_polynomial(2.0, 1.0, 2))
+                       dg.jacobi_polynomial(dg.jacobiGL(0.0, 0.0, 3),0. , 0. , 3))
+    assert np.allclose(np.array([2.12132034, -0.90913729,  0.79549513, -0.90913729,  2.12132034]) , 
+                       dg.jacobi_polynomial(dg.jacobiGL(0.0, 0.0, 4),0. , 0. , 4))

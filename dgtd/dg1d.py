@@ -1,6 +1,10 @@
 import numpy as np
 import scipy.special
 import math
+
+# n_faces, n_fp
+n_faces = 2
+n_fp = 1
    
 def jacobiGL(alpha, beta, N):
     """
@@ -228,9 +232,6 @@ def surface_integral_dg(n_order,vander):
            [ 0.89442719, -0.89442719],
            [-2.        ,  8.        ]])
     """
-    # n_faces, n_fp and n_p are defined as global variables
-    n_faces = 1
-    n_fp = 2
     n_p = n_order+1
 
     emat = np.zeros([n_p,n_faces*n_fp])
@@ -252,8 +253,8 @@ def normals(k_elem):
     """
     # K is the number of elements, derived from the grid info
     # n_faces and n_fp are defined as global variables
-    n_faces = 1
-    n_fp = 2
+    n_faces = 2
+    n_fp = 1
     nx = np.zeros([n_fp*n_faces,k_elem])
     nx[0,:] = -1.0
     nx[1,:] = 1.0
