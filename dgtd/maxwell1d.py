@@ -5,8 +5,12 @@ import math
 from dg1d import build_maps, normals, geometric_factors, surface_integral_dg, differentiation_matrix
 from meshUtils import mesh_generator
 
-def MaxwellRHS1D(E, H, eps, mu):
-    Z_imp = np.sqrt(mu / eps)
+rk4a = np.array([])
+rk4b = np.array([])
+rk4c = np.array([])
+
+def maxwellRHS1D(E, H, eps, mu):
+    Z_imp   = np.sqrt(mu / eps)
     
     dE      = np.zeros([n_fp*n_faces,k_elem])
     dE      = E[vmap_m] - E[vmap_p]
@@ -57,7 +61,7 @@ def MaxwellRHS1D(E, H, eps, mu):
     return [rhs_E, rhs_H]
 
 
-def Maxwell1D(E, H, eps, mu, final_time):
+def maxwell1D(E, H, eps, mu, final_time):
     
     time = 0
     
@@ -86,23 +90,3 @@ def Maxwell1D(E, H, eps, mu, final_time):
         time = time + dt
                
     return E, H
-
-def maxwellDriver1D():
-    # Polynomial order for aproximation
-    N = 6
-    [n_v,vx,k_elem,etov] = mesh_generator(-2.0,2.0,0.8)
-    
-    # Set up material parameters
-    eps1    = [np.ones(int(k_elem/2)), 2*np.ones(int(k_elem/2))]
-    mu1     = np.ones(int(k_elem)) 
-    epsilon = np.ones(n_p)*eps1
-    mu      = np.ones(n_p)*mu1
-    
-    # Set initial condition
-    E = np.multiply(math.sin(np.pi*x) , x)
-    H = np.zeros((n_p, k_elem))
-    
-    # Solve problem
-    final_time = 10
-    [E, H] = Maxwell1D(E, H, epsilon, mu, final_time)
-    
