@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-import dgtd.maxwell1d as m1d
+from dgtd.maxwell1d import *
 from dgtd.meshUtils import *
 
 def test_empty_mesh():
@@ -16,9 +17,9 @@ def test_empty_mesh():
     mu      = np.ones(n_p)*mu1
     
     # Set initial condition
-    E = np.multiply(math.sin(np.pi*x) , x)
-    H = np.zeros((n_p, k_elem))
+    E_old = np.multiply(math.sin(np.pi*x) , x)
+    H_old = np.zeros((n_p, k_elem))
     
     # Solve problem
     final_time = 10
-    [E, H] = Maxwell1D(E, H, epsilon, mu, final_time)
+    [E, H] = maxwell1D(E_old, H_old, epsilon, mu, final_time)

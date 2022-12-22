@@ -2,8 +2,8 @@ import numpy as np
 import scipy.special
 import numpy.linalg 
 import math
-from dg1d import build_maps, normals, geometric_factors, surface_integral_dg, differentiation_matrix
-from meshUtils import mesh_generator
+from dgtd.dg1d import build_maps, normals, geometric_factors, surface_integral_dg, differentiation_matrix
+from dgtd.meshUtils import mesh_generator
 
 rk4a = np.array([])
 rk4b = np.array([])

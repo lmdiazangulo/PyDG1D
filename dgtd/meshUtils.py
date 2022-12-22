@@ -53,9 +53,8 @@ def mesh_generator(xmin,xmax,k_elem):
     """
 
     n_v = k_elem+1
-    vx = np.zeros(n_v)
-    for i in range(n_v):
-        vx[i] = (xmax-xmin)*i/(n_v-1)+xmin
+    vx = np.linspace(xmin, xmax, num=n_v)
+    
     #np.zeros creates a float array. etov should be an integer array
     etov = np.full((k_elem,2),0)
     #etov = np.zeros([K,2])
