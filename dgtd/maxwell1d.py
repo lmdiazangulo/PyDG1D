@@ -10,13 +10,29 @@ rk4b = np.array([])
 rk4c = np.array([])
 
 class SpatialDiscretization:
-    def __init__(self, Vandermonde_1d, N):
-        N       =
+    def __init__(self, vander, J, diff_matrix, lift, 
+                 fmask, f_scale, n_fp, n_faces, n_p, 
+                 vmap_p, vmap_m, map_b ,k_element ,n_order):
+        n_order =
         alpha   = 0
         beta    = 0
-        r = jacobiGL(alpha, beta, N)
+        r = jacobiGL(alpha, beta, n_order)
         
-        self.V = vandermonde_1d(N, r)
+        self.vander = vandermonde_1d(n_order, r)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -24,7 +40,7 @@ class SpatialDiscretization:
 def maxwellRHS1D(E, H, eps, mu):
     Z_imp   = np.sqrt(mu / eps)
     
-    dE      = np.zeros([n_fp*n_faces,k_elem])
+    dE      = np.zeros([n_fp*n_faces, k_elem])
     dE      = E[vmap_m] - E[vmap_p]
     
     dH      = np.zeros([n_fp*n_faces,k_elem])
@@ -60,12 +76,12 @@ def maxwellRHS1D(E, H, eps, mu):
     flux_H      = 1/Y_imp_O
     
     # Compute right hand sides of the PDE’s
-    F_scale     = 1/J[fmask]
-    rsh_drH     = np.matmul(Diff_matrix, H) 
-    rsh_fsflE    = np.multiply(F_scale, flux_E)
+    f_scale     = 1/J[fmask]
+    rsh_drH     = np.matmul(diff_matrix, H) 
+    rsh_fsflE    = np.multiply(f_scale, flux_E)
     
-    rsh_drE     = np.matmul(Diff_matrix, E) 
-    rsh_fsflH   = np.multiply(F_scale, flux_H)
+    rsh_drE     = np.matmul(diff_matrix, E) 
+    rsh_fsflH   = np.multiply(f_scale, flux_H)
     
     rhs_E       = 1/eps*(np.multiply(-1*rx, rsh_drH) + np.matmul(lift, rsh_fsflE))
     rhs_H       = 1/mu*(np.multiply(-1*rx, rsh_drE) + np.matmul(lift, rsh_fsflH))
