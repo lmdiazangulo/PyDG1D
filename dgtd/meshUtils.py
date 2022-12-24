@@ -2,37 +2,17 @@ import numpy as np
 import scipy.special
 import math
 
-def set_nodes_1d(N, vertices):
-    """ 
-    Sets N+1 nodes in equispaced positions using the vertices indicated
-    by vx.
-    """
-    K = vertices.shape[1] # vertices columns 
-    x = np.zeros((N+1, K))
-    for k in range(K):
-        x[:,k] = np.linspace(vertices[0,k], vertices[1,k], num=N+1)
-             
-    return x
+class Mesh1D:
+    def __init__(self, xmin,xmax,k_elem):
+        _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
+        self.vx = vx
+        self.EToV = EToV
 
+    def number_of_vertices(self):
+        return self.vx.shape[0]
 
-def _node_indices_1d(N):
-    """
-    Generates number of node Indices for order N.
-    
-    >>> _node_indices_1d(1)
-    array([[1, 0],
-           [0, 1]])
-           
-    >>> _node_indices_1d(2)
-    array([[2, 0],
-           [1, 1],
-           [0, 2]])
-    """
-    Np = N+1;
-    nId = np.zeros([Np, 2])
-    for i in range(Np):
-        nId[i] = [N-i, i]     
-    return nId.astype(int)
+    def number_of_elements(self):
+        return self.vx.shape[0] - 1
 
 
 def mesh_generator(xmin,xmax,k_elem):
