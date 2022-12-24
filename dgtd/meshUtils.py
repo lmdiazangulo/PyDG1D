@@ -10,8 +10,7 @@ def set_nodes_1d(N, vertices):
     K = vertices.shape[1] # vertices columns 
     x = np.zeros((N+1, K))
     for k in range(K):
-        for i in range(N+1):
-            x[i,k] = i * (vertices[1,k] - vertices[0,k]) / N + vertices[0,k];
+        x[:,k] = np.linspace(vertices[0,k], vertices[1,k], num=N+1)
              
     return x
 

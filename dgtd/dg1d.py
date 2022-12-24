@@ -6,7 +6,7 @@ import math
 n_faces = 2
 n_fp = 1
    
-def jacobiGL(alpha, beta, N):
+def jacobiGL(alpha, beta, n_order):
     """
     Compute the order N Gauss Lobatto quadrature points, x, associated
     with the Jacobi polynomial.
@@ -21,15 +21,16 @@ def jacobiGL(alpha, beta, N):
     array([-1.        , -0.65465367,  0.        ,  0.65465367,  1.        ])
     
     """
-    if N==0:
+    if n_order==0:
         return np.array([0.0])
-    if N==1:
+    if n_order==1:
         return np.array([-1.0, 1.0])
-    if N>1:
-        x, w = scipy.special.roots_jacobi(N-1, alpha+1, beta+1);
-        return np.concatenate(([-1.0], x, [1.0]));
+    if n_order>1:
+        x, w = scipy.special.roots_jacobi(n_order-1, alpha+1, beta+1);
+        r_gl = np.concatenate(([-1.0], x, [1.0]))
+        return r_gl
     
-    raise ValueError('N must be positive.')
+    raise ValueError('n_order must be positive.')
 
 def jacobi_gauss(alpha, beta, n_order):
     """
@@ -77,7 +78,7 @@ def jacobi_gauss(alpha, beta, n_order):
     if (alpha+beta < 10*eps):
         j_matrix[0,0] = 0.0
     
-    j_matrix = j_matrix+np.transpose(j_matrix)
+    j_matrix = j_matrix + np.transpose(j_matrix)
     
     [e_val,e_vec] = np.linalg.eig(j_matrix)
     
@@ -89,7 +90,7 @@ def jacobi_gauss(alpha, beta, n_order):
     return [points,weight]
 
 
-def jacobi_polynomial(r, alpha, beta, N):
+def jacobi_polynomial(r, alpha, beta, n_order):
     """
     Evaluate Jacobi Polynomial
     
@@ -102,7 +103,7 @@ def jacobi_polynomial(r, alpha, beta, N):
     array([ 2.12132034, -0.90913729,  0.79549513, -0.90913729,  2.12132034])
     
     """
-    PL = np.zeros([N+1,len(r)]) 
+    PL = np.zeros([n_order+1,len(r)]) 
     # Initial values P_0(x) and P_1(x)
     gamma0 = 2**(alpha+beta+1) \
              / (alpha+beta+1) \
@@ -110,13 +111,13 @@ def jacobi_polynomial(r, alpha, beta, N):
              * scipy.special.gamma(beta+1) \
              / scipy.special.gamma(alpha+beta+1);
     PL[0] = 1.0 / math.sqrt(gamma0);
-    if N == 0:
+    if n_order == 0:
         return PL.transpose()
     
     gamma1 = (alpha+1.) * (beta+1.) / (alpha+beta+3.) * gamma0;
     PL[1] = ((alpha+beta+2.)*r/2. + (alpha-beta)/2.) / math.sqrt(gamma1);
     
-    if N == 1:
+    if n_order == 1:
         return PL.transpose()
 
     # Repeat value in recurrence.
@@ -124,7 +125,7 @@ def jacobi_polynomial(r, alpha, beta, N):
            * math.sqrt( (alpha+1.)*(beta+1.) / (alpha+beta+3.));
 
     # Forward recurrence using the symmetry of the recurrence.
-    for i in range(N-1):
+    for i in range(n_order-1):
         h1 = 2.*(i+1.) + alpha + beta;
         anew = 2. / (h1+2.) \
                * math.sqrt((i+2.)*(i+2.+ alpha+beta)*(i+2.+alpha)*(i+2.+beta) \
@@ -133,16 +134,16 @@ def jacobi_polynomial(r, alpha, beta, N):
         PL[i+2] = 1. / anew * (-aold * PL[i] + (r-bnew) * PL[i+1]);
         aold = anew;
 
-    return PL[N];
+    return PL[n_order];
     #return scipy.special.eval_jacobi(N,alpha,beta,r);
 
-def vandermonde_1d(N, r):
+def vandermonde_1d(n_order, r):
     """
     Initialize Vandermonde matrix
     """
-    res = np.zeros([len(r), N+1])
+    res = np.zeros([len(r), n_order+1])
     
-    for j in range(N+1):
+    for j in range(n_order+1):
         res[j] = jacobi_polynomial(r, 0, 0, j)
         
     return res.transpose()   
@@ -255,7 +256,7 @@ def normals(k_elem):
     # n_faces and n_fp are defined as global variables
     n_faces = 2
     n_fp = 1
-    nx = np.zeros([n_fp*n_faces,k_elem])
+    nx = np.zeros([n_fp * n_faces, k_elem])
     nx[0,:] = -1.0
     nx[1,:] = 1.0
     return nx 
