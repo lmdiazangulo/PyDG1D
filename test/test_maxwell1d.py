@@ -11,10 +11,10 @@ def test_spatial_discretization_lift():
 
 def test_empty_mesh():
     # Polynomial order for aproximation
-    N = 3
+    n_order = 3
     
-    mesh = Mesh1D(-2.0, 2.0, 0.8)
-    sp = SpatialDiscretization(N, mesh)
+    mesh = Mesh1D(-2.0, 2.0, 5)
+    sp = SpatialDiscretization(n_order, mesh)
 
     # Set up material parameters
     epsilon = np.ones(mesh.number_of_elements())
@@ -26,4 +26,4 @@ def test_empty_mesh():
     
     # Solve problem
     final_time = 10
-    [E, H] = maxwell1D(E_old, H_old, epsilon, mu, final_time)
+    [E, H] = maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)

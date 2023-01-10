@@ -2,11 +2,23 @@ import numpy as np
 import scipy.special
 import math
 
-k_elem = 4
-lst = [np.ones(int(k_elem/2)), 2*np.ones(int(k_elem/2))]
+A=np.array([[1,2],[3,4]])
 
-print (lst)
+x=np.array([1,2])
 
+x2=x[:,np.newaxis]
+
+y2=np.dot(A,x2)
+
+print(x)
+print(x.shape)
+print(x2)
+print (x2.shape)
+
+        jp = jacobi_polynomial(r,0,0,j)
+        jp1 = jp[:,np.newaxis]
+        res[:,j] = np.transpose(jp1)
+ res[:,j] = np.transpose(jacobi_polynomial(r, 0, 0, j))
 # r = np.array([-1. , -0.4472136 , 0.4472136 , 1.0])
 # alpha = 0
 # beta = 0 

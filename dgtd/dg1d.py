@@ -94,6 +94,14 @@ def jacobi_polynomial(r, alpha, beta, n_order):
     """
     Evaluate Jacobi Polynomial
     
+    >>> r = jacobi_gauss_lobatto(0,0,1)
+    >>> jacobi_polynomial(r, 0, 0, 1)
+    array([-1.2247,  1.2247])
+    
+    >>> r = jacobi_gauss_lobatto(0,0,2)
+    >>> jacobi_polynomial(r, 0, 0, 2)
+    array([1.5811, -0.7906,  1.5811])
+    
     >>> r = jacobi_gauss_lobatto(0,0,3)
     >>> jacobi_polynomial(r, 0, 0, 3)
     array([-1.87082869,  0.83666003, -0.83666003,  1.87082869])
@@ -118,7 +126,7 @@ def jacobi_polynomial(r, alpha, beta, n_order):
     PL[1] = ((alpha+beta+2.)*r/2. + (alpha-beta)/2.) / math.sqrt(gamma1);
     
     if n_order == 1:
-        return PL.transpose()
+        return np.transpose(PL[n_order])
 
     # Repeat value in recurrence.
     aold = 2. / (2.+alpha+beta) \
@@ -134,19 +142,19 @@ def jacobi_polynomial(r, alpha, beta, n_order):
         PL[i+2] = 1. / anew * (-aold * PL[i] + (r-bnew) * PL[i+1]);
         aold = anew;
 
-    return PL[n_order];
+    return np.transpose(PL[n_order]);
     #return scipy.special.eval_jacobi(N,alpha,beta,r);
 
 def vandermonde_1d(n_order, r):
     """
     Initialize Vandermonde matrix
     """
-    res = np.zeros([len(r), n_order+1])
-    
-    for j in range(n_order+1):
-        res[j] = jacobi_polynomial(r, 0, 0, j)
-        
-    return res.transpose()   
+#    res = jacobi_polynomial(r, 0, 0, 0)
+    res = np.zeros((len(r), n_order+1))
+    for j in range(len(r)):
+        res[:,j] = np.transpose(jacobi_polynomial(r, 0, 0, j))
+        #res = np.hstack((res, jacobi_polynomial(r, 0, 0, j)))
+    return res
     
 def jacobi_polynomial_grad(r, alpha, beta, n_order):
     """Evaluate the derivative of the Jacobi pol. of type (alpha,beta) > -1
@@ -287,7 +295,7 @@ def filter(n_order,n_c,s,vander):
     return filter
 
 
-def nodes_coordinates(n_order,etov,vx):
+def nodes_coordinates(n_order,EToV,vx):
     """
     Part of StartUp1D.m. De+fined to be able to define
     methods depedent grid properties
@@ -304,8 +312,8 @@ def nodes_coordinates(n_order,etov,vx):
 
     jgl = jacobiGL(0,0,n_order)
     
-    va = etov[:,0]
-    vb = etov[:,1]
+    va = EToV[:,0]
+    vb = EToV[:,1]
     vx_va = np.zeros([1,len(va)])
     vx_vb = np.zeros([1,len(va)])
     for i in range(len(va)):
@@ -341,7 +349,7 @@ def geometric_factors(nodes_coord,diff_matrix):
 
     return [rx,jacobian]
 
-def connect(etov):
+def connect(EToV):
     """
     Build global connectivity arrays for 1D grid based on standard 
     etov input array from grid generator
@@ -381,7 +389,7 @@ def connect(etov):
     True
     """
     n_faces = 2
-    k_elem = np.shape(etov)[0] 
+    k_elem = np.shape(EToV)[0] 
     total_faces = n_faces*k_elem
     nv = k_elem+1
     vn = np.arange(0,2)
@@ -391,7 +399,7 @@ def connect(etov):
 
     for i in range(k_elem):
         for face in range(n_faces):
-            sp_ftov[sk][etov[i][vn[face]]-1] = 1
+            sp_ftov[sk][EToV[i][vn[face]]-1] = 1
             sk += 1
     
     sp_ftof = np.matmul(sp_ftov,np.transpose(sp_ftov))-np.identity(total_faces)

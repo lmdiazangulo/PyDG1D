@@ -9,6 +9,7 @@ rk4a = np.array([])
 rk4b = np.array([])
 rk4c = np.array([])
 
+# Set inicial conditions
 
 class SpatialDiscretization:
     def __init__(self, n_order: int, mesh: Mesh1D):
@@ -23,11 +24,25 @@ class SpatialDiscretization:
 
         alpha = 0
         beta = 0
+        
+        
         r = jacobiGL(alpha, beta, n_order)
+        jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
         vander = vandermonde_1d(n_order, r)
+        nodes_c = nodes_coordinates(n_order, self.mesh.EToV, self.mesh.vx) 
+        nx = normals(mesh.number_of_elements)
+        
+        etoe, etof = connect(self.mesh.EToV)
+        vmap_m,vmap_p,vmap_b,map_b = build_maps(n_order, nodes_c, etoe, etof)
+        
+        fmask_1 = np.where(np.abs(r+1)<1e-10)[0][0]
+        fmask_2 = np.where(np.abs(r-1)<1e-10)[0][0]
+        fmask = [fmask_1,fmask_2]
 
         self.lift = surface_integral_dg(n_order, vander)
         self.diff_matrix = differentiation_matrix(n_order, r, vander)
+        rx , jacobian = geometric_factors(nodes_c, self.diff_matrix)
+        
 
     def number_of_nodes_per_element(self):
         return self.n_order + 1
@@ -77,7 +92,7 @@ def maxwellRHS1D(E, H, eps, mu, sp: SpatialDiscretization):
     flux_H = 1/Y_imp_O
 
     # Compute right hand sides of the PDE’s
-    f_scale = 1/J[fmask]
+    f_scale = 1/jacobian[fmask]
     rsh_drH = np.matmul(sp.diff_matrix, H)
     rsh_fsflE = np.multiply(f_scale, flux_E)
 
@@ -122,3 +137,6 @@ def maxwell1D(E, H, eps, mu, final_time, sp: SpatialDiscretization):
         time = time + dt
 
     return E, H
+
+
+# def maxwell_driver()

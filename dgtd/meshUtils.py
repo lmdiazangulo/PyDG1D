@@ -3,7 +3,7 @@ import scipy.special
 import math
 
 class Mesh1D:
-    def __init__(self, xmin,xmax,k_elem):
+    def __init__(self, xmin, xmax, k_elem):
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
         self.vx = vx
         self.EToV = EToV
@@ -35,11 +35,11 @@ def mesh_generator(xmin,xmax,k_elem):
     vx = np.linspace(xmin, xmax, num=n_v)
     
     #np.zeros creates a float array. etov should be an integer array
-    etov = np.full((k_elem,2),0)
+    EToV = np.full((k_elem,2),0)
     #etov = np.zeros([K,2])
     for i in range(k_elem):
-        etov[i,0] = i+1
-        etov[i,1] = i+2
+        EToV[i,0] = i+1
+        EToV[i,1] = i+2
 
-    return [n_v,vx,k_elem,etov]
+    return [n_v,vx,k_elem,EToV]
     
