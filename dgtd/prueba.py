@@ -15,11 +15,11 @@ print(x.shape)
 print(x2)
 print (x2.shape)
 
-        jp = jacobi_polynomial(r,0,0,j)
-        jp1 = jp[:,np.newaxis]
-        res[:,j] = np.transpose(jp1)
- res[:,j] = np.transpose(jacobi_polynomial(r, 0, 0, j))
-# r = np.array([-1. , -0.4472136 , 0.4472136 , 1.0])
+#         jp = jacobi_polynomial(r,0,0,j)
+#         jp1 = jp[:,np.newaxis]
+#         res[:,j] = np.transpose(jp1)
+#  res[:,j] = np.transpose(jacobi_polynomial(r, 0, 0, j))
+# # r = np.array([-1. , -0.4472136 , 0.4472136 , 1.0])
 # alpha = 0
 # beta = 0 
 # N = 3
