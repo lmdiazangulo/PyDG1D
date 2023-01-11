@@ -5,9 +5,9 @@ import math
 from dgtd.dg1d import *
 from dgtd.meshUtils import Mesh1D
 
-rk4a = np.array([])
-rk4b = np.array([])
-rk4c = np.array([])
+rk4a = np.array([0,	-0.417890474499852,	-1.19215169464268,	-1.69778469247153,	-1.51418344425716])
+rk4b = np.array([0.149659021999229,	0.379210312999627,	0.822955029386982,	0.699450455949122,	0.153057247968152])
+rk4c = np.array([0,	0.149659021999229,	0.370400957364205,	0.622255763134443,	0.958282130674690])
 
 # Set inicial conditions
 
@@ -29,7 +29,7 @@ class SpatialDiscretization:
         r = jacobiGL(alpha, beta, n_order)
         jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
         vander = vandermonde_1d(n_order, r)
-        nodes_c = nodes_coordinates(n_order, self.mesh.EToV, self.mesh.vx) 
+        nodes_c = nodes_coordinates(n_order, mesh.EToV, mesh.vx) 
         nx = normals(mesh.number_of_elements)
         
         etoe, etof = connect(self.mesh.EToV)

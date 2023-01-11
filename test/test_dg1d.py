@@ -193,7 +193,7 @@ def test_geometric_factors():
                      [1.2500,   1.2500,   1.2500,   1.2500]]),
                        J)  
     
-def test_connect():
+def test_connect_4_nodes():
     [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
     [etoe, etof] = dg.connect(etov)
     etoe_test =  np.array([[1,2], [1,3], [2,4], 
@@ -202,3 +202,49 @@ def test_connect():
                           [2,2]])
     assert np.allclose(etoe, etoe_test)
     assert np.allclose(etof,etof_test)
+    
+def test_connect_7_nodes():
+    [Nv,vx,K,etov] = ms.mesh_generator(-1,22,7)
+    [etoe, etof] = dg.connect(etov)
+    etoe_test =  np.array([[1,2], [1,3], [2,4], 
+                           [3,5], [4,6], [5,7],
+                           [6,7]])
+    etof_test = np.array([[1,1], [2,1], [2,1],
+                          [2,1], [2,1], [2,1],
+                          [2,2]])
+    assert np.allclose(etoe, etoe_test)
+    assert np.allclose(etof,etof_test)
+    
+def test_build_maps():
+    [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
+    x = dg.nodes_coordinates(4,etov,vx)
+    [etoe, etof] = dg.connect(etov)
+    [vmap_m,vmap_p,vmap_b,map_b] = dg.build_maps(4,x,etoe,etof)
+    vmap_m_test = np.array([[1,5,6,10,11,15,16,20]])
+    vmap_p_test = np.array([[1,6,5,11,10,16,15,20]])
+    vmap_b_test = np.array([[1,20]])
+    map_b_test = np.array([[1,8]])
+    assert np.allclose(vmap_m,vmap_m_test)
+    assert np.allclose(vmap_p,vmap_p_test)
+    assert np.allclose(vmap_b,vmap_b_test)
+    assert np.allclose(map_b,map_b_test)
+
+def test_set_nodes_1d():
+    vx = np.array([0.0, 1.0, 2.0])
+    etov = np.array([[0, 1],
+                     [1, 2]])
+    N = 4
+    x = dg.set_nodes_1d(N, vx[etov])
+    assert np.allclose(
+        np.transpose(
+            np.array([[0.00, 0.25, 0.50, 0.75, 1.00],
+                      [1.00, 1.25, 1.50, 1.75, 2.00]])), 
+            x)
+  
+def test_node_indices_1d_N_1_2():
+    assert np.allclose(np.array([[1, 0], [0,1]]), 
+                       dg.node_indices_1d(1))
+    assert np.allclose(np.array([[2, 0], [1,1], 
+                                 [0,2]]), 
+                       dg.node_indices_1d(2))
+    
