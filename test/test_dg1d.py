@@ -167,3 +167,38 @@ def test_filter():
                                  [-0.02848024,  0.16667684,  0.66667684,  0.19512656],
                                  [-0.1666158 , -0.14240119,  0.9756328 ,  0.3333842 ]]),
                        dg.filter(3,1,1,dg.vandermonde_1d(3, dg.jacobiGL(0.0, 0.0 , 3)))) 
+    
+def test_nodes_coordinates():
+    [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
+    assert np.allclose(np.array([[0.00000000,    2.50000000,    5.00000000,    7.50000000], 
+                                 [0.43168291,    2.93168291,    5.43168291,    7.93168291], 
+                                 [1.25000000,    3.75000000,    6.25000000,    8.75000000], 
+                                 [2.06831709,    4.56831709,    7.06831709,    9.56831709], 
+                                 [2.50000000,    5.00000000,    7.50000000,   10.00000000]]),
+                       dg.nodes_coordinates(4,etov,vx )) 
+    
+def test_geometric_factors():
+    [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
+    x           = dg.nodes_coordinates(2,etov,vx)
+    r           = dg.jacobiGL(0.0, 0.0, 2)
+    V           = dg.vandermonde_1d(2, r)
+    Dr          = dg.differentiation_matrix(2,r,V)
+    [rx, J]     = dg.geometric_factors(x, Dr)
+    assert np.allclose(np.array([[0.80000,   0.80000,   0.80000,   0.80000], \
+                                 [0.80000,   0.80000,   0.80000,   0.80000], \
+                                 [0.80000,   0.80000,   0.80000,   0.80000]]),
+                       rx)
+    assert np.allclose(np.array([[1.2500,   1.2500,   1.2500,   1.2500], 
+                     [1.2500,   1.2500,   1.2500,   1.2500], 
+                     [1.2500,   1.2500,   1.2500,   1.2500]]),
+                       J)  
+    
+def test_connect():
+    [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
+    [etoe, etof] = dg.connect(etov)
+    etoe_test =  np.array([[1,2], [1,3], [2,4], 
+                           [3,4]])
+    etof_test = np.array([[1,1], [2,1], [2,1],
+                          [2,2]])
+    assert np.allclose(etoe, etoe_test)
+    assert np.allclose(etof,etof_test)
