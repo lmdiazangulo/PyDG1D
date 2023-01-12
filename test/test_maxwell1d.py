@@ -27,8 +27,8 @@ def test_empty_mesh():
     x       = set_nodes_1d(n_order, mesh.vx[mesh.EToV])
     
     # Set initial condition
-    E_old = math.sin(np.pi*x)
-    H_old = np.zeros((sp.number_of_nodes_per_element(), mesh.number_of_elements()))
+    E_old = 0 #math.sin(np.pi*x)
+    H_old = 0 #np.zeros((sp.number_of_nodes_per_element(), mesh.number_of_elements()))
     
     # Solve problem
     final_time = 10
