@@ -33,6 +33,7 @@ def test_empty_mesh():
     # Solve problem
     final_time = 10
     [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
+ #   assert np.allclose(E, )
     
 # def test_maxwell1d_1():
 #     assert np.allclose(maxwell1d(E, H, eps, mu, final_time, sp: SpatialDiscretization), )
