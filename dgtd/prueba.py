@@ -2,18 +2,47 @@ import numpy as np
 import scipy.special
 import math
 
-A=np.array([[1,2],[3,4]])
+def scope_test():
+    def do_local():
 
-x=np.array([1,2])
+        spam = "local spam"
 
-x2=x[:,np.newaxis]
+    def do_nonlocal():
+        nonlocal spam
+        spam = "nonlocal spam"
 
-y2=np.dot(A,x2)
+    def do_global():
+        global spam
+        spam = "global spam"
 
-print(x)
-print(x.shape)
-print(x2)
-print (x2.shape)
+    spam = "test spam"
+    
+    do_local()
+    print("After local assignment:", spam)
+    do_nonlocal()
+    print("After nonlocal assignment:", spam)
+    do_local()
+    print("After local assignment:", spam)
+    do_global()
+    print("After global assignment:", spam)
+    do_nonlocal()
+    print("After nonlocal assignment:", spam)
+
+scope_test()
+print("In global scope:", spam)
+
+# A=np.array([[1,2],[3,4]])
+
+# x=np.array([1,2])
+
+# x2=x[:,np.newaxis]
+
+# y2=np.dot(A,x2)
+
+# print(x)
+# print(x.shape)
+# print(x2)
+# print (x2.shape)
 
 #         jp = jacobi_polynomial(r,0,0,j)
 #         jp1 = jp[:,np.newaxis]

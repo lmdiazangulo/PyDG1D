@@ -243,9 +243,9 @@ def surface_integral_dg(n_order,vander):
     """
     n_p = n_order+1
 
-    emat = np.zeros([n_p,n_faces*n_fp])
-    emat[0,0] = 1.0
-    emat[n_p-1,1] = 1.0
+    emat = np.zeros([n_p, n_faces*n_fp])
+    emat[0, 0] = 1.0
+    emat[n_p-1, 1] = 1.0
 
     v_trans = np.transpose(vander)
     v_i = np.matmul(v_trans,emat)
@@ -317,8 +317,8 @@ def nodes_coordinates(n_order,EToV,vx):
     vx_va = np.zeros([1,len(va)])
     vx_vb = np.zeros([1,len(va)])
     for i in range(len(va)):
-        vx_va[0,i] = vx[va[i]-1]
-        vx_vb[0,i] = vx[vb[i]-1]
+        vx_va[0,i] = vx[va[i]]
+        vx_vb[0,i] = vx[vb[i]]
 
     nodes_coord = np.matmul(np.ones([n_order+1,1]),vx_va)+0.5*np.matmul((jgl.reshape(n_order+1,1)+1),(vx_vb-vx_va))
     return nodes_coord

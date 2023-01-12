@@ -26,7 +26,7 @@ def mesh_generator(xmin,xmax,k_elem):
     True
     >>> K
     4
-    >>> etov_test = ([[1, 2],[2, 3],[3, 4],[4, 5]])
+    >>> etov_test = ([0,1],[[1, 2],[2, 3],[3, 4]])
     >>> np.allclose(etov,etov_test)
     True
     """
@@ -38,8 +38,8 @@ def mesh_generator(xmin,xmax,k_elem):
     EToV = np.full((k_elem,2),0)
     #etov = np.zeros([K,2])
     for i in range(k_elem):
-        EToV[i,0] = i+1
-        EToV[i,1] = i+2
+        EToV[i,0] = i
+        EToV[i,1] = i+1
 
     return [n_v,vx,k_elem,EToV]
     

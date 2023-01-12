@@ -24,15 +24,14 @@ class SpatialDiscretization:
 
         alpha = 0
         beta = 0
-        
-        
+    
         r = jacobiGL(alpha, beta, n_order)
         jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
         vander = vandermonde_1d(n_order, r)
         nodes_c = nodes_coordinates(n_order, mesh.EToV, mesh.vx) 
-        nx = normals(mesh.number_of_elements)
+        nx = normals(mesh.number_of_elements()) 
         
-        etoe, etof = connect(self.mesh.EToV)
+        etoe, etof = connect(mesh.EToV)
         vmap_m,vmap_p,vmap_b,map_b = build_maps(n_order, nodes_c, etoe, etof)
         
         fmask_1 = np.where(np.abs(r+1)<1e-10)[0][0]

@@ -4,9 +4,13 @@ import matplotlib.pyplot as plt
 from dgtd.maxwell1d import *
 from dgtd.meshUtils import *
 
+import dgtd.meshUtils as ms
+import dgtd.maxwell1d as mw
+
 def test_spatial_discretization_lift():
     sp = SpatialDiscretization(1, Mesh1D(0.0, 1.0, 1))
-    assert  self.lift == surface_integral_dg(n_order, vander)
+    assert   np.allclose(surface_integral_dg(1, vandermonde_1d(1, jacobiGL(0.0,0.0,1))), 
+                         np.array([[2.0,-1.0],[-1.0,2.0]]))
 
 
 def test_empty_mesh():
@@ -23,9 +27,12 @@ def test_empty_mesh():
     x       = set_nodes_1d(n_order, mesh.vx[mesh.EToV])
     
     # Set initial condition
-    E_old = np.multiply(math.sin(np.pi*x) , x)
-    H_old = np.zeros((sp.number_of_nodes_per_element(), mesh.number_of_elements))
+    E_old = math.sin(np.pi*x)
+    H_old = np.zeros((sp.number_of_nodes_per_element(), mesh.number_of_elements()))
     
     # Solve problem
     final_time = 10
-    [E, H] = maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
+    [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
+    
+# def test_maxwell1d_1():
+#     assert np.allclose(maxwell1d(E, H, eps, mu, final_time, sp: SpatialDiscretization), )
