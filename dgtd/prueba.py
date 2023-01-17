@@ -1,35 +1,84 @@
+
 import numpy as np
-import scipy.special
-import math
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
-def scope_test():
-    def do_local():
+fig, ax = plt.subplots()
 
-        spam = "local spam"
+#x = np.arange(0, 2*np.pi, 0.01)
+x = np.zeros([60,60])
+for i in range (60):
+    x[i,i] = i/2
 
-    def do_nonlocal():
-        nonlocal spam
-        spam = "nonlocal spam"
+x_list = np.zeros([3600])  
+x_reshaped = x.reshape((x_list.shape))
+line, = ax.plot(x_reshaped, np.sin(x_reshaped))
+#line = plt.plot(x, np.sin(x))
 
-    def do_global():
-        global spam
-        spam = "global spam"
+def animate(i):
+    line.set_ydata(np.sin(x_reshaped + i / 50))  # update the data.
+    return line,
 
-    spam = "test spam"
+
+ani = animation.FuncAnimation(
+    fig, animate, interval=20, blit=True, save_count=50)
+
+# To save the animation, use e.g.
+#
+# ani.save("movie.mp4")
+#
+# or
+#
+# writer = animation.FFMpegWriter(
+#     fps=15, metadata=dict(artist='Me'), bitrate=1800)
+# ani.save("movie.mp4", writer=writer)
+
+plt.show()
+print("END")
+# import numpy as np
+# import scipy.special
+# import math
+
+
+
+# plt.figure()
+# plt.semilogx(freq, np.real(mu), label='original')
+# plt.semilogx(freq, mup_inv, 'r--',label='retrieved')
+
+# plt.figure()
+# plt.semilogx(freq, np.imag(mu), label='original')
+# plt.semilogx(freq, -mupp_inv, 'r--',label='retrieved')
+
+# plt.show()
     
-    do_local()
-    print("After local assignment:", spam)
-    do_nonlocal()
-    print("After nonlocal assignment:", spam)
-    do_local()
-    print("After local assignment:", spam)
-    do_global()
-    print("After global assignment:", spam)
-    do_nonlocal()
-    print("After nonlocal assignment:", spam)
+# def scope_test():
+#     def do_local():
 
-scope_test()
-print("In global scope:", spam)
+#         spam = "local spam"
+
+#     def do_nonlocal():
+#         nonlocal spam
+#         spam = "nonlocal spam"
+
+#     def do_global():
+#         global spam
+#         spam = "global spam"
+
+#     spam = "test spam"
+    
+#     do_local()
+#     print("After local assignment:", spam)
+#     do_nonlocal()
+#     print("After nonlocal assignment:", spam)
+#     do_local()
+#     print("After local assignment:", spam)
+#     do_global()
+#     print("After global assignment:", spam)
+#     do_nonlocal()
+#     print("After nonlocal assignment:", spam)
+
+# scope_test()
+# print("In global scope:", spam)
 
 # A=np.array([[1,2],[3,4]])
 

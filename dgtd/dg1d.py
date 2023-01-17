@@ -503,7 +503,7 @@ def build_maps(n_order,nodes_coord,etoe,etof):
     vmap_i = 1
     vmap_0 = k_elem*n_p
     
-    return [vmap_m,vmap_p,vmap_b,map_b]
+    return [vmap_m-1, vmap_p-1, vmap_b-1, map_b-1]
 
 
 def set_nodes_1d(N, vertices):
@@ -511,10 +511,10 @@ def set_nodes_1d(N, vertices):
     Sets N+1 nodes in equispaced positions using the vertices indicated
     by vx.
     """
-    K = vertices.shape[1] # vertices columns 
-    x = np.zeros((N+1, K))
+    K = vertices.shape[0] # vertices columns 
+    x = np.zeros([N+1, K])
     for k in range(K):
-        x[:,k] = np.linspace(vertices[0,k], vertices[1,k], num=N+1)
+        x[:,k] = np.linspace(vertices[k,0], vertices[k,1], num=N+1)
              
     return x
 
