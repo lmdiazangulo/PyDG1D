@@ -67,7 +67,7 @@ def test_maxwell1d_mesh_graph_initial_condition():
     plt.show()
     
     # Solve problem
-    final_time = 10
+    final_time = 1
     [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
     
 
@@ -75,9 +75,9 @@ def test_maxwell1d_mesh_graph_final_condition():
     # Polynomial order for aproximation
     fig, ax = plt.subplots()
     
-    n_order = 6
+    n_order = 3
     
-    mesh = Mesh1D(-1.0, 1.0, 80)
+    mesh = Mesh1D(-1.0, 1.0,5)
     sp = SpatialDiscretization(n_order, mesh)
     
     epsilon = np.ones([n_order+1, mesh.number_of_elements()])
@@ -87,31 +87,34 @@ def test_maxwell1d_mesh_graph_final_condition():
     
     
     # Set initial condition
-    E_old = np.multiply(np.sin(np.pi*x),x<0)
+    #E_old = np.sin(np.pi*x)*(x<0)
+    E_old = (1.0/2.0*np.sqrt(2*np.pi))*np.exp(-40.0*np.power(2.0*sp.nodes_c-1.0,2)/4.0)
     H_old = np.zeros([n_order+1, mesh.number_of_elements()]) 
     
+    
+    
     # Solve problem
-    final_time = 10
+    final_time = 1
     [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
     
     x_list = np.zeros([x.size])
-    H_list = np.zeros([E.size])
-    x_reshaped = x_list.reshape((x_list.shape))
-    H_reshaped = H_list.reshape((H_list.shape))
+    H_list = np.zeros([H_old.size])
+    x_reshaped = x.reshape((x_list.shape))
+    H_reshaped = H.reshape((H_list.shape))
     line,   = ax.plot(x_reshaped, H_reshaped)
     
     plt.figure()
     plt.title("Final Magnetic Field")
-  #  line, _ = ax.plot(x, H)
-  #  line = plt.plot(x,H)
-    
+
     def animate(i):
         line.set_ydata(H_reshaped + i / 50)  # update the data.
         return line,
 
-
+  #  line, _ = ax.plot(x, H)
+  #  line = plt.plot(x,H)
+    
     ani = animation.FuncAnimation(
-    fig, animate, interval=20, blit=True, save_count=50)
+    fig, animate, interval=100, blit=True, save_count=10)
 
     plt.show()
     

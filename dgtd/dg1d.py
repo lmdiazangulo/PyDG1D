@@ -537,4 +537,3 @@ def node_indices_1d(N):
     for i in range(Np):
         nId[i] = [N-i, i]     
     return nId.astype(int)
-
