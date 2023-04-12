@@ -16,25 +16,29 @@ def test_spatial_discretization_lift():
 
 
 def test_empty_mesh():
-    # Polynomial order for aproximation
-    n_order = 3
-    
     mesh = Mesh1D(-2.0, 2.0, 10)
+    
+    n_order = 3
     sp = SpatialDiscretization(n_order, mesh)
     
-    # Set initial condition
-    E_old = np.zeros([n_order+1, mesh.number_of_elements()]) #math.sin(np.pi*x) np.zeros((N+1, K))
-    H_old = np.zeros([n_order+1, mesh.number_of_elements()]) #np.zeros((sp.number_of_nodes_per_element(), mesh.number_of_elements()))
+    driver = MaxwellDriver(sp)
+    driver.E = np.sin(np.pi*sp.x)
     
-    final_time = 10
-    [E, H] = mw.maxwell1D(E_old, H_old, final_time, sp)
- #   assert np.allclose(E, )
-    
-# def test_maxwell1d_1():
-#     assert np.allclose(maxwell1d(E, H, eps, mu, final_time, sp: SpatialDiscretization), )
+    for tStep in range(1000):
+        driver.step()
 
+        plt.plot(sp.x, driver.E, '.-b')
+        plt.plot(sp.x, driver.H, '.-r')
+        plt.grid()
+        plt.ylim(-1, 1)
+        plt.xlim(-2, 2)
+        plt.pause(0.05)
+        plt.cla()
+
+
+
+    
 def test_maxwell1d_mesh_graph_initial_condition():
-    # Polynomial order for aproximation
     n_order = 6
     
     mesh = Mesh1D(-1.0, 1.0, 80)
@@ -81,7 +85,7 @@ def test_maxwell1d_mesh_graph_final_condition():
     
     # Set initial condition
     #E_old = np.sin(np.pi*x)*(x<0)
-    E_old = (1.0/2.0*np.sqrt(2*np.pi))*np.exp(-40.0*np.power(2.0*sp.nodes_c-1.0,2)/4.0)
+    E_old = (1.0/2.0*np.sqrt(2*np.pi))*np.exp(-40.0*np.power(2.0*sp.x-1.0,2)/4.0)
     H_old = np.zeros([n_order+1, mesh.number_of_elements()]) 
     
     

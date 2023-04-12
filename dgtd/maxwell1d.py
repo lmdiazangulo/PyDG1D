@@ -17,8 +17,8 @@ class SpatialDiscretization:
         self.mesh = mesh
         self.n_order = n_order
 
-        n_faces = 2
-        n_fp = 1
+        self.n_faces = 2
+        self.n_fp = 1
 
         alpha = 0
         beta = 0
@@ -31,11 +31,11 @@ class SpatialDiscretization:
         r = jacobiGL(alpha, beta, n_order)
         jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
         vander = vandermonde_1d(n_order, r)
-        self.nodes_c = nodes_coordinates(n_order, mesh.EToV, mesh.vx) 
+        self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx) 
         self.nx = normals(mesh.number_of_elements()) 
         
         etoe, etof = connect(mesh.EToV)
-        self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(n_order, self.nodes_c, etoe, etof)
+        self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(n_order, self.x, etoe, etof)
         
         self.fmask_1 = np.where(np.abs(r+1)<1e-10)[0][0]
         self.fmask_2 = np.where(np.abs(r-1)<1e-10)[0][0]
@@ -43,7 +43,7 @@ class SpatialDiscretization:
 
         self.lift = surface_integral_dg(n_order, vander)
         self.diff_matrix = differentiation_matrix(n_order, r, vander)
-        self.rx , self.jacobian = geometric_factors(self.nodes_c, self.diff_matrix)
+        self.rx , self.jacobian = geometric_factors(self.x, self.diff_matrix)
         
 
     def number_of_nodes_per_element(self):
@@ -53,8 +53,7 @@ class SpatialDiscretization:
         return set_nodes_1d(self.n_order, self.mesh.vx[self.mesh.EToV])
     
     def get_impedance(self):
-        # Define field differences at faces
-        Z_imp = np.zeros(self.nodes_c.shape)
+        Z_imp = np.zeros(self.x.shape)
         for i in range(Z_imp.shape[1]):
             Z_imp[:,i] = np.sqrt(self.mu[i] / self.epsilon[i])
         
@@ -70,8 +69,8 @@ def maxwellRHS1D(E, H, sp: SpatialDiscretization):
     Z_imp = sp.get_impedance()
     Z_imp_m = Z_imp.transpose().take(sp.vmap_m)
     Z_imp_p = Z_imp.transpose().take(sp.vmap_p)
-    Z_imp_m = Z_imp_m.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
-    Z_imp_p = Z_imp_p.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
+    Z_imp_m = Z_imp_m.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+    Z_imp_p = Z_imp_p.reshape(sp.n_fp*sp.n_faces, K, order='F') 
     
     Y_imp_m = 1.0 / Z_imp_m
     Y_imp_p = 1.0 / Z_imp_p
@@ -82,72 +81,60 @@ def maxwellRHS1D(E, H, sp: SpatialDiscretization):
     Hbc = H.transpose().take(sp.vmap_b)
     dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
 
-    dE = dE.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
-    dH = dH.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
+    dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+    dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
     
     # Evaluate upwind fluxes
     Z_imp_sum = Z_imp_m + Z_imp_p
-   # Z_imp_mult = reshaped_nx*Z_imp_p
-   # Z_imp_mult2 = np.multiply(Z_imp_mult, dH) - dE
-   # Z_imp_O = np.multiply(Z_imp_sum, Z_imp_mult2)
-    flux_E = 1/Z_imp_sum*(reshaped_nx*Z_imp_p*dH-dE)
-
+    flux_E = 1/Z_imp_sum*(sp.nx*Z_imp_p*dH-dE)
+    
     Y_imp_sum = Y_imp_m + Y_imp_p
-
-   
-   # Y_imp_mult = np.multiply(reshaped_nx, Y_imp_p)
-   # Y_imp_mult2 = np.multiply(Y_imp_mult, dE) - dH
-   # Y_imp_O = np.multiply(Y_imp_sum, Y_imp_mult2)
-    flux_H = 1/Y_imp_sum*(reshaped_nx*Y_imp_p*dE-dH)
+    flux_H = 1/Y_imp_sum*(sp.nx*Y_imp_p*dE-dH)
 
     # Compute right hand sides of the PDE’s
     f_scale = 1/sp.jacobian[sp.fmask]
     rhs_drH = np.matmul(sp.diff_matrix, H)
-    reshaped_flux_E = flux_E.reshape((f_scale.shape))
-    rhs_fsflE = np.multiply(f_scale, reshaped_flux_E)
+    rhs_fsflE = f_scale * flux_E
     
-    reshaped_flux_H = flux_H.reshape((f_scale.shape))
     rhs_drE = np.matmul(sp.diff_matrix, E)
-    rhs_fsflH = np.multiply(f_scale, reshaped_flux_H)
+    rhs_fsflH = f_scale * flux_H
 
     rhs_E = 1/sp.epsilon* (np.multiply(-1*sp.rx, rhs_drH) + np.matmul(sp.lift, rhs_fsflE))
     rhs_H = 1/sp.mu     * (np.multiply(-1*sp.rx, rhs_drE) + np.matmul(sp.lift, rhs_fsflH))
 
-    return [rhs_E, rhs_H]
+    return rhs_E, rhs_H
 
 
-def maxwell1D(E, H, final_time, sp: SpatialDiscretization):
+class MaxwellDriver:
+    def __init__(self, sp: SpatialDiscretization):
+        self.sp = sp
 
-    # Compute time step size
-    x = sp.nodes_c
-    x_min = min(np.abs(x[0, :] - x[1, :]))
-    CFL = 0.8
-    dt = CFL * x_min
-    N_steps = math.ceil(final_time/dt)
-    dt = final_time/N_steps
+        # Compute time step size
+        x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
+        CFL = 1.0
+        self.dt = CFL / (2*np.pi) * x_min       
+        self.time = 0.0
 
-    n_p = sp.number_of_nodes_per_element()
-    k = sp.mesh.number_of_elements()
+        self.E = np.zeros([sp.number_of_nodes_per_element(), sp.mesh.number_of_elements()])
+        self.H = np.zeros(self.E.shape)
 
-    # Runge Kutta storage
-    res_E = np.zeros([n_p, k])
-    res_H = np.zeros([n_p, k])
-
-    # Outer time step loop
-    time = 0
-    for t_step in range(1, N_steps):
+    def step(self):           
+        n_p = self.sp.number_of_nodes_per_element()
+        k = self.sp.mesh.number_of_elements()
+        
+        res_E = np.zeros([n_p, k])
+        res_H = np.zeros([n_p, k])
         for INTRK in range(0, 4):
-            [rhs_E, rhs_H] = maxwellRHS1D(E, H, sp)
+            rhs_E, rhs_H = maxwellRHS1D(self.E, self.H, self.sp)
 
-            res_E = rk4a[INTRK]*res_E + dt*rhs_E
-            res_H = rk4a[INTRK]*res_H + dt*rhs_H
+            res_E = rk4a[INTRK]*res_E + self.dt*rhs_E
+            res_H = rk4a[INTRK]*res_H + self.dt*rhs_H
 
-            E = E + rk4b[INTRK]*res_E
-            H = H + rk4b[INTRK]*res_H
+            self.E += rk4b[INTRK]*res_E
+            self.H += rk4b[INTRK]*res_H
 
-        time = time + dt
+        self.time += self.dt
 
-    return E, H
-
-
-# def maxwell_driver()
+    def run(self, final_time):
+        for t_step in range(1, math.ceil(final_time/self.dt)):
+            self.step()
