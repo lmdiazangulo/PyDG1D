@@ -73,7 +73,7 @@ def jacobi_gauss(alpha, beta, n_order):
         * np.sqrt(aux*(aux+alpha+beta)*(aux+alpha) \
         * (aux+beta)/(h1[0:n_order]+1)/(h1[0:n_order]+3)),1)
 
-    eps = np.finfo(np.float).eps
+    eps = np.finfo(float).eps
 
     if (alpha+beta < 10*eps):
         j_matrix[0,0] = 0.0
@@ -283,7 +283,7 @@ def filter(n_order,n_c,s,vander):
     """
     s_even = 2*s
     f_diagonal = np.ones(n_order+1)
-    alpha = -np.log(np.finfo(np.float).eps)
+    alpha = -np.log(np.finfo(float).eps)
 
     for i in range(n_c,n_order+1):
         f_diagonal[i] = np.exp(-alpha*((i-n_c)/(n_order-n_c))**s_even)
