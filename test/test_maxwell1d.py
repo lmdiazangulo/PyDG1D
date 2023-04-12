@@ -18,19 +18,20 @@ def test_spatial_discretization_lift():
 def test_empty_mesh():
     mesh = Mesh1D(-2.0, 2.0, 10)
     
-    n_order = 3
+    n_order = 5
     sp = SpatialDiscretization(n_order, mesh)
     
     driver = MaxwellDriver(sp)
-    driver.E = np.sin(np.pi*sp.x)
+    # driver.E = np.sin(np.pi*sp.x)
+    driver.E = np.exp(-(sp.x)**2/(2*0.25**2))
     
-    for tStep in range(1000):
+    for tStep in range(300):
         driver.step()
 
         plt.plot(sp.x, driver.E, '.-b')
         plt.plot(sp.x, driver.H, '.-r')
         plt.grid()
-        plt.ylim(-1, 1)
+        plt.ylim(-1.1, 1.1)
         plt.xlim(-2, 2)
         plt.pause(0.05)
         plt.cla()
