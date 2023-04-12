@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.special
-import numpy.linalg
 import math
 from dgtd.dg1d import *
 from dgtd.meshUtils import Mesh1D
@@ -24,6 +22,11 @@ class SpatialDiscretization:
 
         alpha = 0
         beta = 0
+
+        # Set up material parameters
+        self.epsilon = np.ones(mesh.number_of_elements())
+        self.mu      = np.ones(mesh.number_of_elements())
+        
     
         r = jacobiGL(alpha, beta, n_order)
         jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
@@ -48,42 +51,40 @@ class SpatialDiscretization:
 
     def get_nodes(self):
         return set_nodes_1d(self.n_order, self.mesh.vx[self.mesh.EToV])
+    
+    def get_impedance(self):
+        # Define field differences at faces
+        Z_imp = np.zeros(self.nodes_c.shape)
+        for i in range(Z_imp.shape[1]):
+            Z_imp[:,i] = np.sqrt(self.mu[i] / self.epsilon[i])
+        
+        return Z_imp
 
 
-def maxwellRHS1D(E, H, eps, mu, sp: SpatialDiscretization):
-    # n_fp = 2
-    # n_faces = 1
-    Z_imp = np.sqrt(mu / eps)
+def maxwellRHS1D(E, H, sp: SpatialDiscretization):
+    K = sp.mesh.number_of_elements()
 
-    K = sp.mesh.number_of_elements()      
-
-    dE = np.zeros([n_fp*n_faces, K])
     dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
-
-    dH = np.zeros([n_fp*n_faces, K])
-  #  dH = H[sp.vmap_m] - H[sp.vmap_p]
     dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
 
-    # Define field differences at faces
-#    Z_imp_m = np.zeros([n_fp*n_faces, K])
+    Z_imp = sp.get_impedance()
     Z_imp_m = Z_imp.transpose().take(sp.vmap_m)
-#    Z_imp_p = np.zeros([n_fp*n_faces, K])
     Z_imp_p = Z_imp.transpose().take(sp.vmap_p)
- #   Y_imp_m = np.zeros([n_fp*n_faces, K])
-    Y_imp_m = 1/Z_imp_m #np.linalg.inv(Z_imp_m)
- #   Y_imp_p = np.zeros((n_fp*n_faces, K))
-    Y_imp_p = 1/Z_imp_p #np.linalg.inv(Z_imp_p)
-
-    #assignaments
-
+    Z_imp_m = Z_imp_m.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
+    Z_imp_p = Z_imp_p.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
     
+    Y_imp_m = 1.0 / Z_imp_m
+    Y_imp_p = 1.0 / Z_imp_p
+
     # Homogeneous boundary conditions
     Ebc = -1*E.transpose().take(sp.vmap_b)
     dE[sp.map_b] = E.transpose().take(sp.vmap_b) - Ebc
     Hbc = H.transpose().take(sp.vmap_b)
     dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
 
-    reshaped_nx = sp.nx.reshape((Y_imp_p.shape))
+    dE = dE.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
+    dH = dH.reshape(sp.Nfp*sp.Nfaces, K, order='F') 
+    
     # Evaluate upwind fluxes
     Z_imp_sum = Z_imp_m + Z_imp_p
    # Z_imp_mult = reshaped_nx*Z_imp_p
@@ -101,21 +102,21 @@ def maxwellRHS1D(E, H, eps, mu, sp: SpatialDiscretization):
 
     # Compute right hand sides of the PDE’s
     f_scale = 1/sp.jacobian[sp.fmask]
-    rsh_drH = np.matmul(sp.diff_matrix, H)
+    rhs_drH = np.matmul(sp.diff_matrix, H)
     reshaped_flux_E = flux_E.reshape((f_scale.shape))
-    rsh_fsflE = np.multiply(f_scale, reshaped_flux_E)
+    rhs_fsflE = np.multiply(f_scale, reshaped_flux_E)
     
     reshaped_flux_H = flux_H.reshape((f_scale.shape))
-    rsh_drE = np.matmul(sp.diff_matrix, E)
-    rsh_fsflH = np.multiply(f_scale, reshaped_flux_H)
+    rhs_drE = np.matmul(sp.diff_matrix, E)
+    rhs_fsflH = np.multiply(f_scale, reshaped_flux_H)
 
-    rhs_E = 1/eps*(np.multiply(-1*sp.rx, rsh_drH) + np.matmul(sp.lift, rsh_fsflE))
-    rhs_H = 1/mu* (np.multiply(-1*sp.rx, rsh_drE) + np.matmul(sp.lift, rsh_fsflH))
+    rhs_E = 1/sp.epsilon* (np.multiply(-1*sp.rx, rhs_drH) + np.matmul(sp.lift, rhs_fsflE))
+    rhs_H = 1/sp.mu     * (np.multiply(-1*sp.rx, rhs_drE) + np.matmul(sp.lift, rhs_fsflH))
 
     return [rhs_E, rhs_H]
 
 
-def maxwell1D(E, H, eps, mu, final_time, sp: SpatialDiscretization):
+def maxwell1D(E, H, final_time, sp: SpatialDiscretization):
 
     # Compute time step size
     x = sp.nodes_c
@@ -136,7 +137,7 @@ def maxwell1D(E, H, eps, mu, final_time, sp: SpatialDiscretization):
     time = 0
     for t_step in range(1, N_steps):
         for INTRK in range(0, 4):
-            [rhs_E, rhs_H] = maxwellRHS1D(E, H, eps, mu, sp)
+            [rhs_E, rhs_H] = maxwellRHS1D(E, H, sp)
 
             res_E = rk4a[INTRK]*res_E + dt*rhs_E
             res_H = rk4a[INTRK]*res_H + dt*rhs_H
