@@ -23,7 +23,7 @@ def test_empty_mesh():
     
     driver = MaxwellDriver(sp)
     # driver.E = np.sin(np.pi*sp.x)
-    driver.E = np.exp(-(sp.x)**2/(2*0.25**2))
+    driver.E = np.exp(-(sp.x-0.5)**2/(2*0.25**2))
     
     for tStep in range(300):
         driver.step()
@@ -33,7 +33,7 @@ def test_empty_mesh():
         plt.grid()
         plt.ylim(-1.1, 1.1)
         plt.xlim(-2, 2)
-        plt.pause(0.05)
+        plt.pause(0.0)
         plt.cla()
 
 

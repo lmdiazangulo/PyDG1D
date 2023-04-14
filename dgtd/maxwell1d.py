@@ -75,11 +75,17 @@ def maxwellRHS1D(E, H, sp: SpatialDiscretization):
     Y_imp_m = 1.0 / Z_imp_m
     Y_imp_p = 1.0 / Z_imp_p
 
-    # Homogeneous boundary conditions
-    Ebc = -1*E.transpose().take(sp.vmap_b)
-    dE[sp.map_b] = E.transpose().take(sp.vmap_b) - Ebc
-    Hbc = H.transpose().take(sp.vmap_b)
-    dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
+    ## Homogeneous boundary conditions for PEC
+    # Ebc = -1*E.transpose().take(sp.vmap_b)
+    # dE[sp.map_b] = E.transpose().take(sp.vmap_b) - Ebc 
+    # Hbc = H.transpose().take(sp.vmap_b)
+    # dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
+    
+    # Homogeneous boundary conditions for periodic condition
+    Ebc = E.transpose().take(sp.vmap_b[::-1])
+    dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
+    Hbc = H.transpose().take(sp.vmap_b[::-1])
+    dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
 
     dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
     dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
