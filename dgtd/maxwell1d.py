@@ -59,8 +59,20 @@ class SpatialDiscretization:
         
         return Z_imp
 
+def maxwell_bc(bc, E, H, sp: SpatialDiscretization):
+    if bc == bc_PEC:
+        Ebc = -1*E.transpose().take(sp.vmap_b)
+        Hbc = H.transpose().take(sp.vmap_b)
+    elif bc == bc_PMC:
+        Hbc = -1*H.transpose().take(sp.vmap_b)
+        Ebc = E.transpose().take(sp.vmap_b)
+    else:
+        Ebc = E.transpose().take(sp.vmap_b[::-1]) 
+        Hbc = H.transpose().take(sp.vmap_b[::-1])
+    return Ebc, Hbc
 
 def maxwellRHS1D(E, H, sp: SpatialDiscretization):
+
     K = sp.mesh.number_of_elements()
 
     dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
@@ -81,10 +93,13 @@ def maxwellRHS1D(E, H, sp: SpatialDiscretization):
     # Hbc = H.transpose().take(sp.vmap_b)
     # dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
     
+    
+    
     # Homogeneous boundary conditions for periodic condition
-    Ebc = E.transpose().take(sp.vmap_b[::-1])
+    bc = maxwell_bc(bc_PEC)
+    #Ebc = E.transpose().take(sp.vmap_b[::-1])
     dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
-    Hbc = H.transpose().take(sp.vmap_b[::-1])
+    #Hbc = H.transpose().take(sp.vmap_b[::-1])
     dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
 
     dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 

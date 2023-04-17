@@ -33,7 +33,7 @@ def test_empty_mesh():
         plt.grid()
         plt.ylim(-1.1, 1.1)
         plt.xlim(-2, 2)
-        plt.pause(0.0)
+        plt.pause(0.2)
         plt.cla()
 
 
