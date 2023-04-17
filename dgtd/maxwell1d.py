@@ -59,73 +59,6 @@ class SpatialDiscretization:
         
         return Z_imp
 
-def maxwell_bc(bc, E, H, sp: SpatialDiscretization):
-    if bc == bc_PEC:
-        Ebc = -1*E.transpose().take(sp.vmap_b)
-        Hbc = H.transpose().take(sp.vmap_b)
-    elif bc == bc_PMC:
-        Hbc = -1*H.transpose().take(sp.vmap_b)
-        Ebc = E.transpose().take(sp.vmap_b)
-    else:
-        Ebc = E.transpose().take(sp.vmap_b[::-1]) 
-        Hbc = H.transpose().take(sp.vmap_b[::-1])
-    return Ebc, Hbc
-
-def maxwellRHS1D(E, H, sp: SpatialDiscretization):
-
-    K = sp.mesh.number_of_elements()
-
-    dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
-    dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
-
-    Z_imp = sp.get_impedance()
-    Z_imp_m = Z_imp.transpose().take(sp.vmap_m)
-    Z_imp_p = Z_imp.transpose().take(sp.vmap_p)
-    Z_imp_m = Z_imp_m.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-    Z_imp_p = Z_imp_p.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-    
-    Y_imp_m = 1.0 / Z_imp_m
-    Y_imp_p = 1.0 / Z_imp_p
-
-    ## Homogeneous boundary conditions for PEC
-    # Ebc = -1*E.transpose().take(sp.vmap_b)
-    # dE[sp.map_b] = E.transpose().take(sp.vmap_b) - Ebc 
-    # Hbc = H.transpose().take(sp.vmap_b)
-    # dH[sp.map_b] = H.transpose().take(sp.vmap_b) - Hbc
-    
-    
-    
-    # Homogeneous boundary conditions for periodic condition
-    bc = maxwell_bc(bc_PEC)
-    #Ebc = E.transpose().take(sp.vmap_b[::-1])
-    dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
-    #Hbc = H.transpose().take(sp.vmap_b[::-1])
-    dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
-
-    dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-    dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-    
-    # Evaluate upwind fluxes
-    Z_imp_sum = Z_imp_m + Z_imp_p
-    flux_E = 1/Z_imp_sum*(sp.nx*Z_imp_p*dH-dE)
-    
-    Y_imp_sum = Y_imp_m + Y_imp_p
-    flux_H = 1/Y_imp_sum*(sp.nx*Y_imp_p*dE-dH)
-
-    # Compute right hand sides of the PDE’s
-    f_scale = 1/sp.jacobian[sp.fmask]
-    rhs_drH = np.matmul(sp.diff_matrix, H)
-    rhs_fsflE = f_scale * flux_E
-    
-    rhs_drE = np.matmul(sp.diff_matrix, E)
-    rhs_fsflH = f_scale * flux_H
-
-    rhs_E = 1/sp.epsilon* (np.multiply(-1*sp.rx, rhs_drH) + np.matmul(sp.lift, rhs_fsflE))
-    rhs_H = 1/sp.mu     * (np.multiply(-1*sp.rx, rhs_drE) + np.matmul(sp.lift, rhs_fsflH))
-
-    return rhs_E, rhs_H
-
-
 class MaxwellDriver:
     def __init__(self, sp: SpatialDiscretization):
         self.sp = sp
@@ -133,11 +66,26 @@ class MaxwellDriver:
         # Compute time step size
         x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
         CFL = 1.0
-        self.dt = CFL / (2*np.pi) * x_min       
+        self.dt = CFL / 2 * x_min       
         self.time = 0.0
 
         self.E = np.zeros([sp.number_of_nodes_per_element(), sp.mesh.number_of_elements()])
         self.H = np.zeros(self.E.shape)
+
+        K = sp.mesh.number_of_elements()
+        Z_imp = sp.get_impedance()
+        
+        self.Z_imp_m = Z_imp.transpose().take(sp.vmap_m)
+        self.Z_imp_p = Z_imp.transpose().take(sp.vmap_p)
+        self.Z_imp_m = self.Z_imp_m.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        self.Z_imp_p = self.Z_imp_p.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        
+        self.Y_imp_m = 1.0 / self.Z_imp_m
+        self.Y_imp_p = 1.0 / self.Z_imp_p
+
+        self.Z_imp_sum = self.Z_imp_m + self.Z_imp_p
+        self.Y_imp_sum = self.Y_imp_m + self.Y_imp_p
+        
 
     def step(self):           
         n_p = self.sp.number_of_nodes_per_element()
@@ -146,7 +94,7 @@ class MaxwellDriver:
         res_E = np.zeros([n_p, k])
         res_H = np.zeros([n_p, k])
         for INTRK in range(0, 4):
-            rhs_E, rhs_H = maxwellRHS1D(self.E, self.H, self.sp)
+            rhs_E, rhs_H = self.computeRHS1D()
 
             res_E = rk4a[INTRK]*res_E + self.dt*rhs_E
             res_H = rk4a[INTRK]*res_H + self.dt*rhs_H
@@ -159,3 +107,50 @@ class MaxwellDriver:
     def run(self, final_time):
         for t_step in range(1, math.ceil(final_time/self.dt)):
             self.step()
+
+    def fieldsOnBoundaryConditions(self, bcType):
+        if bcType == "PEC":
+            Ebc = - self.E.transpose().take(self.sp.vmap_b)
+            Hbc =   self.H.transpose().take(self.sp.vmap_b)
+        elif bcType == "PMC":
+            Hbc = - self.H.transpose().take(self.sp.vmap_b)
+            Ebc =   self.E.transpose().take(self.sp.vmap_b)
+        else:
+            Ebc = self.E.transpose().take(self.sp.vmap_b[::-1]) 
+            Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
+        return Ebc, Hbc
+
+    def computeRHS1D(self):
+        
+        sp = self.sp
+        E = self.E
+        H = self.H
+
+        K = sp.mesh.number_of_elements()
+
+        dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
+        dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
+        
+        # Homogeneous boundary conditions for periodic condition
+        Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC")
+
+        #Ebc = E.transpose().take(sp.vmap_b[::-1])
+        dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
+        #Hbc = H.transpose().take(sp.vmap_b[::-1])
+        dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
+
+        dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        
+        # Evaluate upwind fluxes
+        flux_E = 1/self.Z_imp_sum*(sp.nx*self.Z_imp_p*dH-dE)
+        flux_H = 1/self.Y_imp_sum*(sp.nx*self.Y_imp_p*dE-dH)
+
+        # Compute right hand sides of the PDE’s
+        f_scale = 1/sp.jacobian[sp.fmask]
+        rhs_drH = np.matmul(sp.diff_matrix, H)
+        rhs_drE = np.matmul(sp.diff_matrix, E)
+        rhs_E = 1/sp.epsilon* (np.multiply(-1*sp.rx, rhs_drH) + np.matmul(sp.lift, f_scale * flux_E))
+        rhs_H = 1/sp.mu     * (np.multiply(-1*sp.rx, rhs_drE) + np.matmul(sp.lift, f_scale * flux_H))
+
+        return rhs_E, rhs_H
