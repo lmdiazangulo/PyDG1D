@@ -118,7 +118,7 @@ class MaxwellDriver:
             Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
         return Ebc, Hbc
     
-    def Type_of_flux(self, fluxType):
+    def type_of_flux(self, fluxType):
         self.dE[self.map_b] = self.E.transpose().take(self.vmap_b)-self.Ebc
         self.dH[self.map_b] = self.H.transpose().take(self.vmap_b)-self.Hbc
         self.dE = self.dE.reshape(self.n_fp*self.n_faces, self.K, order='F') 
@@ -163,7 +163,7 @@ class MaxwellDriver:
         # Evaluate upwind fluxes
         flux_E = 1/self.Z_imp_sum*(sp.nx*self.Z_imp_p*dH-dE)
         flux_H = 1/self.Y_imp_sum*(sp.nx*self.Y_imp_p*dE-dH)
-        #flux_E, flux_H = self.Type_of_flux("Upwind")
+        #flux_E, flux_H = self.type_of_flux("Upwind")
         
         # Compute right hand sides of the PDE’s
         f_scale = 1/sp.jacobian[sp.fmask]
