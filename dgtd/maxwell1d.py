@@ -3,7 +3,7 @@ import math
 from dgtd.dg1d import *
 from dgtd.meshUtils import Mesh1D
 
-rk4a = np.array([0,	-0.417890474499852,	-1.19215169464268,	-1.69778469247153,	-1.51418344425716])
+rk4a_ = np.array([0,	-0.417890474499852,	-1.19215169464268,	-1.69778469247153,	-1.51418344425716])
 rk4b = np.array([0.149659021999229,	0.379210312999627,	0.822955029386982,	0.699450455949122,	0.153057247968152])
 rk4c = np.array([0,	0.149659021999229,	0.370400957364205,	0.622255763134443,	0.958282130674690])
 
@@ -94,8 +94,8 @@ class MaxwellDriver:
         for INTRK in range(0, 4):
             rhs_E, rhs_H = self.computeRHS1D()
 
-            res_E = rk4a[INTRK]*res_E + self.dt*rhs_E
-            res_H = rk4a[INTRK]*res_H + self.dt*rhs_H
+            res_E = rk4a_[INTRK]*res_E + self.dt*rhs_E
+            res_H = rk4a_[INTRK]*res_H + self.dt*rhs_H
 
             self.E += rk4b[INTRK]*res_E
             self.H += rk4b[INTRK]*res_H
@@ -117,8 +117,28 @@ class MaxwellDriver:
             Ebc = self.E.transpose().take(self.sp.vmap_b[::-1]) 
             Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
         return Ebc, Hbc
+    
+    def Type_of_flux(self, fluxType):
+        self.dE[self.map_b] = self.E.transpose().take(self.vmap_b)-self.Ebc
+        self.dH[self.map_b] = self.H.transpose().take(self.vmap_b)-self.Hbc
+        self.dE = self.dE.reshape(self.n_fp*self.n_faces, self.K, order='F') 
+        self.dH = self.dH.reshape(self.n_fp*self.n_faces, self.K, order='F') 
+        
+        if fluxType == "Upwind":
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
+        return flux_E, flux_H
 
     def computeRHS1D(self):
+        # def Type_of_flux(self, fluxType):
+        #     self.dE[self.map_b] = self.E.transpose().take(self.vmap_b)-self.Ebc
+        #     self.dH[self.map_b] = self.H.transpose().take(self.vmap_b)-self.Hbc
+        #     self.dE = self.dE.reshape(self.n_fp*self.n_faces, self.K, order='F') 
+        #     self.dH = self.dH.reshape(self.n_fp*self.n_faces, self.K, order='F') 
+        #     if fluxType == "Upwind":
+        #         flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
+        #         flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
+        #     return flux_E, flux_H
         
         sp = self.sp
         E = self.E
@@ -129,7 +149,7 @@ class MaxwellDriver:
         dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
         dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
         
-        # Homogeneous boundary conditions for periodic condition
+        #Homogeneous boundary conditions for periodic condition
         Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC")
 
         #Ebc = E.transpose().take(sp.vmap_b[::-1])
@@ -143,7 +163,8 @@ class MaxwellDriver:
         # Evaluate upwind fluxes
         flux_E = 1/self.Z_imp_sum*(sp.nx*self.Z_imp_p*dH-dE)
         flux_H = 1/self.Y_imp_sum*(sp.nx*self.Y_imp_p*dE-dH)
-
+        #flux_E, flux_H = self.Type_of_flux("Upwind")
+        
         # Compute right hand sides of the PDE’s
         f_scale = 1/sp.jacobian[sp.fmask]
         rhs_drH = np.matmul(sp.diff_matrix, H)
