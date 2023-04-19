@@ -15,26 +15,41 @@ def test_spatial_discretization_lift():
                          np.array([[2.0,-1.0],[-1.0,2.0]]))
 
 
-def test_empty_mesh():
-    mesh = Mesh1D(-2.0, 2.0, 10)
+def test_pec_box():
+    mesh = Mesh1D(-1.0, 1.0, 10)
     
-    n_order = 5
+    n_order = 2
+    final_time = 21.0
     sp = SpatialDiscretization(n_order, mesh)
     
     driver = MaxwellDriver(sp)
-    # driver.E = np.sin(np.pi*sp.x)
-    driver.E = np.exp(-(sp.x-0.5)**2/(2*0.25**2))
+    x0 = 0.0
+    s0 = 0.25
+    driver.E = np.exp(-(sp.x-x0)**2/(2*s0**2))
     
-    for tStep in range(300):
+    timeRange = np.arange(0.0, final_time, driver.dt)
+    for t in timeRange:
         driver.step()
 
-        plt.plot(sp.x, driver.E, '.-b')
-        plt.plot(sp.x, driver.H, '.-r')
-        plt.grid()
-        plt.ylim(-1.1, 1.1)
-        plt.xlim(-2, 2)
-        plt.pause(0.2)
-        plt.cla()
+        # plt.plot(sp.x, driver.E, '.-b')
+        # plt.plot(sp.x, driver.H, '.-r')
+        # plt.grid()
+        # plt.title('time=%f' %t)
+        # plt.ylim(-1.1, 1.1)
+        # plt.pause(0.0001)
+        # plt.cla()
+
+    # driver.step(driver.dt/2)
+    plt.plot(sp.x, driver.E, '.-b')
+    plt.plot(sp.x, driver.H, '.-r')
+    plt.grid()
+    
+    plt.title('time=%f' %driver.time)
+    plt.ylim(-1.1, 1.1)
+    plt.show()
+    dsad
+
+    
 
 
 

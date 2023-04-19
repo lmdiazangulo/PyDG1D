@@ -64,7 +64,7 @@ class MaxwellDriver:
         # Compute time step size
         x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
         CFL = 1.0
-        self.dt = CFL / 2 * x_min       
+        self.dt = CFL * x_min / 2      
         self.time = 0.0
 
         self.E = np.zeros([sp.number_of_nodes_per_element(), sp.mesh.number_of_elements()])
@@ -85,22 +85,25 @@ class MaxwellDriver:
         self.Y_imp_sum = self.Y_imp_m + self.Y_imp_p
         
 
-    def step(self):           
+    def step(self, dt=0.0):           
         n_p = self.sp.number_of_nodes_per_element()
         k = self.sp.mesh.number_of_elements()
         
+        if (dt == 0.0):
+            dt = self.dt
+
         res_E = np.zeros([n_p, k])
         res_H = np.zeros([n_p, k])
         for INTRK in range(0, 4):
             rhs_E, rhs_H = self.computeRHS1D()
 
-            res_E = rk4a_[INTRK]*res_E + self.dt*rhs_E
-            res_H = rk4a_[INTRK]*res_H + self.dt*rhs_H
+            res_E = rk4a_[INTRK]*res_E + dt*rhs_E
+            res_H = rk4a_[INTRK]*res_H + dt*rhs_H
 
             self.E += rk4b[INTRK]*res_E
             self.H += rk4b[INTRK]*res_H
 
-        self.time += self.dt
+        self.time += dt
 
     def run(self, final_time):
         for t_step in range(1, math.ceil(final_time/self.dt)):
