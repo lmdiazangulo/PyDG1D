@@ -19,7 +19,7 @@ def test_pec_box():
     mesh = Mesh1D(-1.0, 1.0, 10)
     
     n_order = 2
-    final_time = 21.0
+    final_time = 1.999
     sp = SpatialDiscretization(n_order, mesh)
     
     driver = MaxwellDriver(sp)
@@ -40,6 +40,7 @@ def test_pec_box():
         # plt.cla()
 
     # driver.step(driver.dt/2)
+    print(driver.E)
     plt.plot(sp.x, driver.E, '.-b')
     plt.plot(sp.x, driver.H, '.-r')
     plt.grid()
@@ -47,11 +48,9 @@ def test_pec_box():
     plt.title('time=%f' %driver.time)
     plt.ylim(-1.1, 1.1)
     plt.show()
-    dsad
 
-    
-
-
+    # assert np.allclose(driver.E[0,:], np.array([-3.4257e-04, -6.9478e-03, -5.5764e-02, -2.7619e-01,
+    #    -7.2419e-01, -9.9935e-01, -7.3081e-01, -2.7920e-01, -5.4151e-02, -5.4373e-03]))
 
     
 def test_maxwell1d_mesh_graph_initial_condition():

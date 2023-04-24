@@ -94,7 +94,7 @@ class MaxwellDriver:
 
         res_E = np.zeros([n_p, k])
         res_H = np.zeros([n_p, k])
-        for INTRK in range(0, 4):
+        for INTRK in range(0, 5):
             rhs_E, rhs_H = self.computeRHS1D()
 
             res_E = rk4a_[INTRK]*res_E + dt*rhs_E
@@ -162,12 +162,12 @@ class MaxwellDriver:
 
         dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
         dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-        
+
         # Evaluate upwind fluxes
         flux_E = 1/self.Z_imp_sum*(sp.nx*self.Z_imp_p*dH-dE)
         flux_H = 1/self.Y_imp_sum*(sp.nx*self.Y_imp_p*dE-dH)
         #flux_E, flux_H = self.type_of_flux("Upwind")
-        
+
         # Compute right hand sides of the PDE’s
         f_scale = 1/sp.jacobian[sp.fmask]
         rhs_drH = np.matmul(sp.diff_matrix, H)

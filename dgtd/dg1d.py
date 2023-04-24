@@ -403,6 +403,7 @@ def connect(EToV):
     total_faces = n_faces*k_elem
     nv = k_elem+1
     vn = np.arange(0, 2)
+    
     sp_ftov = np.zeros([total_faces, nv])
 
     sk = 0
