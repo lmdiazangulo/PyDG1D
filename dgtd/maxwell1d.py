@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from dgtd.dg1d import *
-from dgtd.meshUtils import Mesh1D
+from .dg1d import *
+from .meshUtils import Mesh1D
 
 rk4a_ = np.array([0,	-0.417890474499852,	-1.19215169464268,	-1.69778469247153,	-1.51418344425716])
 rk4b = np.array([0.149659021999229,	0.379210312999627,	0.822955029386982,	0.699450455949122,	0.153057247968152])
