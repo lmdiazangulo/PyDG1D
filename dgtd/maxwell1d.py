@@ -47,6 +47,22 @@ class SpatialDiscretization:
         self.diff_matrix = differentiation_matrix(n_order, r, vander)
         self.rx, self.jacobian = geometric_factors(self.x, self.diff_matrix)
 
+        K = self.mesh.number_of_elements()
+        Z_imp = self.get_impedance()
+
+        self.Z_imp_m = Z_imp.transpose().take(self.vmap_m)
+        self.Z_imp_p = Z_imp.transpose().take(self.vmap_p)
+        self.Z_imp_m = self.Z_imp_m.reshape(
+            self.n_fp*self.n_faces, K, order='F')
+        self.Z_imp_p = self.Z_imp_p.reshape(
+            self.n_fp*self.n_faces, K, order='F')
+
+        self.Y_imp_m = 1.0 / self.Z_imp_m
+        self.Y_imp_p = 1.0 / self.Z_imp_p
+
+        self.Z_imp_sum = self.Z_imp_m + self.Z_imp_p
+        self.Y_imp_sum = self.Y_imp_m + self.Y_imp_p
+
     def number_of_nodes_per_element(self):
         return self.n_order + 1
 
@@ -60,30 +76,53 @@ class SpatialDiscretization:
 
         return Z_imp
 
-# class Options:
-#     def __init__(self, sp:SpatialDiscretization):
-#         self.sp = sp
+    def fieldsOnBoundaryConditions(self, bcType, E, H):
+        if bcType == "PEC":
+            Ebc = - E.transpose().take(self.vmap_b)
+            Hbc = H.transpose().take(self.vmap_b)
+        elif bcType == "PMC":
+            Hbc = - H.transpose().take(self.vmap_b)
+            Ebc = E.transpose().take(self.vmap_b)
+        else:
+            Ebc = E.transpose().take(self.vmap_b[::-1])
+            Hbc = H.transpose().take(self.vmap_b[::-1])
+        return Ebc, Hbc
 
-#     def fieldsOnBoundaryConditions(self, bcType):
-#         if bcType == "PEC":
-#             self.Ebc = - self.E.transpose().take(self.sp.vmap_b)
-#             self.Hbc =   self.H.transpose().take(self.sp.vmap_b)
-#         elif bcType == "PMC":
-#             self.Hbc = - self.H.transpose().take(self.sp.vmap_b)
-#             self.Ebc =   self.E.transpose().take(self.sp.vmap_b)
-#         else:
-#             self.Ebc = self.E.transpose().take(self.sp.vmap_b[::-1])
-#             self.Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
-#         return self.Ebc, self.Hbc
+    def type_of_flux(self, fluxType):
+        if fluxType == "Upwind":
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
+        else:
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH)
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE)
+        return flux_E, flux_H
 
-#     def type_of_flux(self, fluxType):
-#         if fluxType == "Upwind":
-#             self.flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH-self.dE)
-#             self.flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE-self.dH)
-#         else:
-#             self.flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH)
-#             self.flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE)
-#         return self.flux_E, self.flux_H
+    def computeRHS1D(self, E, H):
+        K = self.mesh.number_of_elements()
+
+        Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC", E, H)
+
+        self.dE = E.transpose().take(self.vmap_m) - E.transpose().take(self.vmap_p)
+        self.dH = H.transpose().take(self.vmap_m) - H.transpose().take(self.vmap_p)
+
+        self.dE[self.map_b] = E.transpose().take(self.vmap_b)-Ebc
+        self.dH[self.map_b] = H.transpose().take(self.vmap_b)-Hbc
+        self.dE = self.dE.reshape(self.n_fp*self.n_faces, K, order='F')
+        self.dH = self.dH.reshape(self.n_fp*self.n_faces, K, order='F')
+
+        flux_E, flux_H = self.type_of_flux("Upwind")
+
+        # Compute right hand sides of the PDE’s
+        f_scale = 1/self.jacobian[self.fmask]
+        rhs_drH = np.matmul(self.diff_matrix, H)
+        rhs_drE = np.matmul(self.diff_matrix, E)
+        rhs_E = 1/self.epsilon * \
+            (np.multiply(-1*self.rx, rhs_drH) +
+             np.matmul(self.lift, f_scale * flux_E))
+        rhs_H = 1/self.mu * (np.multiply(-1*self.rx, rhs_drE) +
+                             np.matmul(self.lift, f_scale * flux_H))
+
+        return rhs_E, rhs_H
 
 
 class MaxwellDriver:
@@ -100,20 +139,6 @@ class MaxwellDriver:
                           sp.mesh.number_of_elements()])
         self.H = np.zeros(self.E.shape)
 
-        K = sp.mesh.number_of_elements()
-        Z_imp = sp.get_impedance()
-
-        self.Z_imp_m = Z_imp.transpose().take(sp.vmap_m)
-        self.Z_imp_p = Z_imp.transpose().take(sp.vmap_p)
-        self.Z_imp_m = self.Z_imp_m.reshape(sp.n_fp*sp.n_faces, K, order='F')
-        self.Z_imp_p = self.Z_imp_p.reshape(sp.n_fp*sp.n_faces, K, order='F')
-
-        self.Y_imp_m = 1.0 / self.Z_imp_m
-        self.Y_imp_p = 1.0 / self.Z_imp_p
-
-        self.Z_imp_sum = self.Z_imp_m + self.Z_imp_p
-        self.Y_imp_sum = self.Y_imp_m + self.Y_imp_p
-
     def step(self, dt=0.0):
         n_p = self.sp.number_of_nodes_per_element()
         k = self.sp.mesh.number_of_elements()
@@ -124,7 +149,7 @@ class MaxwellDriver:
         res_E = np.zeros([n_p, k])
         res_H = np.zeros([n_p, k])
         for INTRK in range(0, 5):
-            rhs_E, rhs_H = self.computeRHS1D()
+            rhs_E, rhs_H = self.sp.computeRHS1D(self.E, self.H)
 
             res_E = rk4a_[INTRK]*res_E + dt*rhs_E
             res_H = rk4a_[INTRK]*res_H + dt*rhs_H
@@ -137,56 +162,6 @@ class MaxwellDriver:
     def run(self, final_time):
         for t_step in range(1, math.ceil(final_time/self.dt)):
             self.step()
-
-    def fieldsOnBoundaryConditions(self, bcType):
-        if bcType == "PEC":
-            Ebc = - self.E.transpose().take(self.sp.vmap_b)
-            Hbc = self.H.transpose().take(self.sp.vmap_b)
-        elif bcType == "PMC":
-            Hbc = - self.H.transpose().take(self.sp.vmap_b)
-            Ebc = self.E.transpose().take(self.sp.vmap_b)
-        else:
-            Ebc = self.E.transpose().take(self.sp.vmap_b[::-1])
-            Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
-        return Ebc, Hbc
-
-    def type_of_flux(self, fluxType):
-        if fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH-self.dE)
-            flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE-self.dH)
-        else:
-            flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH)
-            flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE)
-        return flux_E, flux_H
-
-    def computeRHS1D(self):
-        sp = self.sp
-        E = self.E
-        H = self.H
-        K = sp.mesh.number_of_elements()
-
-        Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC")
-
-        self.dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
-        self.dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
-
-        self.dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
-        self.dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
-        self.dE = self.dE.reshape(sp.n_fp*sp.n_faces, K, order='F')
-        self.dH = self.dH.reshape(sp.n_fp*sp.n_faces, K, order='F')
-
-        flux_E, flux_H = self.type_of_flux("Upwind")
-
-        # Compute right hand sides of the PDE’s
-        f_scale = 1/sp.jacobian[sp.fmask]
-        rhs_drH = np.matmul(sp.diff_matrix, H)
-        rhs_drE = np.matmul(sp.diff_matrix, E)
-        rhs_E = 1/sp.epsilon * \
-            (np.multiply(-1*sp.rx, rhs_drH) + np.matmul(sp.lift, f_scale * flux_E))
-        rhs_H = 1/sp.mu * (np.multiply(-1*sp.rx, rhs_drE) +
-                           np.matmul(sp.lift, f_scale * flux_H))
-
-        return rhs_E, rhs_H
 
     def run_until(self, final_time):
         timeRange = np.arange(0.0, final_time, self.dt)
