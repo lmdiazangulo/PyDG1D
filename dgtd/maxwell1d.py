@@ -85,6 +85,9 @@ class SpatialDiscretization:
         elif bcType == "PMC":
             Hbc = - H.transpose().take(self.vmap_b)
             Ebc = E.transpose().take(self.vmap_b)
+        elif bcType == "SMA":
+            Hbc = H.transpose().take(self.vmap_b) * 0.0
+            Ebc = E.transpose().take(self.vmap_b) * 0.0 
         elif bcType == "Periodic":
             Ebc = E.transpose().take(self.vmap_b[::-1])
             Hbc = H.transpose().take(self.vmap_b[::-1])
@@ -112,7 +115,7 @@ class SpatialDiscretization:
                              self.mesh.number_of_elements(), order='F')
         return dE, dH
 
-    def computeRHS1D(self, E, H):
+    def computeRHS(self, E, H):
 
         Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
         self.dE, self.dH = self.computeJumps(Ebc, Hbc, E, H)
@@ -137,6 +140,25 @@ class SpatialDiscretization:
         H = np.zeros(E.shape)
 
         return E, H
+    
+    def buildEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 2 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            E, H = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/2:
+                E[node, elem] = 1.0
+            else:
+                H[node, elem] = 1.0
+            rhsE, rhsH = self.computeRHS(E, H)
+            q0 = np.vstack([rhsE.reshape(Np*K,1,order='F'), rhsH.reshape(Np*K,1, order='F')])
+            A[:,i] = q0[:,0]
+
+        return A
 
 class MaxwellDriver:
     def __init__(self, sp: SpatialDiscretization):
@@ -160,7 +182,7 @@ class MaxwellDriver:
         res_E = np.zeros([n_p, k])
         res_H = np.zeros([n_p, k])
         for INTRK in range(0, 5):
-            rhs_E, rhs_H = self.sp.computeRHS1D(self.E, self.H)
+            rhs_E, rhs_H = self.sp.computeRHS(self.E, self.H)
 
             res_E = rk4a_[INTRK]*res_E + dt*rhs_E
             res_H = rk4a_[INTRK]*res_H + dt*rhs_H
