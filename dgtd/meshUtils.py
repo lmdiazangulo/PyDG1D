@@ -3,10 +3,11 @@ import scipy.special
 import math
 
 class Mesh1D:
-    def __init__(self, xmin, xmax, k_elem):
+    def __init__(self, xmin, xmax, k_elem, boundary_label="PEC"):
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
         self.vx = vx
         self.EToV = EToV
+        self.boundary_label = boundary_label
 
     def number_of_vertices(self):
         return self.vx.shape[0]

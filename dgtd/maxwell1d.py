@@ -12,12 +12,13 @@ rk4c = np.array([0,	0.149659021999229,	0.370400957364205,
 
 
 class SpatialDiscretization:
-    def __init__(self, n_order: int, mesh: Mesh1D):
+    def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind"):
         assert n_order > 0
         assert mesh.number_of_elements() > 0
 
         self.mesh = mesh
         self.n_order = n_order
+        self.fluxType = fluxType
 
         self.n_faces = 2
         self.n_fp = 1
@@ -76,20 +77,23 @@ class SpatialDiscretization:
 
         return Z_imp
 
-    def fieldsOnBoundaryConditions(self, bcType, E, H):
+    def fieldsOnBoundaryConditions(self, E, H):
+        bcType = self.mesh.boundary_label
         if bcType == "PEC":
             Ebc = - E.transpose().take(self.vmap_b)
             Hbc = H.transpose().take(self.vmap_b)
         elif bcType == "PMC":
             Hbc = - H.transpose().take(self.vmap_b)
             Ebc = E.transpose().take(self.vmap_b)
-        else:
+        elif bcType == "Periodic":
             Ebc = E.transpose().take(self.vmap_b[::-1])
             Hbc = H.transpose().take(self.vmap_b[::-1])
+        else:
+            raise ValueError("Invalid boundary label.")
         return Ebc, Hbc
 
-    def type_of_flux(self, fluxType):
-        if fluxType == "Upwind":
+    def computeFlux(self):
+        if self.fluxType == "Upwind":
             flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
         else:
@@ -97,20 +101,23 @@ class SpatialDiscretization:
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE)
         return flux_E, flux_H
 
+    def computeJumps(self, Ebc, Hbc, E, H):
+        dE = E.transpose().take(self.vmap_m) - E.transpose().take(self.vmap_p)
+        dH = H.transpose().take(self.vmap_m) - H.transpose().take(self.vmap_p)
+        dE[self.map_b] = E.transpose().take(self.vmap_b)-Ebc
+        dH[self.map_b] = H.transpose().take(self.vmap_b)-Hbc
+        dE = dE.reshape(self.n_fp*self.n_faces,
+                             self.mesh.number_of_elements(), order='F')
+        dH = dH.reshape(self.n_fp*self.n_faces,
+                             self.mesh.number_of_elements(), order='F')
+        return dE, dH
+
     def computeRHS1D(self, E, H):
-        K = self.mesh.number_of_elements()
 
-        Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC", E, H)
+        Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
+        self.dE, self.dH = self.computeJumps(Ebc, Hbc, E, H)
 
-        self.dE = E.transpose().take(self.vmap_m) - E.transpose().take(self.vmap_p)
-        self.dH = H.transpose().take(self.vmap_m) - H.transpose().take(self.vmap_p)
-
-        self.dE[self.map_b] = E.transpose().take(self.vmap_b)-Ebc
-        self.dH[self.map_b] = H.transpose().take(self.vmap_b)-Hbc
-        self.dE = self.dE.reshape(self.n_fp*self.n_faces, K, order='F')
-        self.dH = self.dH.reshape(self.n_fp*self.n_faces, K, order='F')
-
-        flux_E, flux_H = self.type_of_flux("Upwind")
+        flux_E, flux_H = self.computeFlux()
 
         # Compute right hand sides of the PDE’s
         f_scale = 1/self.jacobian[self.fmask]
