@@ -3,17 +3,17 @@ import matplotlib.pyplot as plt
 from math import exp
 
 # # Physics parameters
-# epsilon0 = 8.854e-12  # Permitividad eléctrica en el vacío
-# mu0 = 4*np.pi*1e-7    # Permeabilidad magnética en el vacío
-# c = 1/np.sqrt(epsilon0*mu0)  # Velocidad de la luz en el vacío
+# epsilon0 = 8.854e-12  # electic permitivity in the vacum
+# mu0 = 4*np.pi*1e-7    # magnetic permiability in the vacum
+# c = 1/np.sqrt(epsilon0*mu0)  # light velocity in the vacum
 # spread = 12
 
 # # Numerical parameters
-# L       = 1.0   # Longitud del dominio
-# N       = 20   # Número de nodos
-# dx      = L/N  # Espaciado de la malla
-# dt      = dx/(2*c)   # Paso de tiempo
-# t_max   = 10*dx/c  # Tiempo máximo de la simulación
+# L       = 1.0   # Domain longe
+# N       = 20   # number of nodes
+# dx      = L/N  # size of spatial step in the mesh
+# dt      = dx/(2*c)   # time step
+# t_max   = 10*dx/c  # max time in the simulation
 # t_0    = 40
 # steps   = 100
 
