@@ -16,118 +16,19 @@ def test_spatial_discretization_lift():
 
 
 def test_pec_box():
-    mesh = Mesh1D(-1.0, 1.0, 10)
+    sp = SpatialDiscretization(n_order = 2, mesh = Mesh1D(-1.0, 1.0, 10))
     
-    n_order = 2
-    final_time = 1.999
-    sp = SpatialDiscretization(n_order, mesh)
-    
+    final_time = 3.999
     driver = MaxwellDriver(sp)
     x0 = 0.0
     s0 = 0.25
-    driver.E = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
     
-    timeRange = np.arange(0.0, final_time, driver.dt)
-    for t in timeRange:
-        driver.step()
+    driver.E[:] = initialFieldE[:]
+    
+    driver.run_until(final_time)
 
-        # plt.plot(sp.x, driver.E, '.-b')
-        # plt.plot(sp.x, driver.H, '.-r')
-        # plt.grid()
-        # plt.title('time=%f' %t)
-        # plt.ylim(-1.1, 1.1)
-        # plt.pause(0.0001)
-        # plt.cla()
-
-    # driver.step(driver.dt/2)
-    print(driver.E)
-    plt.plot(sp.x, driver.E, '.-b')
-    plt.plot(sp.x, driver.H, '.-r')
-    plt.grid()
-    
-    plt.title('time=%f' %driver.time)
-    plt.ylim(-1.1, 1.1)
-    plt.show()
-
-    # assert np.allclose(driver.E[0,:], np.array([-3.4257e-04, -6.9478e-03, -5.5764e-02, -2.7619e-01,
-    #    -7.2419e-01, -9.9935e-01, -7.3081e-01, -2.7920e-01, -5.4151e-02, -5.4373e-03]))
-
-    
-def test_maxwell1d_mesh_graph_initial_condition():
-    n_order = 6
-    
-    mesh = Mesh1D(-1.0, 1.0, 80)
-    sp = SpatialDiscretization(n_order, mesh)
-    
-    epsilon = np.ones([n_order+1, mesh.number_of_elements()])
-    mu      = np.ones([n_order+1, mesh.number_of_elements()])
-    
-    x       = set_nodes_1d(n_order, mesh.vx[mesh.EToV])
-    
-    # Set initial condition
-    E_old = np.multiply(np.sin(np.pi*x),x<0)
-    H_old = np.zeros([n_order+1, mesh.number_of_elements()]) 
-    
-    plt.figure()
-    plt.title("Initial Magnetic Field")
-    plt.plot(x, H_old)
-    
-    plt.figure()
-    plt.title("Initial Electric Field")
-    plt.plot(x, E_old, label='original')
-    
-    plt.show()
-    
-    # Solve problem
-    final_time = 1
-    [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
-    
-
-def test_maxwell1d_mesh_graph_final_condition():
-    # Polynomial order for aproximation
-    fig, ax = plt.subplots()
-    
-    n_order = 3
-    
-    mesh = Mesh1D(-1.0, 1.0,5)
-    sp = SpatialDiscretization(n_order, mesh)
-    
-    epsilon = np.ones([n_order+1, mesh.number_of_elements()])
-    mu      = np.ones([n_order+1, mesh.number_of_elements()])
-    
-    x       = set_nodes_1d(n_order, mesh.vx[mesh.EToV])
-    
-    
-    # Set initial condition
-    #E_old = np.sin(np.pi*x)*(x<0)
-    E_old = (1.0/2.0*np.sqrt(2*np.pi))*np.exp(-40.0*np.power(2.0*sp.x-1.0,2)/4.0)
-    H_old = np.zeros([n_order+1, mesh.number_of_elements()]) 
-    
-    
-    
-    # Solve problem
-    final_time = 1
-    [E, H] = mw.maxwell1D(E_old, H_old, epsilon, mu, final_time, sp)
-    
-    x_list = np.zeros([x.size])
-    H_list = np.zeros([H_old.size])
-    x_reshaped = x.reshape((x_list.shape))
-    H_reshaped = H.reshape((H_list.shape))
-    line,   = ax.plot(x_reshaped, H_reshaped)
-    
-    plt.figure()
-    plt.title("Final Magnetic Field")
-
-    def animate(i):
-        line.set_ydata(H_reshaped + i / 50)  # update the data.
-        return line,
-
-  #  line, _ = ax.plot(x, H)
-  #  line = plt.plot(x,H)
-    
-    ani = animation.FuncAnimation(
-    fig, animate, interval=100, blit=True, save_count=10)
-
-    plt.show()
-    
-    
+    finalFieldE = driver.E
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
