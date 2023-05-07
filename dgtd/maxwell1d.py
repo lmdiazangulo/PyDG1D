@@ -57,6 +57,32 @@ class SpatialDiscretization:
         
         return Z_imp
 
+# class Options:
+#     def __init__(self, sp:SpatialDiscretization):
+#         self.sp = sp
+    
+#     def fieldsOnBoundaryConditions(self, bcType):
+#         if bcType == "PEC":
+#             self.Ebc = - self.E.transpose().take(self.sp.vmap_b)
+#             self.Hbc =   self.H.transpose().take(self.sp.vmap_b)
+#         elif bcType == "PMC":
+#             self.Hbc = - self.H.transpose().take(self.sp.vmap_b)
+#             self.Ebc =   self.E.transpose().take(self.sp.vmap_b)
+#         else:
+#             self.Ebc = self.E.transpose().take(self.sp.vmap_b[::-1]) 
+#             self.Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
+#         return self.Ebc, self.Hbc
+    
+#     def type_of_flux(self, fluxType):     
+#         if fluxType == "Upwind":
+#             self.flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH-self.dE)
+#             self.flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE-self.dH)
+#         else:
+#             self.flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH)
+#             self.flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE)
+#         return self.flux_E, self.flux_H
+
+
 class MaxwellDriver:
     def __init__(self, sp: SpatialDiscretization):
         self.sp = sp
@@ -121,52 +147,35 @@ class MaxwellDriver:
             Hbc = self.H.transpose().take(self.sp.vmap_b[::-1])
         return Ebc, Hbc
     
-    def type_of_flux(self, fluxType):
-        self.dE[self.map_b] = self.E.transpose().take(self.vmap_b)-self.Ebc
-        self.dH[self.map_b] = self.H.transpose().take(self.vmap_b)-self.Hbc
-        self.dE = self.dE.reshape(self.n_fp*self.n_faces, self.K, order='F') 
-        self.dH = self.dH.reshape(self.n_fp*self.n_faces, self.K, order='F') 
-        
+    def type_of_flux(self, fluxType):     
         if fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
+            flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH-self.dE)
+            flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE-self.dH)
+        else:
+            flux_E = 1/self.Z_imp_sum*(self.sp.nx*self.Z_imp_p*self.dH)
+            flux_H = 1/self.Y_imp_sum*(self.sp.nx*self.Y_imp_p*self.dE)
         return flux_E, flux_H
 
     def computeRHS1D(self):
-        # def Type_of_flux(self, fluxType):
-        #     self.dE[self.map_b] = self.E.transpose().take(self.vmap_b)-self.Ebc
-        #     self.dH[self.map_b] = self.H.transpose().take(self.vmap_b)-self.Hbc
-        #     self.dE = self.dE.reshape(self.n_fp*self.n_faces, self.K, order='F') 
-        #     self.dH = self.dH.reshape(self.n_fp*self.n_faces, self.K, order='F') 
-        #     if fluxType == "Upwind":
-        #         flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
-        #         flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
-        #     return flux_E, flux_H
-        
         sp = self.sp
         E = self.E
         H = self.H
-
         K = sp.mesh.number_of_elements()
-
-        dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
-        dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
-        
+                
         #Homogeneous boundary conditions for periodic condition
         Ebc, Hbc = self.fieldsOnBoundaryConditions("PEC")
+        
+        #Define field differences at faces
+        self.dE = E.transpose().take(sp.vmap_m) - E.transpose().take(sp.vmap_p)
+        self.dH = H.transpose().take(sp.vmap_m) - H.transpose().take(sp.vmap_p)
 
-        #Ebc = E.transpose().take(sp.vmap_b[::-1])
-        dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
-        #Hbc = H.transpose().take(sp.vmap_b[::-1])
-        dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
-
-        dE = dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
-        dH = dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        self.dE[sp.map_b] = E.transpose().take(sp.vmap_b)-Ebc
+        self.dH[sp.map_b] = H.transpose().take(sp.vmap_b)-Hbc
+        self.dE = self.dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
+        self.dH = self.dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
 
         # Evaluate upwind fluxes
-        flux_E = 1/self.Z_imp_sum*(sp.nx*self.Z_imp_p*dH-dE)
-        flux_H = 1/self.Y_imp_sum*(sp.nx*self.Y_imp_p*dE-dH)
-        #flux_E, flux_H = self.type_of_flux("Upwind")
+        flux_E, flux_H = self.type_of_flux("Central")
 
         # Compute right hand sides of the PDE’s
         f_scale = 1/sp.jacobian[sp.fmask]
