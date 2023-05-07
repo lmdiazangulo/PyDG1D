@@ -131,20 +131,24 @@ class SpatialDiscretization:
 
         return rhs_E, rhs_H
 
+    def buildFields(self):
+        E = np.zeros([self.number_of_nodes_per_element(),
+                          self.mesh.number_of_elements()])
+        H = np.zeros(E.shape)
+
+        return E, H
 
 class MaxwellDriver:
     def __init__(self, sp: SpatialDiscretization):
         self.sp = sp
+
+        self.E, self.H = sp.buildFields()
 
         # Compute time step size
         x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
         CFL = 1.0
         self.dt = CFL * x_min / 2
         self.time = 0.0
-
-        self.E = np.zeros([sp.number_of_nodes_per_element(),
-                          sp.mesh.number_of_elements()])
-        self.H = np.zeros(self.E.shape)
 
     def step(self, dt=0.0):
         n_p = self.sp.number_of_nodes_per_element()
