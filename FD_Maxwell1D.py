@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import exp
 
-# # Parámetros físicos
+# # Physics parameters
 # epsilon0 = 8.854e-12  # Permitividad eléctrica en el vacío
 # mu0 = 4*np.pi*1e-7    # Permeabilidad magnética en el vacío
 # c = 1/np.sqrt(epsilon0*mu0)  # Velocidad de la luz en el vacío
 # spread = 12
 
-# # Parámetros numéricos
+# # Numerical parameters
 # L       = 1.0   # Longitud del dominio
 # N       = 20   # Número de nodos
 # dx      = L/N  # Espaciado de la malla
@@ -20,7 +20,7 @@ from math import exp
 # # Crear la malla
 # x = np.linspace(0, L, N+1)
 
-# Definir las condiciones iniciales
+# initial conditions
 ke = 200
 Ex = np.zeros(ke)
 Hy = np.zeros(ke)
