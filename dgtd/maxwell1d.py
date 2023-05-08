@@ -174,7 +174,7 @@ class MaxwellDriver:
         self.dE = self.dE.reshape(sp.n_fp*sp.n_faces, K, order='F') 
         self.dH = self.dH.reshape(sp.n_fp*sp.n_faces, K, order='F') 
 
-        # Evaluate upwind fluxes
+        # Evaluate fluxes
         flux_E, flux_H = self.type_of_flux("Central")
 
         # Compute right hand sides of the PDE’s
