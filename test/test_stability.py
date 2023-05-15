@@ -27,16 +27,16 @@ def test_centered_RK44():
     A_cen_eig *= dt
     A_upw_eig *= dt
     
-    plt.figure(dpi=200)
-    levels = np.linspace(0, 5, 100)
-    c1 = plt.contour(X,Y, np.abs(f_rk44), levels=[1.0], colors='green')
-    c1_max = np.abs(f_rk44).max()
-    h1,l1 = c1.legend_elements()
-    plt.legend(h1, 'RK44', loc='lower left')
-    plt.scatter(np.real(A_cen_eig), np.imag(A_cen_eig))
-    plt.axhline(y = c1_max, color = 'g', linestyle = '-')
+    # plt.figure(dpi=200)
+    # levels = np.linspace(0, 5, 100)
+    # c1 = plt.contour(X,Y, np.abs(f_rk44), levels=[1.0], colors='green')
+    # c1_max = np.abs(f_rk44).max()
+    # h1,l1 = c1.legend_elements()
+    # plt.legend(h1, 'RK44', loc='lower left')
+    # plt.scatter(np.real(A_cen_eig), np.imag(A_cen_eig))
+    # plt.axhline(y = c1_max, color = 'g', linestyle = '-')
 
-    print('Center y-Imag[',np.imag(A_cen_eig).min(), ' ', np.imag(A_cen_eig).max(),' ]')
-    plt.show()   
+    # print('Center y-Imag[',np.imag(A_cen_eig).min(), ' ', np.imag(A_cen_eig).max(),' ]')
+    # plt.show()   
     
     assert   np.abs(np.imag(A_cen_eig).max())<1.95
