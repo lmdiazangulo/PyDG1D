@@ -1,9 +1,9 @@
 import numpy as np
 import math
 from .dg1d import *
-from .meshUtils import Mesh1D
+from .mesh1d import Mesh1D
 from .dg1d import *
-from .meshUtils import Mesh1D
+from .mesh1d import Mesh1D
 
 rk4a_ = np.array([0,	-0.417890474499852,	-1.19215169464268,	-
                  1.69778469247153,	-1.51418344425716])

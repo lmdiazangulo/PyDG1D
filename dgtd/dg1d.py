@@ -148,7 +148,7 @@ def jacobi_polynomial(r, alpha, beta, n_order):
     # return scipy.special.eval_jacobi(N,alpha,beta,r);
 
 
-def vandermonde_1d(n_order, r):
+def vandermonde(n_order, r):
     """
     Initialize Vandermonde matrix
     """
@@ -520,7 +520,7 @@ def build_maps(n_order, nodes_coord, etoe, etof):
     return [vmap_m-1, vmap_p-1, vmap_b-1, map_b-1]
 
 
-def set_nodes_1d(N, vertices):
+def set_nodes(N, vertices):
     """ 
     Sets N+1 nodes in equispaced positions using the vertices indicated
     by vx.
@@ -533,15 +533,15 @@ def set_nodes_1d(N, vertices):
     return x
 
 
-def node_indices_1d(N):
+def node_indices(N):
     """
     Generates number of node Indices for order N.
 
-    >>> _node_indices_1d(1)
+    >>> _node_indices(1)
     array([[1, 0],
            [0, 1]])
 
-    >>> _node_indices_1d(2)
+    >>> _node_indices(2)
     array([[2, 0],
            [1, 1],
            [0, 2]])

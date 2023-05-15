@@ -2,7 +2,7 @@ from pytest import approx
 import numpy as np
 
 import dgtd.dg1d as dg
-import dgtd.meshUtils as ms
+import dgtd.mesh1d as ms
 
     
 def test_jacobiGL():
@@ -229,7 +229,7 @@ def test_build_maps():
     assert np.allclose(vmap_b,vmap_b_test)
     assert np.allclose(map_b,map_b_test)
 
-def test_set_nodes_1d():
+def test_set_nodes():
     vx = np.array([0.0, 1.0, 2.0])
     etov = np.array([[0, 1],
                      [1, 2]])
@@ -241,7 +241,7 @@ def test_set_nodes_1d():
                       [1.00, 1.25, 1.50, 1.75, 2.00]])), 
             x)
   
-def test_node_indices_1d_N_1_2():
+def test_node_indices_N_1_2():
     assert np.allclose(np.array([[1, 0], [0,1]]), 
                        dg.node_indices_1d(1))
     assert np.allclose(np.array([[2, 0], [1,1], 

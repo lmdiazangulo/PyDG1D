@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import dgtd.maxwell1d as dg
-from dgtd.meshUtils import Mesh1D
+from dgtd.mesh1d import Mesh1D
 
 from nodepy import runge_kutta_method as rk
 

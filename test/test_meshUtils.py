@@ -1,7 +1,7 @@
 from pytest import approx
 import numpy as np
 
-import dgtd.meshUtils as ms
+import dgtd.mesh1d as ms
 
 def test_mesh_generator_n_1():
     [n_v, vx, k_elem, etov] = ms.mesh_generator(0.0, 1.0, 1)

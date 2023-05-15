@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from dgtd.maxwell1d import *
-from dgtd.meshUtils import *
+from dgtd.mesh1d import *
 
-import dgtd.meshUtils as ms
+import dgtd.mesh1d as ms
 import dgtd.maxwell1d as mw
 
 
