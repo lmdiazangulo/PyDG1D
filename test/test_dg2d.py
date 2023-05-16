@@ -26,6 +26,29 @@ def test_set_nodes_N2():
         dg.set_nodes(2)
     )
 
+
+def test_warp():
+    # if N=2 Lmat y Pmat are 3*6 shape
+    # Pmat = np.array([ [0.7071,    0.7071,      0.7071,    0.7071,      0.7071,   0.7071],
+    #                   [-1.2247,        0,     1.2247,   -0.6124,      0.6124,        0]
+    #                   [1.5811,   -0.7906,      1.5811,    -0.1976,     -0.1976,  -0.7906]])
+    # Lmat = np.array([ [ 1.0000,        0,        0,        0.3750,    -0.1250,        0]
+    #                   [0,         1.0000,        0,        0.7500,       0.7500,   1.0000]
+    #                   [0,        0,           1.0000,      -0.1250,     0.3750,        0]])
+    
+    
+    assert np.allclose(
+        np.array(
+            [[-1.0, -1/np.sqrt(3.0)],
+             [ 0.0, -1/np.sqrt(3.0)],
+             [ 1.0, -1/np.sqrt(3.0)],
+             [-0.5,  1/2/np.sqrt(3.0)],
+             [ 0.5,  1/2/np.sqrt(3.0)],
+             [ 0.0,  2/np.sqrt(3.0)]]
+        ),
+        dg.set_nodes(2)
+    )
+
 # def test_node_indices_N_1_2():
 #     assert np.allclose(
 #         np.array(

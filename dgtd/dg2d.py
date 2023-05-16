@@ -22,10 +22,10 @@ def warpFactor(N, rout):
 
     # Evaluate Lagrange polynomial at rout
     Nr = len(rout)
-    Pmat = np.zeros(N+1,Nr)
+    Pmat = np.zeros((N+1,Nr))
     for i in range(N):
-        Pmat[i,:] = dg1d.jacobi_polynomial(rout, 0, 0, i)
-    Lmat = Veq.transpose().dot(np.linalg.inv(Pmat))
+        Pmat[i] = np.transpose(dg1d.jacobi_polynomial(rout, 0, 0, i))
+    Lmat = np.linalg.solve(Veq.transpose(), Pmat)
 
     # Compute warp factor
     warp = Lmat.transpose().dot(LGLr - req)
@@ -51,8 +51,8 @@ def set_nodes(N):
     sk = 1
     for n in range(N):
         for m in range(N+1-n):
-            L1[sk] = n / N 
-            L3[sk] = m / N
+            L1[sk] = (n) / N 
+            L3[sk] = (m) / N
             sk += 1
     L2 = 1.0 - L1 - L3
 
@@ -70,7 +70,7 @@ def set_nodes(N):
     warpf3 = warpFactor(N,L2-L1)
 
     if N<16:
-        alpha = alpopt(N)
+        alpha = alpopt[N]
     else:
         alpha = 5/3
 
