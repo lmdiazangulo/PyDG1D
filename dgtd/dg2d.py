@@ -34,7 +34,7 @@ def warpFactor(N, rout):
     # Scale factor
     zerof = np.abs(rout) < 1.0 - 1.0e-10
     sf = 1.0 - (zerof*rout)**2
-    
+
     warp = warp / sf + warp * (zerof-1)
     return warp
 
@@ -46,28 +46,28 @@ def set_nodes(N):
     '''
     Np = int((N+1)*(N+2)/2)
 
-    L1 = np.zeros(Np) 
-    L2 = np.zeros(Np) 
+    L1 = np.zeros(Np)
+    L2 = np.zeros(Np)
     L3 = np.zeros(Np)
     sk = 1
     for n in range(N):
         for m in range(N+1-n):
-            L1[sk] = (n) / N 
-            L3[sk] = (m) / N
+            L1[sk] = n / N
+            L3[sk] = m / N
             sk += 1
     L2 = 1.0 - L1 - L3
 
-    x = -L2+L3 
+    x = -L2+L3
     y = (-L2-L3+2*L1)/np.sqrt(3.0)
 
     # Compute blending function at each node for each edge
-    blend1 = 4.0 * L2 * L3 
-    blend2 = 4.0 * L1 * L3 
+    blend1 = 4.0 * L2 * L3
+    blend2 = 4.0 * L1 * L3
     blend3 = 4.0 * L1 * L2
 
     # Amount of warp for each node, for each edge
-    warpf1 = warpFactor(N,L3-L2) 
-    warpf2 = warpFactor(N,L1-L3) 
+    warpf1 = warpFactor(N,L3-L2)
+    warpf2 = warpFactor(N,L1-L3)
     warpf3 = warpFactor(N,L2-L1)
 
     if N<16:
@@ -132,7 +132,7 @@ def vandermonde(N: int, r, s):
     '''
         % function [V2D] = Vandermonde2D(N, r, s);
         % Purpose : Initialize the 2D Vandermonde Matrix,  V_{ij} = phi_j(r_i, s_i);
-    '''    
+    '''
     Np = int ((N+1) * (N+2) / 2)
     V = np.zeros((len(r), Np))
 
@@ -146,6 +146,64 @@ def vandermonde(N: int, r, s):
 
     return V
 
+def Dmatrices2D(N: int, r, s, V):
+
+    Vr, Vs = GradVandermonde2D(N, r, s)
+    Dr = Vr/V
+    Ds = Vs/V
+
+    return Dr, Ds
+
+def GradVandermonde2D(N: int, r, s):
+
+    V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
+    V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
+
+    a, b = rs_to_ab(r,s)
+
+    sk = 1
+    for i in range(N):
+        for j in range(N-i):
+            V2Dr[:,sk], V2Ds[:,sk] = GradSimplex2DP(a,b,i,j)
+            sk += 1
+
+    return V2Dr, V2Ds
+
+def GradSimplex2DP(a, b, i: int, j: int):
+
+    fa  = dg1d.jacobi_polynomial     (a, 0, 0, i)
+    dfa = dg1d.jacobi_polynomial_grad(a, 0, 0, i)
+    gb  = dg1d.jacobi_polynomial     (b, 2.0*i+1.0, 0, j)
+    dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
+
+    dmodedr = dfa*gb
+    bcoeff = (0.5*(1-b.reshape(1,len(b))))**(i-1)
+    dmodedrMat = dmodedr.reshape(len(dmodedr), 1)
+
+    if (i>0):
+        dmodedrMat = dmodedrMat.dot(bcoeff)
+    
+    dmodeds = dfa*(gb*(0.5*(1+a)))
+    dmodedsMat = dmodeds.reshape(len(dmodeds),1)
+
+    if (i>0):
+        dmodedsMat = dmodedsMat.dot(bcoeff)
+
+    dgbMat = dgb.reshape(len(dgb),1)
+    tmp = dgbMat.dot(0.5*(1-b.reshape(1,len(b))))**(i)
+
+    if (i>0):
+        gbcoeff = 0.5*i*gb
+        gbcoeffMat = gbcoeff.reshape(len(gbcoeff),1)
+        tmp -= gbcoeffMat.dot(bcoeff)
+
+    faMat = fa.reshape(len(fa),1)
+    dmodedsMat += faMat*tmp
+
+    dmodedrMat *= 2**(i+0.5)
+    dmodedsMat *= 2**(i+0.5)
+
+    return dmodedrMat, dmodedsMat
 
 def nodes_coordinates(N, msh: mesh.Mesh2D):
     """
