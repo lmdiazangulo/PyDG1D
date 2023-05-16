@@ -115,10 +115,8 @@ def simplex_polynomial(a, b, i: int, j: int):
     '''
     h1 = dg1d.jacobi_polynomial(a,     0, 0, i)
     h2 = dg1d.jacobi_polynomial(b, 2*i+1, 0, j)
-
-    bTerm = np.zeros(h1.shape)
-    bTerm[:] = (1-b)**i
-    P = np.sqrt(2.0) * h1 * h2 * bTerm
+    
+    P = np.sqrt(2.0) * h1.transpose() * h2.transpose() * (1-b)**i
     return P
 
 def rs_to_ab(r, s):
