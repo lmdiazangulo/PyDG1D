@@ -86,9 +86,6 @@ def set_nodes(N):
     return x, y
 
 
-    return x, y
-
-
 # def node_indices(N):
 #     """
 #     Generates number of node Indices for order N.
@@ -98,3 +95,48 @@ def set_nodes(N):
 #     for i in range(Np):
 #         nId[i] = [N-i, i]
 #     return nId.astype(int)
+
+def simplex_polynomial(a, b, i: int, j: int):
+    '''
+        % function [P] = Simplex2DP(a,b,i,j);
+        % Purpose : Evaluate 2D orthonormal polynomial
+        %           on simplex at (a,b) of order (i,j).
+    '''
+    h1 = dg1d.jacobi_polynomial(a,     0, 0, i)
+    h2 = dg1d.jacobi_polynomial(b, 2*i+1, 0, j)
+    P = np.sqrt(2.0) * h1 * h2 * (1-b)**i
+    return P
+
+def rs_to_ab(r, s):
+    '''
+        % function [a,b] = rstoab(r,s)
+        % Purpose : Transfer from (r,s) -> (a,b) coordinates in triangle
+    '''
+    Np = len(r)
+    a = np.zeros(Np)
+
+    for n in range(Np):
+        if np.isclose(s[n], 1.0):
+            a[n] = 2.0 * (1.0+r[n]) / (1.0-s[n]) - 1
+        else:
+            a[n] = -1.0
+    b = s
+
+    return a, b
+
+def vandermonde(N: int, r, s):
+    '''
+        % function [V2D] = Vandermonde2D(N, r, s);
+        % Purpose : Initialize the 2D Vandermonde Matrix,  V_{ij} = phi_j(r_i, s_i);
+    '''    
+    Np = int ((N+1) * (N+2) / 2)
+    V = np.zeros(len(r), Np)
+
+    a, b = rs_to_ab(r, s)
+    sk = 1
+    for i in range(N):
+        for j in range(N-i+1):
+            V[:, sk] = simplex_polynomial(a, b, i+1, j+1)
+            sk += 1
+
+    return V
