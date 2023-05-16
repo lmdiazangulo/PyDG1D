@@ -6,11 +6,13 @@ import dgtd.mesh2d as mesh
 
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
+
 def test_set_nodes_N1():
     x, y = dg.set_nodes(1)
     assert np.allclose(np.array([-1.0, 1.0, 0.0]), x, rtol=1e-3)
     assert np.allclose(
         np.array([-1/np.sqrt(3.0), -1/np.sqrt(3.0),  2/np.sqrt(3.0)]), y, rtol=1e-3)
+
 
 def test_set_nodes_N2():
     x, y = dg.set_nodes(2)
@@ -19,26 +21,27 @@ def test_set_nodes_N2():
     assert np.allclose(
         np.array(
             [-1/np.sqrt(3.0), -1/np.sqrt(3.0), -1/np.sqrt(3.0),
-              1/2/np.sqrt(3.0), 1/2/np.sqrt(3.0), 2/np.sqrt(3.0)]), y, rtol=1e-3)
-    
+             1/2/np.sqrt(3.0), 1/2/np.sqrt(3.0), 2/np.sqrt(3.0)]), y, rtol=1e-3)
+
+
 def test_xy_to_rs():
     x = np.array([0.0, 0.5, 1.0])
     y = np.array([1.0, 1.5, 2.0])
     assert np.allclose(
         np.array(
-        [[-((np.sqrt(3.0)+1.0)/3.0),(1.0-3.0*np.sqrt(3.0))/6.0,(-2.0*np.sqrt(3.0)+2.0)/3.0],
-        [(4.0*np.sqrt(3.0)-2.0)/6.0,(6.0*np.sqrt(3.0)-2.0)/6.0,(8.0*np.sqrt(3.0)-2.0)/6.0]]
+            [[-((np.sqrt(3.0)+1.0)/3.0), (1.0-3.0*np.sqrt(3.0))/6.0, (-2.0*np.sqrt(3.0)+2.0)/3.0],
+             [(4.0*np.sqrt(3.0)-2.0)/6.0, (6.0*np.sqrt(3.0)-2.0)/6.0, (8.0*np.sqrt(3.0)-2.0)/6.0]]
         ),
         dg.xy_to_rs(x, y)
     )
 
 
 def test_warp_N1():
-    L1 = np.array([0,0,1])
-    L2 = np.array([1,0,0])
-    L3 = np.array([0,1,0])
+    L1 = np.array([0, 0, 1])
+    L2 = np.array([1, 0, 0])
+    L3 = np.array([0, 1, 0])
 
-    N = 1 
+    N = 1
     Np = 3
     assert np.allclose(np.zeros(Np), dg.warpFactor(N, L3-L2))
     assert np.allclose(np.zeros(Np), dg.warpFactor(N, L1-L3))
@@ -47,8 +50,8 @@ def test_warp_N1():
 
 def test_simplex_polynomial():
     a, b = (
-        np.array([-1,  0,  1, -1,  1, -1 ]),
-        np.array([-1, -1, -1,  0,  0,  1 ])
+        np.array([-1,  0,  1, -1,  1, -1]),
+        np.array([-1, -1, -1,  0,  0,  1])
     )
     p11 = dg.simplex_polynomial(a, b, 1, 1)
     p11Ref = np.array(
@@ -59,26 +62,27 @@ def test_simplex_polynomial():
 
 
 def test_rs_to_ab():
-    r, s = ( 
-        np.array([-1,  0,  1, -1, 0, -1 ]),
-        np.array([-1, -1, -1,  0, 0,  1 ])
+    r, s = (
+        np.array([-1,  0,  1, -1, 0, -1]),
+        np.array([-1, -1, -1,  0, 0,  1])
     )
 
     a, b = dg.rs_to_ab(r, s)
 
     aRef, bRef = (
-        np.array([-1,  0,  1, -1,  1, -1 ]),
-        np.array([-1, -1, -1,  0,  0,  1 ])
+        np.array([-1,  0,  1, -1,  1, -1]),
+        np.array([-1, -1, -1,  0,  0,  1])
     )
 
-    assert(np.all(a == aRef))
-    assert(np.all(b == bRef))
+    assert (np.all(a == aRef))
+    assert (np.all(b == bRef))
+
 
 def test_vandermonde_N2():
     # For N = 2.
-    r, s = ( 
-        np.array([-1,  0,  1, -1, 0, -1 ]),
-        np.array([-1, -1, -1,  0, 0,  1 ])
+    r, s = (
+        np.array([-1,  0,  1, -1, 0, -1]),
+        np.array([-1, -1, -1,  0, 0,  1])
     )
 
     V = dg.vandermonde(2, r, s)
@@ -94,6 +98,7 @@ def test_vandermonde_N2():
 
     assert np.allclose(V, VRef, rtol=1e-3)
 
+
 def test_nodes_coordinates():
     m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
 
@@ -105,8 +110,9 @@ def test_nodes_coordinates():
     xRef = np.array([-1.0000, -1.0000, -1.0000, -0.9127, -0.9127, -0.8253])
     yRef = np.array([-0.7500, -0.8750, -1.0000, -0.7872, -0.9122, -0.8245])
 
-    assert np.allclose(x[:,0], xRef, rtol=1e-3)
-    assert np.allclose(y[:,0], yRef, rtol=1e-3)
+    assert np.allclose(x[:, 0], xRef, rtol=1e-3)
+    assert np.allclose(y[:, 0], yRef, rtol=1e-3)
+
 
 def test_lift_N1():
     lift = dg.lift(1)
@@ -118,15 +124,15 @@ def test_lift_N1():
     )
     assert np.allclose(lift, liftRef, rtol=1e-3)
 
-    
-def test_gradsimplex_2DP():
-        
+
+def test_gradSimplexP():
+
     a, b = (
-    np.array([-1., 0., 1.,-1., 1.,-1.]),
-    np.array([-1.,-1.,-1., 0., 0., 1.])
+        np.array([-1., 0., 1., -1., 1., -1.]),
+        np.array([-1., -1., -1., 0., 0., 1.])
     )
 
-    dmodedr, dmodeds = dg.GradSimplex2DP(a, b, 1, 1)
+    dmodedr, dmodeds = dg.gradSimplexP(a, b, 1, 1)
 
     dmodedrRef = np.array(
         [-2.1213, -2.1213, -2.1213, 3.1820, 3.1820, 8.4853]
@@ -139,63 +145,63 @@ def test_gradsimplex_2DP():
     assert np.allclose(dmodedr, dmodedrRef, rtol=1e-3)
     assert np.allclose(dmodeds, dmodedsRef, rtol=1e-3)
 
-def test_gradvandermonde_2D_N2():
 
-    r, s = ( 
-        np.array([-1., 0., 1.,-1., 0.,-1.]),
-        np.array([-1.,-1.,-1., 0., 0., 1.])
+def test_gradVandermonde_N2():
+
+    r, s = (
+        np.array([-1., 0., 1., -1., 0., -1.]),
+        np.array([-1., -1., -1., 0., 0., 1.])
     )
-    
-    V2Dr, V2Ds = dg.GradVandermonde2D(2,r,s)
+
+    V2Dr, V2Ds = dg.gradVandermonde(2, r, s)
 
     V2DrExp = np.array([
-        [0.0, 0.0, 0.0, 1.7321,-2.1213,-8.2158],
-        [0.0, 0.0, 0.0, 1.7321,-2.1213,    0.0],
-        [0.0, 0.0, 0.0, 1.7321,-2.1213, 8.2158],
-        [0.0, 0.0, 0.0, 1.7321, 3.1820,-4.1079],
+        [0.0, 0.0, 0.0, 1.7321, -2.1213, -8.2158],
+        [0.0, 0.0, 0.0, 1.7321, -2.1213,    0.0],
+        [0.0, 0.0, 0.0, 1.7321, -2.1213, 8.2158],
+        [0.0, 0.0, 0.0, 1.7321, 3.1820, -4.1079],
         [0.0, 0.0, 0.0, 1.7321, 3.1820, 4.1079],
         [0.0, 0.0, 0.0, 1.7321, 8.4853,    0.0]]
-        )
-    
+    )
+
     V2DsExp = np.array([
-        [0.0, 1.5000,-4.8990, 0.8660,-6.3640,-2.7386],
-        [0.0, 1.5000,-4.8990, 0.8660,-1.0607, 1.3693],
-        [0.0, 1.5000,-4.8990, 0.8660, 4.2426, 5.4772],
-        [0.0, 1.5000, 1.2247, 0.8660,-1.0607,-1.3693],
+        [0.0, 1.5000, -4.8990, 0.8660, -6.3640, -2.7386],
+        [0.0, 1.5000, -4.8990, 0.8660, -1.0607, 1.3693],
+        [0.0, 1.5000, -4.8990, 0.8660, 4.2426, 5.4772],
+        [0.0, 1.5000, 1.2247, 0.8660, -1.0607, -1.3693],
         [0.0, 1.5000, 1.2247, 0.8660, 4.2426, 2.7386],
         [0.0, 1.5000, 7.3485, 0.8660, 4.2426,    0.0]]
-        )
+    )
 
     assert np.allclose(V2Dr, V2DrExp, rtol=1e-3)
     assert np.allclose(V2Ds, V2DsExp, rtol=1e-3)
 
-def test_Dmatrices_2D_N2():
 
-    r, s = ( 
-        np.array([-1., 0., 1.,-1., 0.,-1.]),
-        np.array([-1.,-1.,-1., 0., 0., 1.])
+def test_DMatrices_N2():
+
+    r, s = (
+        np.array([-1., 0., 1., -1., 0., -1.]),
+        np.array([-1., -1., -1., 0., 0., 1.])
     )
 
     V = dg.vandermonde(2, r, s)
 
-    [Dr, Ds] = dg.Dmatrices2D(2, r, s, V)
+    [Dr, Ds] = dg.DMatrices(2, r, s, V)
 
     DrExp = np.array([
-        [-1.5000, 2.0000,-0.5000,-0.0000, 0.0000, 0.0],
-        [-0.5000,    0.0, 0.5000,-0.0000, 0.0000, 0.0],
-        [ 0.5000, 2.0000, 1.5000,-0.0000, 0.0000, 0.0],
-        [-0.5000, 1.0000,-0.5000,-1.0000, 1.0000, 0.0],
-        [ 0.5000, 1.0000, 0.5000,-1.0000, 1.0000, 0.0],
-        [ 0.5000,    0.0,-0.5000,-2.0000, 2.0000, 0.0]]
-    ) 
-
-    DsExp = np.array([
-        [-1.5000,    0.0, 0.0000, 2.0000,-0.0000,-0.5000],
-        [-0.5000,-1.0000, 0.0000, 1.0000, 1.0000,-0.5000],
-        [ 0.5000,-2.0000,-0.0000,-0.0000, 2.0000,-0.5000],
-        [-0.5000,-0.0000, 0.0000,-0.0000,-0.0000, 0.5000],
-        [ 0.5000,-1.0000,    0.0,-1.0000, 1.0000, 0.5000],
-        [ 0.5000,-0.0000, 0.0000,-2.0000,-0.0000, 1.5000]]
+        [-1.5000, 2.0000, -0.5000, -0.0000, 0.0000, 0.0000],
+        [-0.5000, 0.0000,  0.5000, -0.0000, 0.0000, 0.0000],
+        [ 0.5000, 2.0000,  1.5000, -0.0000, 0.0000, 0.0000],
+        [-0.5000, 1.0000, -0.5000, -1.0000, 1.0000, 0.0000],
+        [ 0.5000, 1.0000,  0.5000, -1.0000, 1.0000, 0.0000],
+        [ 0.5000, 0.0000, -0.5000, -2.0000, 2.0000, 0.0000]]
     )
-    
 
+    DsExp = np.array([ 
+        [-1.5000,  0.0000,  0.0000,  2.0000, -0.0000, -0.5000],
+        [-0.5000, -1.0000,  0.0000,  1.0000,  1.0000, -0.5000],
+        [ 0.5000, -2.0000, -0.0000, -0.0000,  2.0000, -0.5000],
+        [-0.5000, -0.0000,  0.0000, -0.0000, -0.0000,  0.5000],
+        [ 0.5000, -1.0000,  0.0000, -1.0000,  1.0000,  0.5000],
+        [ 0.5000, -0.0000,  0.0000, -2.0000, -0.0000,  1.5000]]
+    )
