@@ -59,8 +59,8 @@ def test_simplex_polynomial():
 
 def test_rs_to_ab():
     r, s = ( 
-        np.array([-1,  0,  1, -1, 0, 1 ]),
-        np.array([-1, -1, -1,  0, 0, 1 ])
+        np.array([-1,  0,  1, -1, 0, -1 ]),
+        np.array([-1, -1, -1,  0, 0,  1 ])
     )
 
     a, b = dg.rs_to_ab(r, s)
@@ -76,8 +76,8 @@ def test_rs_to_ab():
 def test_vanderdmonde_N2():
     # For N = 2.
     r, s = ( 
-        np.array([-1,  0,  1, -1, 0, 1 ]),
-        np.array([-1, -1, -1,  0, 0, 1 ])
+        np.array([-1,  0,  1, -1, 0, -1 ]),
+        np.array([-1, -1, -1,  0, 0,  1 ])
     )
 
     V = dg.vandermonde(2, r, s)

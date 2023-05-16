@@ -116,7 +116,7 @@ def rs_to_ab(r, s):
     a = np.zeros(Np)
 
     for n in range(Np):
-        if np.isclose(s[n], 1.0):
+        if not np.isclose(s[n], 1.0):
             a[n] = 2.0 * (1.0+r[n]) / (1.0-s[n]) - 1
         else:
             a[n] = -1.0
