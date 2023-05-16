@@ -253,3 +253,7 @@ def lift(N):
     V = vandermonde(N, r, s)
     lift = V.dot(V.transpose().dot(Emat))
     return lift
+
+def geometricFactors(x, y, Dr, Ds):
+    # TODO
+    return rx, sx, ry, sy, J

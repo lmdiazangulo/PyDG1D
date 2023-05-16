@@ -207,9 +207,25 @@ def test_DMatrices_N2():
     )
 
 
+def test_geometric_factors():
+    N = 1
+    x = np.array([[-1.000], [-1.000], [-0.1640]])
+    y = np.array([[ 0.000], [-1.000], [-0.1640]])
+    r, s = dg.xy_to_rs(*dg.set_nodes(N))
+    Dr, Ds = dg.DMatrices(N, r, s, dg.vandermonde(N, r, s))
+
+    rx, sx, ry, sy, J = dg.geometricFactors(x, y, Dr, Ds)
+
+    assert np.allclose(rx, np.array([[-0.3923], [-0.3923], [-0.3923]]), rtol=1e-3)
+    assert np.allclose(sx, np.array([[ 2.3923], [ 2.3923], [ 2.3923]]), rtol=1e-3)
+    assert np.allclose(ry, np.array([[-2.0000], [-2.0000], [-2.0000]]), rtol=1e-3)
+    assert np.allclose(sy, np.array([[ 0.0000], [ 0.0000], [ 0.0000]]), rtol=1e-3)
+    assert np.allclose( J, np.array([[ 0.2090], [ 0.2090], [ 0.2090]]), rtol=1e-3)
+    
+
 def test_normals_146_element():   
     # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
     assert np.allclose(np.array([-1.0, -1.0, -1.0, 0.7088, 0.7088, 0.7088, 0.3921, 0.3921, 0.3921]),
                        dg.normals2D(146)[:,0]) 
     assert np.allclose(np.array([-0.9347, -0.9347, -0.9347, 0.4420, 0.4420, 0.4420, 0.7578, 0.7578, 0.7578]),
-                       dg.normals2D(146)[:,145]) 
+                       dg.normals2D(146)[:,145])
