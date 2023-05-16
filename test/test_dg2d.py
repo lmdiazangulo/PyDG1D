@@ -1,6 +1,6 @@
 from pytest import approx
 import numpy as np
-
+import math
 import dgtd.dg2d as dg
     
 def test_set_nodes_N1():

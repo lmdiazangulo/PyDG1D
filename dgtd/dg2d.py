@@ -48,7 +48,7 @@ def set_nodes(N):
     L1 = np.zeros(Np) 
     L2 = np.zeros(Np) 
     L3 = np.zeros(Np)
-    sk = 0
+    sk = 1
     for n in range(N):
         for m in range(N+1-n):
             L1[sk] = n / N 
@@ -84,10 +84,6 @@ def set_nodes(N):
     y = y + 0.0 * warp1 + np.sin(2*np.pi/3)*warp2 + np.sin(4.0*np.pi/3)*warp3
 
     return x, y
-
-
-    return x, y
-
 
 # def node_indices(N):
 #     """

@@ -34,7 +34,7 @@ class SpatialDiscretization:
 
         r = jacobiGL(alpha, beta, n_order)
         jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
-        vander = vandermonde_1d(n_order, r)
+        vander = vandermonde(n_order, r)
         self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx)
         self.nx = normals(mesh.number_of_elements())
 
@@ -70,7 +70,7 @@ class SpatialDiscretization:
         return self.n_order + 1
 
     def get_nodes(self):
-        return set_nodes_1d(self.n_order, self.mesh.vx[self.mesh.EToV])
+        return set_nodes(self.n_order, self.mesh.vx[self.mesh.EToV])
 
     def get_impedance(self):
         Z_imp = np.zeros(self.x.shape)
