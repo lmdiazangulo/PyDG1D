@@ -23,7 +23,7 @@ def warpFactor(N, rout):
     # Evaluate Lagrange polynomial at rout
     Nr = len(rout)
     Pmat = np.zeros((N+1,Nr))
-    for i in range(N):
+    for i in range(N+1):
         Pmat[i] = np.transpose(dg1d.jacobi_polynomial(rout, 0, 0, i))
     Lmat = np.linalg.solve(Veq.transpose(), Pmat)
 
