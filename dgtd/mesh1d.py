@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.special
-import math
 
 class Mesh1D:
     def __init__(self, xmin, xmax, k_elem, boundary_label="PEC"):
