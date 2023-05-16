@@ -214,8 +214,7 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
     vb = msh.EToV[:,1].transpose()
     vc = msh.EToV[:,2].transpose()
 
-    x, y = set_nodes(N)
-    r, s  = xy_to_rs(x,y)
+    r, s  = xy_to_rs(*set_nodes(N))
 
     x = 0.5*(-(r+s)*msh.vx[va] + (1+r)*msh.vx[vb] + (1+s)*msh.vx[vc])
     y = 0.5*(-(r+s)*msh.vy[va] + (1+r)*msh.vy[vb] + (1+s)*msh.vy[vc])
