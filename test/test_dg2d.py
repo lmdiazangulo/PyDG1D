@@ -205,3 +205,19 @@ def test_DMatrices_N2():
         [ 0.5000, -1.0000,  0.0000, -1.0000,  1.0000,  0.5000],
         [ 0.5000, -0.0000,  0.0000, -2.0000, -0.0000,  1.5000]]
     )
+
+
+def test_geometric_factors():
+    N = 1
+    x = np.array([[-1.000], [-1.000], [-0.1640]])
+    y = np.array([[ 0.000], [-1.000], [-0.1640]])
+    r, s = dg.xy_to_rs(*dg.set_nodes(N))
+    Dr, Ds = dg.DMatrices(N, r, s, dg.vandermonde(N, r, s))
+
+    rx, sx, ry, sy, J = dg.geometricFactors(x, y, Dr, Ds)
+
+    assert np.allclose(rx, np.array([[-0.3923], [-0.3923], [-0.3923]]), rtol=1e-3)
+    assert np.allclose(sx, np.array([[ 2.3923], [ 2.3923], [ 2.3923]]), rtol=1e-3)
+    assert np.allclose(ry, np.array([[-2.0000], [-2.0000], [-2.0000]]), rtol=1e-3)
+    assert np.allclose(sy, np.array([[ 0.0000], [ 0.0000], [ 0.0000]]), rtol=1e-3)
+    assert np.allclose( J, np.array([[ 0.2090], [ 0.2090], [ 0.2090]]), rtol=1e-3)
