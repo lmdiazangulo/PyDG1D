@@ -11,7 +11,7 @@ import dgtd.maxwell1d as mw
 
 def test_spatial_discretization_lift():
     sp = SpatialDiscretization(1, Mesh1D(0.0, 1.0, 1))
-    assert   np.allclose(surface_integral_dg(1, vandermonde_1d(1, jacobiGL(0.0,0.0,1))), 
+    assert   np.allclose(surface_integral_dg(1, vandermonde(1, jacobiGL(0.0,0.0,1))), 
                          np.array([[2.0,-1.0],[-1.0,2.0]]))
 
 
