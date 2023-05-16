@@ -164,49 +164,43 @@ def GradVandermonde2D(N: int, r, s):
     sk = 1
     for i in range(N):
         for j in range(N-i):
-            V2Dr[:,sk], V2Ds[:,sk] = GradSimplex2DP(a,b,i,j)
+            V2Drtmp, V2Dstmp = GradSimplex2DP(a, b, i, j)
+            V2Dr[:,sk] = V2Drtmp.reshape(1,V2Drtmp.shape[0])
+            V2Ds[:,sk] = V2Dstmp.reshape(1,V2Dstmp.shape[0])
             sk += 1
 
     return V2Dr, V2Ds
 
 def GradSimplex2DP(a, b, i: int, j: int):
 
-    areshape = a.reshape(1,len(a))
-    breshape = b.reshape(1,len(b))
-
-    fa  = dg1d.jacobi_polynomial     (areshape, 0, 0, i)
-    dfa = dg1d.jacobi_polynomial_grad(areshape, 0, 0, i)
-    gb  = dg1d.jacobi_polynomial     (breshape, 2.0*i+1.0, 0, j)
-    dgb = dg1d.jacobi_polynomial_grad(breshape, 2.0*i+1.0, 0, j)
+    fa  = dg1d.jacobi_polynomial     (a, 0, 0, i)
+    dfa = dg1d.jacobi_polynomial_grad(a, 0, 0, i)
+    gb  = dg1d.jacobi_polynomial     (b, 2.0*i+1.0, 0, j)
+    dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
 
     dmodedr = dfa*gb
-    bcoeff = (0.5*(1-b.reshape(1,len(b))))**(i-1)
-    dmodedrMat = dmodedr.reshape(len(dmodedr), 1)
+    bcoeff = (0.5*(1-b))**(i-1)
 
     if (i>0):
-        dmodedrMat = dmodedrMat.dot(bcoeff)
+        dmodedr = dmodedr*bcoeff
     
     dmodeds = dfa*(gb*(0.5*(1+a)))
-    dmodedsMat = dmodeds.reshape(len(dmodeds),1)
 
     if (i>0):
-        dmodedsMat = dmodedsMat.dot(bcoeff)
+        dmodeds = dmodeds*bcoeff
 
-    dgbMat = dgb.reshape(len(dgb),1)
-    tmp = dgbMat.dot(0.5*(1-b.reshape(1,len(b))))**(i)
+    tmp = dgb*(0.5*(1-b))**(i)
 
     if (i>0):
         gbcoeff = 0.5*i*gb
-        gbcoeffMat = gbcoeff.reshape(len(gbcoeff),1)
-        tmp -= gbcoeffMat.dot(bcoeff)
+        tmp -= gbcoeff*bcoeff
 
-    faMat = fa.reshape(len(fa),1)
-    dmodedsMat += faMat*tmp
+    dmodeds += fa*tmp
 
-    dmodedrMat *= 2**(i+0.5)
-    dmodedsMat *= 2**(i+0.5)
+    dmodedr *= 2**(i+0.5)
+    dmodeds *= 2**(i+0.5)
 
-    return dmodedrMat, dmodedsMat
+    return dmodedr, dmodeds
 
 def nodes_coordinates(N, msh: mesh.Mesh2D):
     """
