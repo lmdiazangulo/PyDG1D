@@ -48,11 +48,11 @@ def set_nodes(N):
     L1 = np.zeros(Np) 
     L2 = np.zeros(Np) 
     L3 = np.zeros(Np)
-    sk = 1
-    for n in range(N):
-        for m in range(N+1-n):
-            L1[sk] = (n) / N 
-            L3[sk] = (m) / N
+    sk = 0
+    for n in range(1,N+2):
+        for m in range(1,N+3-n):
+            L1[sk] = (n-1) / N 
+            L3[sk] = (m-1) / N
             sk += 1
     L2 = 1.0 - L1 - L3
 
