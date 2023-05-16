@@ -104,7 +104,10 @@ def simplex_polynomial(a, b, i: int, j: int):
     '''
     h1 = dg1d.jacobi_polynomial(a,     0, 0, i)
     h2 = dg1d.jacobi_polynomial(b, 2*i+1, 0, j)
-    P = np.sqrt(2.0) * h1 * h2 * (1-b)**i
+
+    bTerm = np.zeros(h1.shape)
+    bTerm[:] = (1-b)**i
+    P = np.sqrt(2.0) * h1 * h2 * bTerm
     return P
 
 def rs_to_ab(r, s):
@@ -130,13 +133,14 @@ def vandermonde(N: int, r, s):
         % Purpose : Initialize the 2D Vandermonde Matrix,  V_{ij} = phi_j(r_i, s_i);
     '''    
     Np = int ((N+1) * (N+2) / 2)
-    V = np.zeros(len(r), Np)
+    V = np.zeros((len(r), Np))
 
     a, b = rs_to_ab(r, s)
-    sk = 1
-    for i in range(N):
+    sk = 0
+    for i in range(N+1):
         for j in range(N-i+1):
-            V[:, sk] = simplex_polynomial(a, b, i+1, j+1)
+            pol = simplex_polynomial(a, b, i, j)
+            V[:, sk] = pol
             sk += 1
 
     return V

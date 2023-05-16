@@ -52,7 +52,9 @@ def test_simplex_polynomial():
         np.array([-1, -1, -1,  0,  0,  1 ])
     )
     p11 = dg.simplex_polynomial(a, b, 1, 1)
-    p11Ref = np.array([2.1213, 0.000, -2.1213, -1.5910, 0.000])
+    p11Ref = np.array(
+        [2.1213, 0.0000, -2.1213, -1.5910, 1.5910, 0.0000]
+    )
 
     assert np.allclose(p11, p11Ref, rtol=1e-3)
 
