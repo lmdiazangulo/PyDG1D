@@ -86,7 +86,7 @@ def test_rs_to_ab():
     assert(np.all(a == aRef))
     assert(np.all(b == bRef))
 
-def test_vanderdmonde_N2():
+def test_vandermonde_N2():
     # For N = 2.
     r, s = ( 
         np.array([-1,  0,  1, -1, 0, -1 ]),
@@ -106,7 +106,7 @@ def test_vanderdmonde_N2():
 
     assert np.allclose(V, VRef, rtol=1e-3)
 
-def test_gradsimplex_2dp_N2():
+def test_gradsimplex_2DP():
         
     a, b = (
     np.array([-1,  0,  1, -1,  1, -1 ]),
@@ -135,3 +135,35 @@ def test_gradsimplex_2dp_N2():
 
     assert np.allclose(dmodedr, dmodedrRef, rtol=1e-3)
     assert np.allclose(dmodeds, dmodedsRef, rtol=1e-3)
+
+def test_gradvandermonde_2D_N1():
+
+    r, s = ( 
+        np.array([-1,  0,  1, -1, 0, -1 ]),
+        np.array([-1, -1, -1,  0, 0,  1 ])
+    )
+
+    V2DrExp = np.array([
+        [0.0, 0.0, 1.7321],
+        [0.0, 0.0, 1.7321],
+        [0.0, 0.0, 1.7321],
+        [0.0, 0.0, 1.7321],
+        [0.0, 0.0, 1.7321],
+        [0.0, 0.0, 1.7321]]
+        )
+    
+    V2DsExp = np.array([
+        [0.0, 1.5000, 0.8660],
+        [0.0, 1.5000, 0.8660],
+        [0.0, 1.5000, 0.8660],
+        [0.0, 1.5000, 0.8660],
+        [0.0, 1.5000, 0.8660],
+        [0.0, 1.5000, 0.8660]]
+        )
+    
+    V2Dr, V2Ds = dg.GradVandermonde2D(2,r,s)
+
+    assert np.allclose(V2Dr,V2DrExp, rtol=1e-3)
+    assert np.allclose(V2Ds,V2DsExp, rtol=1e-3)
+    
+

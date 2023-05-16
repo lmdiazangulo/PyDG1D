@@ -166,8 +166,8 @@ def Dmatrices2D(N: int, r, s, V):
 
 def GradVandermonde2D(N: int, r, s):
 
-    V2Dr = np.array()
-    V2Ds = np.array()
+    V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
+    V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
 
     a, b = rs_to_ab(r,s)
 
