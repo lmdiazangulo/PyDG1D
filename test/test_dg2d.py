@@ -136,7 +136,7 @@ def test_gradsimplex_2DP():
         [-6.3640, -1.0607, 4.2426, -1.0607, 4.2426, 4.2426]
     )
 
-    assert np.allclose(dmodedr, dmodedrRef, rtol=1e-2)
+    assert np.allclose(dmodedr, dmodedrRef, rtol=1e-3)
     assert np.allclose(dmodeds, dmodedsRef, rtol=1e-3)
 
 def test_gradvandermonde_2D_N2():
@@ -166,7 +166,36 @@ def test_gradvandermonde_2D_N2():
         [0.0, 1.5000, 7.3485, 0.8660, 4.2426,    0.0]]
         )
 
-    assert np.allclose(V2Dr,V2DrExp, rtol=1e-3)
-    assert np.allclose(V2Ds,V2DsExp, rtol=1e-3)
+    assert np.allclose(V2Dr, V2DrExp, rtol=1e-3)
+    assert np.allclose(V2Ds, V2DsExp, rtol=1e-3)
+
+def test_Dmatrices_2D_N2():
+
+    r, s = ( 
+        np.array([-1., 0., 1.,-1., 0.,-1.]),
+        np.array([-1.,-1.,-1., 0., 0., 1.])
+    )
+
+    V = dg.vandermonde(2, r, s)
+
+    [Dr, Ds] = dg.Dmatrices2D(2, r, s, V)
+
+    DrExp = np.array([
+        [-1.5000, 2.0000,-0.5000,-0.0000, 0.0000, 0.0],
+        [-0.5000,    0.0, 0.5000,-0.0000, 0.0000, 0.0],
+        [ 0.5000, 2.0000, 1.5000,-0.0000, 0.0000, 0.0],
+        [-0.5000, 1.0000,-0.5000,-1.0000, 1.0000, 0.0],
+        [ 0.5000, 1.0000, 0.5000,-1.0000, 1.0000, 0.0],
+        [ 0.5000,    0.0,-0.5000,-2.0000, 2.0000, 0.0]]
+    ) 
+
+    DsExp = np.array([
+        [-1.5000,    0.0, 0.0000, 2.0000,-0.0000,-0.5000],
+        [-0.5000,-1.0000, 0.0000, 1.0000, 1.0000,-0.5000],
+        [ 0.5000,-2.0000,-0.0000,-0.0000, 2.0000,-0.5000],
+        [-0.5000,-0.0000, 0.0000,-0.0000,-0.0000, 0.5000],
+        [ 0.5000,-1.0000,    0.0,-1.0000, 1.0000, 0.5000],
+        [ 0.5000,-0.0000, 0.0000,-2.0000,-0.0000, 1.5000]]
+    )
     
 
