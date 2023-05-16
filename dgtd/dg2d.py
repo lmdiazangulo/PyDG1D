@@ -96,7 +96,7 @@ def set_nodes(N):
 #         nId[i] = [N-i, i]
 #     return nId.astype(int)
 
-def xytors(x,y):
+def xy_to_rs(x,y):
 
     L1 = (np.sqrt(3.0)*y+1.0)/3.0
     L2 = (-3.0*x - np.sqrt(3.0)*y + 2.0)/6.0

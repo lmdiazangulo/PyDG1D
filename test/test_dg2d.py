@@ -34,7 +34,7 @@ def test_xy_to_rs():
         [[-((np.sqrt(3.0)+1.0)/3.0),(1.0-3.0*np.sqrt(3.0))/6.0,(-2.0*np.sqrt(3.0)+2.0)/3.0],
         [(4.0*np.sqrt(3.0)-2.0)/6.0,(6.0*np.sqrt(3.0)-2.0)/6.0,(8.0*np.sqrt(3.0)-2.0)/6.0]]
         ),
-        dg.xytors(x, y)
+        dg.xy_to_rs(x, y)
     )
 
 # def test_node_indices_N_1_2():
