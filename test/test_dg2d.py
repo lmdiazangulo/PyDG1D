@@ -205,3 +205,11 @@ def test_DMatrices_N2():
         [ 0.5000, -1.0000,  0.0000, -1.0000,  1.0000,  0.5000],
         [ 0.5000, -0.0000,  0.0000, -2.0000, -0.0000,  1.5000]]
     )
+
+
+def test_normals_146_element():   
+    # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
+    assert np.allclose(np.array([-1.0, -1.0, -1.0, 0.7088, 0.7088, 0.7088, 0.3921, 0.3921, 0.3921]),
+                       dg.normals2D(146)[:,0]) 
+    assert np.allclose(np.array([-0.9347, -0.9347, -0.9347, 0.4420, 0.4420, 0.4420, 0.7578, 0.7578, 0.7578]),
+                       dg.normals2D(146)[:,145]) 
