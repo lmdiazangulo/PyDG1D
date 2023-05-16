@@ -139,7 +139,7 @@ def test_gradsimplex_2DP():
     assert np.allclose(dmodedr, dmodedrRef, rtol=1e-2)
     assert np.allclose(dmodeds, dmodedsRef, rtol=1e-3)
 
-def test_gradvandermonde_2D_N1():
+def test_gradvandermonde_2D_N2():
 
     r, s = ( 
         np.array([-1., 0., 1.,-1., 0.,-1.]),
