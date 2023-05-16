@@ -1,10 +1,9 @@
 import numpy as np
-import scipy.special
-import math
 
 import dgtd.dg1d as dg1d
+import dgtd.mesh2d as mesh
 
-n_faces = 3
+N_FACES = 3
 
 alpopt = np.array([0.0000, 0.0000, 1.4152, 0.1001, 0.2751, 0.9800, 1.0999,
         1.2832, 1.3648, 1.4773, 1.4959, 1.5743, 1.5770, 1.6223, 1.6258])
@@ -86,16 +85,6 @@ def set_nodes(N):
     return x, y
 
 
-# def node_indices(N):
-#     """
-#     Generates number of node Indices for order N.
-#     """
-#     Np = N+1
-#     nId = np.zeros([Np, 2])
-#     for i in range(Np):
-#         nId[i] = [N-i, i]
-#     return nId.astype(int)
-
 def xy_to_rs(x,y):
 
     L1 = (np.sqrt(3.0)*y+1.0)/3.0
@@ -153,3 +142,21 @@ def vandermonde(N: int, r, s):
             sk += 1
 
     return V
+
+
+def nodes_coordinates(N, msh: mesh.Mesh2D):
+    """
+    Defined to be able to define methods depedent grid properties
+    """
+
+    va = msh.EToV[:,0].transpose()
+    vb = msh.EToV[:,1].transpose()
+    vc = msh.EToV[:,2].transpose()
+
+    x, y = set_nodes(N)
+    r, s  = xy_to_rs(x,y)
+
+    x = 0.5*(-(r+s)*msh.vx[va] + (1+r)*msh.vx[vb] + (1+s)*msh.vx[vc])
+    y = 0.5*(-(r+s)*msh.vy[va] + (1+r)*msh.vy[vb] + (1+s)*msh.vy[vc])
+
+    return x, y

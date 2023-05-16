@@ -1,8 +1,9 @@
 from pytest import approx
 import numpy as np
-import math
+
 import dgtd.dg2d as dg
-    
+import dgtd.mesh2d as mesh
+
 def test_set_nodes_N1():
     assert np.allclose(
         np.array(
@@ -105,3 +106,17 @@ def test_vanderdmonde_N2():
     )
 
     assert np.allclose(V, VRef, rtol=1e-3)
+
+def test_nodes_coordinates():
+    m = mesh.readFromGambitFile(mesh.TEST_DATA_FILE + 'Maxwell2D_K146.neu')
+
+    x, y = dg.nodes_coordinates(2, m)
+
+    assert x.shape == y.shape
+    assert x.shape == (6, 146)
+
+    xRef = np.array([-1.0000, -1.0000, -1.0000, -0.9127, -0.9127, -0.8253])
+    yRef = np.array([-0.7500, -0.8750, -1.0000, -0.7872, -0.9122, -0.8245])
+
+    assert np.allclose(x[:,0], xRef, rtol=1e-3)
+    assert np.allclose(y[:,0], yRef, rtol=1e-3)
