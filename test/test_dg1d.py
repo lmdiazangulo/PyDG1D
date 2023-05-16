@@ -41,27 +41,27 @@ def test_jacobi_polynomial_order_2_3_4():
                        dg.jacobi_polynomial(dg.jacobiGL(0.0, 0.0, 4), 0., 0., 4))
 
 
-def test_vandermonde_1d_order_1():
+def test_vandermonde_order_1():
     assert np.allclose(np.array([[0.70710678, -1.22474487],
                                  [0.70710678, 1.22474487]]),
-                       dg.vandermonde_1d(1, dg.jacobiGL(0.0, 0.0, 1)))
+                       dg.vandermonde(1, dg.jacobiGL(0.0, 0.0, 1)))
     
-def test_vandermonde_1d_order_2_3_4():    
+def test_vandermonde_order_2_3_4():    
     assert np.allclose(np.array([[0.70710678, -1.22474487, 1.58113883],
                                  [0.70710678, 0.00000,    -0.79056942],
                                  [0.70710678, 1.22474487, 1.58113883]]),
-                       dg.vandermonde_1d(2, dg.jacobiGL(0.0, 0.0, 2)))
+                       dg.vandermonde(2, dg.jacobiGL(0.0, 0.0, 2)))
     assert np.allclose(np.array([[0.70710678, -1.22474487, 1.58113883, -1.87082869],
                                  [0.70710678, -0.54772256, -0.31622777, 0.83666003],
                                  [0.70710678, 0.54772256, -0.31622777, -0.83666003],
                                  [0.70710678, 1.22474487, 1.58113883,  1.87082869]]),
-                       dg.vandermonde_1d(3, dg.jacobiGL(0.0, 0.0, 3)))
+                       dg.vandermonde(3, dg.jacobiGL(0.0, 0.0, 3)))
     assert np.allclose(np.array([[0.70710678, -1.22474487, 1.58113883, -1.87082869, 2.12132034],
                                  [0.70710678, -0.80178373, 0.22587698, 0.52489066, -0.90913729],
                                  [0.70710678, -0.000000, -0.79056942, 0.000000, 0.79549513],
                                  [0.70710678, 0.80178373, 0.22587698, -0.52489066, -0.90913729],
                                  [0.70710678, 1.22474487, 1.58113883,  1.87082869, 2.12132034]]),
-                       dg.vandermonde_1d(4, dg.jacobiGL(0.0, 0.0, 4)))
+                       dg.vandermonde(4, dg.jacobiGL(0.0, 0.0, 4)))
 
 def test_jacobi_polynomial_grad_order_1():
     assert np.allclose(np.array([[1.22474487, 1.22474487]]),
@@ -102,7 +102,7 @@ def test_differentation_matrix_order_1():
     assert np.allclose(np.array([[-0.5, 0.5],
                                  [-0.5, 0.5]]),
                        dg.differentiation_matrix(1, dg.jacobiGL(0.0, 0.0, 1), 
-                                                 dg.vandermonde_1d(1, dg.jacobiGL(0.0, 0.0, 1)
+                                                 dg.vandermonde(1, dg.jacobiGL(0.0, 0.0, 1)
                                                                    )))   
     
 def test_differentation_matrix_order_2_3_4():    
@@ -110,14 +110,14 @@ def test_differentation_matrix_order_2_3_4():
                                  [-0.5, 0.0, 0.5],
                                  [0.5, -2.0, 1.5]]),
                        dg.differentiation_matrix(2, dg.jacobiGL(0.0, 0.0, 2), 
-                                                 dg.vandermonde_1d(2, dg.jacobiGL(0.0, 0.0, 2)
+                                                 dg.vandermonde(2, dg.jacobiGL(0.0, 0.0, 2)
                                                                    ))) 
     assert np.allclose(np.array([[-3.0,           4.04508497, -1.54508497,   0.5    ],
                                  [-0.8090169904,  0.0,         1.11803399,  -0.3090169904],
                                  [0.3090169904,  -1.11803399,  0.,           0.8090169904],
                                  [-0.5,         1.54508497,    -4.04508497,  3.00]]),
                        dg.differentiation_matrix(3, dg.jacobiGL(0.0, 0.0, 3), 
-                                                 dg.vandermonde_1d(3, dg.jacobiGL(0.0, 0.0, 3)
+                                                 dg.vandermonde(3, dg.jacobiGL(0.0, 0.0, 3)
                                                                    ))) 
     assert np.allclose(np.array([[-5.0,         6.75650249,  -2.66666667,  1.41016418,  -0.500    ],
                                  [-1.24099025,  0.0,          1.74574312, -0.76376261,  0.259009747],
@@ -125,33 +125,33 @@ def test_differentation_matrix_order_2_3_4():
                                  [-0.259009747,  0.763762616, -1.74574312, 0.0,         1.24099025  ],
                                  [0.5,          -1.41016418,  2.6666667,   -6.75650249, 5.0       ]]),
                        dg.differentiation_matrix(4, dg.jacobiGL(0.0, 0.0, 4), 
-                                                 dg.vandermonde_1d(4, dg.jacobiGL(0.0, 0.0, 4)
+                                                 dg.vandermonde(4, dg.jacobiGL(0.0, 0.0, 4)
                                                                    ))) 
     
 def test_surface_integral_dg_order_1():    
     assert np.allclose(np.array([[2., -1.0],
                                  [-1.0, 2.0]]),
-                       dg.surface_integral_dg(1, dg.vandermonde_1d(1, dg.jacobiGL(0.0, 0.0, 1)
+                       dg.surface_integral_dg(1, dg.vandermonde(1, dg.jacobiGL(0.0, 0.0, 1)
                                                                     ))) 
 
 def test_surface_integral_dg_order_2_3_4():                                                                
     assert np.allclose(np.array([[4.5,      1.5],
                                  [-0.75, -0.75],
                                  [1.5, 4.5]]),
-                       dg.surface_integral_dg(2, dg.vandermonde_1d(2, dg.jacobiGL(0.0, 0.0, 2)
+                       dg.surface_integral_dg(2, dg.vandermonde(2, dg.jacobiGL(0.0, 0.0, 2)
                                                                    ))) 
     assert np.allclose(np.array([[8.00000000000000,  -2.00000000000000],
                                  [-0.894427190999917,  0.894427190999917],
                                  [0.894427190999917, -0.894427190999917],
                                  [-2.0,               8.0]]),
-                       dg.surface_integral_dg(3, dg.vandermonde_1d(3, dg.jacobiGL(0.0, 0.0, 3)
+                       dg.surface_integral_dg(3, dg.vandermonde(3, dg.jacobiGL(0.0, 0.0, 3)
                                                                    )))
     assert np.allclose(np.array([[12.5000000000000,	 2.50000000000000],
                                  [-1.07142857142857, -1.07142857142857],
                                  [0.937500000000001,  0.937500000000001],
                                  [-1.07142857142857, -1.07142857142857],
                                  [2.50000000000000,	 12.5000000000000]]),
-                       dg.surface_integral_dg(4, dg.vandermonde_1d(4, dg.jacobiGL(0.0, 0.0, 4)
+                       dg.surface_integral_dg(4, dg.vandermonde(4, dg.jacobiGL(0.0, 0.0, 4)
                                                                    )))
 def test_normals_2_3_element():    
     assert np.allclose(np.array([[-1., -1.0],
@@ -166,7 +166,7 @@ def test_filter():
                                  [ 0.19512656,  0.66667684,  0.16667684, -0.02848024],
                                  [-0.02848024,  0.16667684,  0.66667684,  0.19512656],
                                  [-0.1666158 , -0.14240119,  0.9756328 ,  0.3333842 ]]),
-                       dg.filter(3,1,1,dg.vandermonde_1d(3, dg.jacobiGL(0.0, 0.0 , 3)))) 
+                       dg.filter(3,1,1,dg.vandermonde(3, dg.jacobiGL(0.0, 0.0 , 3)))) 
     
 def test_nodes_coordinates():
     [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
@@ -181,7 +181,7 @@ def test_geometric_factors():
     [Nv,vx,K,etov] = ms.mesh_generator(0,10,4)
     x           = dg.nodes_coordinates(2,etov,vx)
     r           = dg.jacobiGL(0.0, 0.0, 2)
-    V           = dg.vandermonde_1d(2, r)
+    V           = dg.vandermonde(2, r)
     Dr          = dg.differentiation_matrix(2,r,V)
     [rx, J]     = dg.geometric_factors(x, Dr)
     assert np.allclose(np.array([[0.80000,   0.80000,   0.80000,   0.80000], \
@@ -234,7 +234,7 @@ def test_set_nodes():
     etov = np.array([[0, 1],
                      [1, 2]])
     N = 4
-    x = dg.set_nodes_1d(N, vx[etov])
+    x = dg.set_nodes(N, vx[etov])
     assert np.allclose(
         np.transpose(
             np.array([[0.00, 0.25, 0.50, 0.75, 1.00],
@@ -243,8 +243,8 @@ def test_set_nodes():
   
 def test_node_indices_N_1_2():
     assert np.allclose(np.array([[1, 0], [0,1]]), 
-                       dg.node_indices_1d(1))
+                       dg.node_indices(1))
     assert np.allclose(np.array([[2, 0], [1,1], 
                                  [0,2]]), 
-                       dg.node_indices_1d(2))
+                       dg.node_indices(2))
     
