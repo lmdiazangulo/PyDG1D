@@ -8,6 +8,8 @@ N_FACES = 3
 alpopt = np.array([0.0000, 0.0000, 1.4152, 0.1001, 0.2751, 0.9800, 1.0999,
         1.2832, 1.3648, 1.4773, 1.4959, 1.5743, 1.5770, 1.6223, 1.6258])
 
+NODETOL = 1e-12
+
 def warpFactor(N, rout):
     '''
         Purpose: Compute scaled warp function at order N based on rout interpolation nodes
@@ -96,6 +98,7 @@ def xy_to_rs(x,y):
 
     return r, s
 
+
 def simplex_polynomial(a, b, i: int, j: int):
     '''
         % function [P] = Simplex2DP(a,b,i,j);
@@ -160,3 +163,38 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
     y = 0.5*(-(r+s)*msh.vy[va] + (1+r)*msh.vy[vb] + (1+s)*msh.vy[vc])
 
     return x, y
+
+
+def lift(N):
+    r, s  = xy_to_rs(*set_nodes(N))
+
+    fmask1 = fmask1[ abs(s+1) < NODETOL].transpose()
+    fmask2 = fmask2[ abs(r+s) < NODETOL].transpose()
+    fmask3 = fmask3[ abs(r+1) < NODETOL].transpose()
+    Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
+
+    Nfp = int(N + 1)
+    Np = int((N+1) * (N+2) / 2)
+    Emat = np.zeros(Np, N_FACES*Nfp)
+
+    # face 0
+    faceR = r[Fmask[:,0]]
+    with dg1d.vandermonde(N, faceR) as V1D:
+        massEdge1 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,0], range(0,Nfp)] = massEdge1
+
+    # face 1
+    faceR = r[Fmask[:,1]]
+    with dg1d.vandermonde(N, faceR) as V1D:
+        massEdge2 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,1], range(Nfp,2*Nfp)] = massEdge2
+
+    # face 1
+    faceS = s[Fmask[:,2]]
+    with dg1d.vandermonde(N, faceS) as V1D: 
+        massEdge3 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,2], range(2*Nfp, 3*Nfp)] = massEdge3
+
+    # inv(mass matrix)*\I_n (L_i,L_j)_{edge_n}
+    V = vandermonde(N, r, s)
+    LIFT = V.dot(V.transpose().dot(Emat))

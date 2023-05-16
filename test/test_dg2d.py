@@ -4,6 +4,8 @@ import numpy as np
 import dgtd.dg2d as dg
 import dgtd.mesh2d as mesh
 
+TEST_DATA_FOLDER = 'dgtd/testData/'
+
 def test_set_nodes_N1():
     assert np.allclose(
         np.array(
@@ -108,7 +110,7 @@ def test_vanderdmonde_N2():
     assert np.allclose(V, VRef, rtol=1e-3)
 
 def test_nodes_coordinates():
-    m = mesh.readFromGambitFile(mesh.TEST_DATA_FILE + 'Maxwell2D_K146.neu')
+    m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
 
     x, y = dg.nodes_coordinates(2, m)
 
@@ -120,3 +122,13 @@ def test_nodes_coordinates():
 
     assert np.allclose(x[:,0], xRef, rtol=1e-3)
     assert np.allclose(y[:,0], yRef, rtol=1e-3)
+
+def test_lift_N1():
+    lift = dg.lift(1)
+
+    liftRef = np.array(
+        [[ 2.5000,  0.5000,  -1.5000,  -1.5000,   2.5000,   0.5000],
+         [ 0.5000,  2.5000,   2.5000,   0.5000,  -1.5000,  -1.5000],
+         [-1.5000, -1.5000,   0.5000,   2.5000,   0.5000,   2.5000]]
+    )
+    assert np.allclose(lift, liftRef, rtol=1e-3)
