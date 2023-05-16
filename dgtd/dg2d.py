@@ -213,8 +213,8 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
 
     r, s  = xy_to_rs(*set_nodes(N))
 
-    x = 0.5*(-(r+s)*msh.vx[va] + (1+r)*msh.vx[vb] + (1+s)*msh.vx[vc])
-    y = 0.5*(-(r+s)*msh.vy[va] + (1+r)*msh.vy[vb] + (1+s)*msh.vy[vc])
+    x = 0.5*(- np.outer(r+s, msh.vx[va]) + np.outer(1+r, msh.vx[vb]) + np.outer(1+s, msh.vx[vc]))
+    y = 0.5*(- np.outer(r+s, msh.vy[va]) + np.outer(1+r, msh.vy[vb]) + np.outer(1+s, msh.vy[vc]))
 
     return x, y
 
