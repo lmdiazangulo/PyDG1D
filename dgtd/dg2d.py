@@ -98,3 +98,15 @@ def set_nodes(N):
 #     for i in range(Np):
 #         nId[i] = [N-i, i]
 #     return nId.astype(int)
+
+def xytors(x,y):
+
+    L1 = (np.sqrt(3.0)*y+1.0)/3.0
+    L2 = (-3.0*x - np.sqrt(3.0)*y + 2.0)/6.0
+    L3 = ( 3.0*x - np.sqrt(3.0)*y + 2.0)/6.0
+
+    r = -L2 + L3 - L1
+    s = -L2 - L3 + L1
+
+    return r, s
+
