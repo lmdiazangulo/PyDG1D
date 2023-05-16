@@ -7,27 +7,19 @@ import dgtd.mesh2d as mesh
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_set_nodes_N1():
+    x, y = dg.set_nodes(1)
+    assert np.allclose(np.array([-1.0, 1.0, 0.0]), x, rtol=1e-3)
     assert np.allclose(
-        np.array(
-            [[-1.0, -1/np.sqrt(3.0)],
-             [ 1.0, -1/np.sqrt(3.0)],
-             [ 0.0,  2/np.sqrt(3.0)]]
-        ),
-        dg.set_nodes(1)
-    )
+        np.array([-1/np.sqrt(3.0), -1/np.sqrt(3.0),  2/np.sqrt(3.0)]), y, rtol=1e-3)
 
 def test_set_nodes_N2():
+    x, y = dg.set_nodes(2)
+    assert np.allclose(
+        np.array([-1.0, 0.0, 1.0, -0.5, 0.5,  0.0]), x, rtol=1e-3)
     assert np.allclose(
         np.array(
-            [[-1.0, -1/np.sqrt(3.0)],
-             [ 0.0, -1/np.sqrt(3.0)],
-             [ 1.0, -1/np.sqrt(3.0)],
-             [-0.5,  1/2/np.sqrt(3.0)],
-             [ 0.5,  1/2/np.sqrt(3.0)],
-             [ 0.0,  2/np.sqrt(3.0)]]
-        ),
-        dg.set_nodes(2)
-    )
+            [-1/np.sqrt(3.0), -1/np.sqrt(3.0), -1/np.sqrt(3.0),
+              1/2/np.sqrt(3.0), 1/2/np.sqrt(3.0), 2/np.sqrt(3.0)]), y, rtol=1e-3)
     
 def test_xy_to_rs():
     x = np.array([0.0, 0.5, 1.0])
@@ -41,47 +33,17 @@ def test_xy_to_rs():
     )
 
 
-def test_warp():
-    # if N=2 Lmat y Pmat are 3*6 shape
-    # Pmat = np.array([ [0.7071,    0.7071,      0.7071,    0.7071,      0.7071,   0.7071],
-    #                   [-1.2247,        0,     1.2247,   -0.6124,      0.6124,        0]
-    #                   [1.5811,   -0.7906,      1.5811,    -0.1976,     -0.1976,  -0.7906]])
-    # Lmat = np.array([ [ 1.0000,        0,        0,        0.3750,    -0.1250,        0]
-    #                   [0,         1.0000,        0,        0.7500,       0.7500,   1.0000]
-    #                   [0,        0,           1.0000,      -0.1250,     0.3750,        0]])
-    
-    
-    assert np.allclose(
-        np.array(
-            [[-1.0, -1/np.sqrt(3.0)],
-             [ 0.0, -1/np.sqrt(3.0)],
-             [ 1.0, -1/np.sqrt(3.0)],
-             [-0.5,  1/2/np.sqrt(3.0)],
-             [ 0.5,  1/2/np.sqrt(3.0)],
-             [ 0.0,  2/np.sqrt(3.0)]]
-        ),
-        dg.set_nodes(2)
-    )
+def test_warp_N1():
+    L1 = np.array([0,0,1])
+    L2 = np.array([1,0,0])
+    L3 = np.array([0,1,0])
 
-# def test_node_indices_N_1_2():
-#     assert np.allclose(
-#         np.array(
-#             [[1, 0, 0],
-#              [0, 1, 0],
-#              [0, 0, 1]]
-#         ), 
-#         dg.node_indices(1)
-#     )
-    
-#     assert np.allclose(
-#         np.array(
-#          [[2, 0, 0],
-#           [1, 1, 0],
-#           [0, 2, 0],
-#           [1, 0, 1],
-#           [0, 0, 2]]), 
-#         dg.node_indices_1d(2)
-#     )
+    N = 1 
+    Np = 3
+    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L3-L2))
+    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L1-L3))
+    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L2-L1))
+
 
 def test_simplex_polynomial():
     a, b = (
