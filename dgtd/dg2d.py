@@ -171,10 +171,13 @@ def GradVandermonde2D(N: int, r, s):
 
 def GradSimplex2DP(a, b, i: int, j: int):
 
-    fa  = dg1d.jacobi_polynomial     (a, 0, 0, i)
-    dfa = dg1d.jacobi_polynomial_grad(a, 0, 0, i)
-    gb  = dg1d.jacobi_polynomial     (b, 2.0*i+1.0, 0, j)
-    dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
+    areshape = a.reshape(1,len(a))
+    breshape = b.reshape(1,len(b))
+
+    fa  = dg1d.jacobi_polynomial     (areshape, 0, 0, i)
+    dfa = dg1d.jacobi_polynomial_grad(areshape, 0, 0, i)
+    gb  = dg1d.jacobi_polynomial     (breshape, 2.0*i+1.0, 0, j)
+    dgb = dg1d.jacobi_polynomial_grad(breshape, 2.0*i+1.0, 0, j)
 
     dmodedr = dfa*gb
     bcoeff = (0.5*(1-b.reshape(1,len(b))))**(i-1)
