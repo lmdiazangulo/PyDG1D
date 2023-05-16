@@ -161,12 +161,12 @@ def GradVandermonde2D(N: int, r, s):
 
     a, b = rs_to_ab(r,s)
 
-    sk = 1
-    for i in range(N):
-        for j in range(N-i):
+    sk = 0
+    for i in range(0, N+1, 1):
+        for j in range(0, N-i+1, 1):
             V2Drtmp, V2Dstmp = GradSimplex2DP(a, b, i, j)
-            V2Dr[:,sk] = V2Drtmp.reshape(1,V2Drtmp.shape[0])
-            V2Ds[:,sk] = V2Dstmp.reshape(1,V2Dstmp.shape[0])
+            V2Dr[:,sk] = V2Drtmp
+            V2Ds[:,sk] = V2Dstmp
             sk += 1
 
     return V2Dr, V2Ds

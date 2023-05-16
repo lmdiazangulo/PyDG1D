@@ -122,7 +122,8 @@ def jacobi_polynomial(r, alpha, beta, n_order):
         / scipy.special.gamma(alpha+beta+1)
     PL[0] = 1.0 / math.sqrt(gamma0)
     if n_order == 0:
-        return PL.transpose()
+        return np.transpose(PL[n_order])
+        # return PL.transpose()
 
     gamma1 = (alpha+1.) * (beta+1.) / (alpha+beta+3.) * gamma0
     PL[1] = ((alpha+beta+2.)*r/2. + (alpha-beta)/2.) / math.sqrt(gamma1)
