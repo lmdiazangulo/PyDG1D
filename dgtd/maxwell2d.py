@@ -45,23 +45,26 @@ class SpatialDiscretization2D:
         vc = self.mesh.EToV[:,2]
         self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(x, y, Dr, Ds) #todo - geometric factors
         self.nx, self.ny, sJ = normals2D() #todo - normals
-        Fscale = sJ/(self.J[self.fmask,:])
 
         K = self.mesh.number_of_elements()
 
     def number_of_nodes_per_element(self):
+
         return (self.n_order + 1) * (self.n_order + 2) / 2
         
-    def computeFlux(self): #Missing Z and Y for materials
+    def computeFlux(self): #Missing Z and Y from materials
 
         flux_Hx = -self.ny*self.dEz 
         flux_Hy = -self.nx*self.dEz
         flux_Ez = -self.nx*self.dHy + self.ny*self.dHx
-        if self.fluxType == "Upwind":
-            alpha = 1.0
 
-            flux_Hx += self.ndotdH*self.nx-self.dHx
-            flux_Hy += self.ndotdH*self.ny-self.dHy
+        if self.fluxType == "Upwind":
+            
+            alpha = 1.0
+            ndotdH = self.nx*self.dHx+self.ny*self.dHy
+
+            flux_Hx += ndotdH*self.nx-self.dHx
+            flux_Hy += ndotdH*self.ny-self.dHy
             flux_Ez += alpha*(-self.dEz)
 
         return flux_Hx, flux_Hy, flux_Ez
