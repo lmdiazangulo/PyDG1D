@@ -146,30 +146,32 @@ def vandermonde(N: int, r, s):
 
     return V
 
-def Dmatrices2D(N: int, r, s, V):
+def DMatrices(N: int, r, s, V):
 
-    Vr, Vs = GradVandermonde2D(N, r, s)
+    Vr, Vs = gradVandermonde(N, r, s)
     Dr = Vr/V
     Ds = Vs/V
 
     return Dr, Ds
 
-def GradVandermonde2D(N: int, r, s):
+def gradVandermonde(N: int, r, s):
 
     V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
     V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
 
     a, b = rs_to_ab(r,s)
 
-    sk = 1
-    for i in range(N):
-        for j in range(N-i):
-            V2Dr[:,sk], V2Ds[:,sk] = GradSimplex2DP(a,b,i,j)
+    sk = 0
+    for i in range(0, N+1, 1):
+        for j in range(0, N-i+1, 1):
+            V2Drtmp, V2Dstmp = gradSimplexP(a, b, i, j)
+            V2Dr[:,sk] = V2Drtmp
+            V2Ds[:,sk] = V2Dstmp
             sk += 1
 
     return V2Dr, V2Ds
 
-def GradSimplex2DP(a, b, i: int, j: int):
+def gradSimplexP(a, b, i: int, j: int):
 
     fa  = dg1d.jacobi_polynomial     (a, 0, 0, i)
     dfa = dg1d.jacobi_polynomial_grad(a, 0, 0, i)
@@ -177,33 +179,28 @@ def GradSimplex2DP(a, b, i: int, j: int):
     dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
 
     dmodedr = dfa*gb
-    bcoeff = (0.5*(1-b.reshape(1,len(b))))**(i-1)
-    dmodedrMat = dmodedr.reshape(len(dmodedr), 1)
+    bcoeff = (0.5*(1-b))**(i-1)
 
     if (i>0):
-        dmodedrMat = dmodedrMat.dot(bcoeff)
+        dmodedr = dmodedr*bcoeff
     
     dmodeds = dfa*(gb*(0.5*(1+a)))
-    dmodedsMat = dmodeds.reshape(len(dmodeds),1)
 
     if (i>0):
-        dmodedsMat = dmodedsMat.dot(bcoeff)
+        dmodeds = dmodeds*bcoeff
 
-    dgbMat = dgb.reshape(len(dgb),1)
-    tmp = dgbMat.dot(0.5*(1-b.reshape(1,len(b))))**(i)
+    tmp = dgb*(0.5*(1-b))**(i)
 
     if (i>0):
         gbcoeff = 0.5*i*gb
-        gbcoeffMat = gbcoeff.reshape(len(gbcoeff),1)
-        tmp -= gbcoeffMat.dot(bcoeff)
+        tmp -= gbcoeff*bcoeff
 
-    faMat = fa.reshape(len(fa),1)
-    dmodedsMat += faMat*tmp
+    dmodeds += fa*tmp
 
-    dmodedrMat *= 2**(i+0.5)
-    dmodedsMat *= 2**(i+0.5)
+    dmodedr *= 2**(i+0.5)
+    dmodeds *= 2**(i+0.5)
 
-    return dmodedrMat, dmodedsMat
+    return dmodedr, dmodeds
 
 def nodes_coordinates(N, msh: mesh.Mesh2D):
     """
@@ -216,8 +213,8 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
 
     r, s  = xy_to_rs(*set_nodes(N))
 
-    x = 0.5*(-(r+s)*msh.vx[va] + (1+r)*msh.vx[vb] + (1+s)*msh.vx[vc])
-    y = 0.5*(-(r+s)*msh.vy[va] + (1+r)*msh.vy[vb] + (1+s)*msh.vy[vc])
+    x = 0.5*(- np.outer(r+s, msh.vx[va]) + np.outer(1+r, msh.vx[vb]) + np.outer(1+s, msh.vx[vc]))
+    y = 0.5*(- np.outer(r+s, msh.vy[va]) + np.outer(1+r, msh.vy[vb]) + np.outer(1+s, msh.vy[vc]))
 
     return x, y
 
@@ -225,33 +222,34 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
 def lift(N):
     r, s  = xy_to_rs(*set_nodes(N))
 
-    fmask1 = fmask1[ abs(s+1) < NODETOL].transpose()
-    fmask2 = fmask2[ abs(r+s) < NODETOL].transpose()
-    fmask3 = fmask3[ abs(r+1) < NODETOL].transpose()
+    fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
+    fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
+    fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
     Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
 
     Nfp = int(N + 1)
     Np = int((N+1) * (N+2) / 2)
-    Emat = np.zeros(Np, N_FACES*Nfp)
+    Emat = np.zeros((Np, N_FACES*Nfp))
 
     # face 0
     faceR = r[Fmask[:,0]]
-    with dg1d.vandermonde(N, faceR) as V1D:
-        massEdge1 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,0], range(0,Nfp)] = massEdge1
+    V1D = dg1d.vandermonde(N, faceR)
+    massEdge1 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,0], :Nfp] = massEdge1
 
     # face 1
     faceR = r[Fmask[:,1]]
-    with dg1d.vandermonde(N, faceR) as V1D:
-        massEdge2 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,1], range(Nfp,2*Nfp)] = massEdge2
+    V1D = dg1d.vandermonde(N, faceR)
+    massEdge2 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,1], Nfp:(2*Nfp)] = massEdge2
 
-    # face 1
+    # face 2
     faceS = s[Fmask[:,2]]
-    with dg1d.vandermonde(N, faceS) as V1D: 
-        massEdge3 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,2], range(2*Nfp, 3*Nfp)] = massEdge3
+    V1D = dg1d.vandermonde(N, faceS)
+    massEdge3 = np.linalg.inv(V1D.dot(V1D.transpose()))
+    Emat[Fmask[:,2], (2*Nfp):] = massEdge3
 
     # inv(mass matrix)*\I_n (L_i,L_j)_{edge_n}
     V = vandermonde(N, r, s)
-    LIFT = V.dot(V.transpose().dot(Emat))
+    lift = V.dot(V.transpose().dot(Emat))
+    return lift
