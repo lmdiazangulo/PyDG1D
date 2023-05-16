@@ -29,7 +29,7 @@ class SpatialDiscretization2D:
         x, y = set_nodes(n_order)
         r, s = xy_to_rs(x, y)
         vander = vandermonde(n_order, r, s)
-        Dr, Ds = DMatrices(n_order, r, s, vander)
+        Dr, Ds = Dmatrices2D(n_order, r, s, vander)
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
         self.fmask_1 = np.where(np.abs(s+1) < 1e-10)[0][0]
@@ -39,12 +39,12 @@ class SpatialDiscretization2D:
 
         self.lift = lift(n_order)
 
-        etoe, etof = connect2D(mesh.EToV)#todo - connect2d
+        etoe, etof = connect2D(mesh.EToV) #todo - connect2d
         va = self.mesh.EToV[:,0]
         vb = self.mesh.EToV[:,1] 
         vc = self.mesh.EToV[:,2]
-        self.rx, self.sx, self.ry, self.sy, self.J = geometricFactors(x, y, Dr, Ds) #todo - geometric factors
-        nx, ny, sJ = normals2D() #todo - normals
+        self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(x, y, Dr, Ds) #todo - geometric factors
+        self.nx, self.ny, sJ = normals2D() #todo - normals
         Fscale = sJ/(self.J[self.fmask,:])
 
         K = self.mesh.number_of_elements()
@@ -66,7 +66,7 @@ class SpatialDiscretization2D:
 
         return flux_Hx, flux_Hy, flux_Ez
     
-    def computeJumps(self, Ebcz, Hbcx, Hbcy, Hx, Hy, Ez):
+    def computeJumps(self, Hbcx, Hbcy, Ebcz, Hx, Hy, Ez):
 
         dHx = Hx.transpose().take(self.vmap_m) - Hx.transpose().take(self.vmap_p)
         dHy = Hy.transpose().take(self.vmap_m) - Hy.transpose().take(self.vmap_p)
@@ -84,6 +84,23 @@ class SpatialDiscretization2D:
                         self.mesh.number_of_elements(), order='F')
         
         return dHx, dHy, dEz
+    
+    def computeRHS(self, Hx, Hy, Ez):
 
+        Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez) #todo - fobc
+        self.dHx, self.dHy, self.dEz = self.computeJumps(Hbcx, Hbcy, Ebcz, Hx, Hy, Ez)
+
+        flux_Hx, flux_Hy, flux_Ez = self.computeFlux()
+
+        f_scale = 1/self.jacobian[self.fmask]
+        rhs_Ezx, rhs_Ezy = Grad2D(Ez) #todo - Grad2D
+        rhs_CuHx, rhs_CuHy, rhs_CuHz = Curl2D(Hx, Hy) #todo - Curl2D
+
+        #missing material epsilon/mu
+        rhs_Hx = -rhs_Ezy  + np.matmul(self.lift, f_scale * flux_Hx)/2.0
+        rhs_Hy =  rhs_Ezx  + np.matmul(self.lift, f_scale * flux_Hy)/2.0
+        rhs_Ez =  rhs_CuHz + np.matmul(self.lift, f_scale * flux_Ez)/2.0
+
+        return rhs_Hx, rhs_Hy, rhs_Ez
 
         
