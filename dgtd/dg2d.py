@@ -187,23 +187,30 @@ def GradSimplex2DP(a, b, i: int, j: int):
     dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
 
     dmodedr = dfa*gb
+    bcoeff = (0.5*(1-b.reshape(1,len(b))))**(i-1)
+    dmodedrMat = dmodedr.reshape(len(dmodedr), 1)
 
     if (i>0):
-        dmodedr *= (0.5*(1-b))**(i-1)
+        dmodedrMat = dmodedrMat.dot(bcoeff)
     
     dmodeds = dfa*(gb*(0.5*(1+a)))
+    dmodedsMat = dmodeds.reshape(len(dmodeds),1)
 
     if (i>0):
-        dmodeds *= (0.5*(1-b))**(i-1)
+        dmodedsMat = dmodedsMat.dot(bcoeff)
 
-    tmp = dgb*(0.5*(1-b))**(i)
+    dgbMat = dgb.reshape(len(dgb),1)
+    tmp = dgbMat.dot(0.5*(1-b.reshape(1,len(b))))**(i)
 
     if (i>0):
-        tmp -= 0.5*i*gb*(0.5*(1-b))**(i-1)
+        gbcoeff = 0.5*i*gb
+        gbcoeffMat = gbcoeff.reshape(len(gbcoeff),1)
+        tmp -= gbcoeffMat.dot(bcoeff)
 
-    dmodeds += fa*tmp
+    faMat = fa.reshape(len(fa),1)
+    dmodedsMat += faMat*tmp
 
-    dmodedr *= 2**(i+0.5)
-    dmodeds *= 2**(i+0.5)
+    dmodedrMat *= 2**(i+0.5)
+    dmodedsMat *= 2**(i+0.5)
 
-    return dmodedr, dmodeds
+    return dmodedrMat, dmodedsMat
