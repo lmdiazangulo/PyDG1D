@@ -18,7 +18,7 @@ def test_mesh_generator_n_4():
     assert np.allclose(np.array([0.0, 0.25, 0.5, 0.75, 1.0]), vx)
     assert np.allclose(np.array([[0,1],[1,2],[2,3],[3,4]]), etov)
     
-def test_mesh_generator_n_4_():
+def test_mesh_generator_n_4b():
     [n_v, vx, k_elem, etov] = ms.mesh_generator(-1.0, 9.0, 4)
     assert np.allclose(np.array([-1.0, 1.5, 4.0, 6.5, 9.0]), vx)
     assert np.allclose(np.array([[0,1],[1,2],[2,3],[3,4]]), etov)
