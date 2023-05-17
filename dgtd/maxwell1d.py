@@ -104,9 +104,11 @@ class Maxwell1D(SpatialDiscretization):
         if self.fluxType == "Upwind":
             flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
-        else:
+        elif self.fluxType == "Centered":
             flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH)
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE)
+        else: 
+            raise ValueError("Invalid fluxType label")
         return flux_E, flux_H
 
     def computeJumps(self, Ebc, Hbc, E, H):
@@ -164,8 +166,16 @@ class Maxwell1D(SpatialDiscretization):
         return A
 
     def getEnergy(self, field):
+        '''
+        Gets energy stored in field by computing
+            field^T * MassMatrix * field * Jacobian.
+        for each element and then the sum.
+        '''
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        assert field.shape == (Np, K)
         energy = 0.0
-        for k in range(self.mesh.number_of_elements()):
+        for k in range(K):
             energy += np.inner(
                 field[:,k].dot(self.mass),
                 field[:,k]*self.jacobian[:,k]

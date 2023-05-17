@@ -36,6 +36,32 @@ def test_pec():
                     finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.9999
 
+def test_energy_evolution_centered():
+    sp = Maxwell1D(
+        n_order = 2, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        fluxType="Centered"
+    )
+    
+    driver = MaxwellDriver(sp)
+    x0 = 0.0
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    
+    Nsteps = 100
+    energyE = np.zeros(Nsteps)
+    energyH = np.zeros(Nsteps)
+    for n in range(Nsteps):
+        energyE[n] = sp.getEnergy(driver['E'])
+        energyH[n] = sp.getEnergy(driver['H'])
+        driver.step()
+        
+    totalEnergy = energyE + energyH
+    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5
+
+
 def test_periodic():
     sp = Maxwell1D(
         n_order = 2, 
