@@ -39,8 +39,8 @@ class Maxwell2D(SpatialDiscretization):
 
     def get_minimum_node_distance(self):
 
-        rLGL = jacobi_gauss(0,0,self.n_order); 
-        return abs(rLGL[0]-rLGL[1])
+        points, weight = jacobi_gauss(0,0,self.n_order); 
+        return abs(points[0]-points[1])
 
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)
