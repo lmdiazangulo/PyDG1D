@@ -57,15 +57,15 @@ class Maxwell2D(SpatialDiscretization):
         
         # number volume nodes consecutively
         node_ids = np.reshape(np.arange(k_elem*n_p), [n_p, k_elem], 'F')
-        vmapM   = np.full([k_elem, n_fp, n_faces], 0)
-        vmapP   = np.full([k_elem, n_fp, n_faces], 0) 
+        vmapM   = np.full([n_fp, n_faces, k_elem], 0)
+        vmapP   = np.full([n_fp, n_faces, k_elem], 0) 
         mapM    = np.arange(k_elem*n_fp*n_faces)
         mapP    = np.reshape(mapM, (n_fp, n_faces, k_elem))
 
         # find index of face nodes with respect to volume node ordering
         for k1 in range(k_elem):
             for f1 in range (n_faces):
-                vmapM[k1, :, f1] = node_ids[Fmask[f1], k1]
+                vmapM[:,f1, k1] = node_ids[Fmask[:,f1], k1]
             
         one = np.ones(n_fp)
         for k1 in range (k_elem):
@@ -80,8 +80,8 @@ class Maxwell2D(SpatialDiscretization):
                 refd = np.sqrt( (Mesh2D.vx(v1)-Mesh2D.vx(v2))**2 + (Mesh2D.vy(v1)-Mesh2D.vy(v2))**2 )
 
                 # find find volume node numbers of left and right nodes 
-                vidM = vmapM[k1, :, f1]
-                vidP = vmapM[k2, :, f2]   
+                vidM = vmapM[:, f1, k1]
+                vidP = vmapM[:, f2, k2]   
                 x1 = self.x.ravel('F')[vidM]
                 y1 = self.y.ravel('F')[vidM] 
                 x2 = self.x.ravel('F')[vidP] 
@@ -94,8 +94,8 @@ class Maxwell2D(SpatialDiscretization):
                 # Compute distance matrix
                 distance = (x1 -x2.transpose())**2 + (y1-y2.transpose())**2
                 [idM, idP] = np.find(np.sqrt(np.abs(distance))<NODETOL*refd)
-                vmapP[k1,idM,f1] = vidP[idP]
-                mapP[k1,idM,f1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
+                vmapP[idM, f1, k1] = vidP[idP]
+                mapP[idM, f1, k1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
 
         vmapM += 1
         vmapP += 1
@@ -109,9 +109,11 @@ class Maxwell2D(SpatialDiscretization):
         mapB += 1
             
         # reshape vmapM and vmapP to be vectors and create boundary node list
-        self.vmapM = vmapM[:]
-        self.vmapP = vmapP[:]
-        self.vmapB = vmapM[mapB]
+        vmapP = vmapP[:]
+        vmapM = vmapM[:]
+        mapP = mapP[:] 
+        mapB = np.find[vmapP==vmapM]
+        vmapB = vmapM[mapB]
         
     # return [vmapM-1, vmapP-1, vmapB-1, mapB-1]
 
