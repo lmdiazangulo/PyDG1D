@@ -81,12 +81,19 @@ class Maxwell2D(SpatialDiscretization):
         
         return dHx, dHy, dEz
     
-    def grad2D(self, Dr, Ds, Ez, rx, sx, ry, sy):
+    def grad2D(self, Dr, Ds, Fz, rx, sx, ry, sy):
 
-        Ezx = rx*np.matmul(Dr,Ez) + sx*np.matmul(Ds,Ez)
-        Ezy = ry*np.matmul(Dr,Ez) + sy*np.matmul(Ds,Ez)
+        GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
+        GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
 
-        return Ezx, Ezy
+        return GradX, GradY
+    
+    def curl2D(self, Dr, Ds, Fx, Fy, rx, sx, ry, sy):
+
+        CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
+              - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
+
+        return CuZ
 
     def computeRHS(self, Hx, Hy, Ez):
 
