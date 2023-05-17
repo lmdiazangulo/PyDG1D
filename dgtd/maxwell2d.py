@@ -21,8 +21,7 @@ class Maxwell2D(SpatialDiscretization):
 
         x, y = set_nodes_in_equilateral_triangle(n_order)
         r, s = xy_to_rs(x, y)
-        vander = vandermonde(n_order, r, s)
-        Dr, Ds = derivateMatrix(n_order, r, s, vander)
+        Dr, Ds = derivateMatrix(n_order, r, s)
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
         self.lift = lift(n_order)
@@ -47,6 +46,7 @@ class Maxwell2D(SpatialDiscretization):
         Purpose: Connectivity and boundary tables in the K # of Np elements        
         '''
         N = self.n_order
+        msh = self.mesh
         k_elem = self.mesh.number_of_elements()
         n_p = self.number_of_nodes_per_element()
         n_faces = 3
@@ -68,54 +68,37 @@ class Maxwell2D(SpatialDiscretization):
                 vmapM[:,f1, k1] = node_ids[Fmask[:,f1], k1]
             
         one = np.ones(n_fp)
-        for k1 in range (k_elem):
-            for f1 in range (n_faces):
+        EToE, EToF = msh.connectivityMatrices()
+        for k1 in range(k_elem):
+            for f1 in range(n_faces):
                 # find neighbor
-                k2 = Mesh2D.EToE(k1,f1)
-                f2 = Mesh2D.EToF(k1,f1)
+                k2 = EToE[k1,f1]
+                f2 = EToF[k1,f1]
                 
                 # reference length of edge
-                v1 = self.EToV(k1,f1)
-                v2 = self.EToV(k1, 1+np.mod(f1,n_faces))
-                refd = np.sqrt( (Mesh2D.vx(v1)-Mesh2D.vx(v2))**2 + (Mesh2D.vy(v1)-Mesh2D.vy(v2))**2 )
+                v1 = msh.EToV[k1,f1]
+                v2 = msh.EToV[k1, np.mod(f1,n_faces)]
+                refd = np.sqrt( 
+                    (msh.vx[v1]-msh.vx[v2])**2 + (msh.vy[v1]-msh.vy[v2])**2 
+                )
 
                 # find find volume node numbers of left and right nodes 
                 vidM = vmapM[:, f1, k1]
                 vidP = vmapM[:, f2, k2]   
-                x1 = self.x.ravel('F')[vidM]
-                y1 = self.y.ravel('F')[vidM] 
-                x2 = self.x.ravel('F')[vidP] 
-                y2 = self.y.ravel('F')[vidP]
-                x1 = x1*one
-                y1 = y1*one
-                x2 = x2*one
-                y2 = y2*one
+                x1 = np.outer(self.x.ravel('F')[vidM], one)
+                y1 = np.outer(self.y.ravel('F')[vidM], one)
+                x2 = np.outer(self.x.ravel('F')[vidP], one)
+                y2 = np.outer(self.y.ravel('F')[vidP],one)
 
                 # Compute distance matrix
-                distance = (x1 -x2.transpose())**2 + (y1-y2.transpose())**2
-                [idM, idP] = np.find(np.sqrt(np.abs(distance))<NODETOL*refd)
+                distance = np.sqrt(np.abs((x1 - x2.transpose())**2 + (y1-y2.transpose())**2))
+                idM, idP = np.where(distance <= NODETOL*refd)
                 vmapP[idM, f1, k1] = vidP[idP]
                 mapP[idM, f1, k1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
 
-        vmapM += 1
-        vmapP += 1
-
-        vmapP = vmapP.ravel()
-        vmapM = vmapM.ravel()
-
-        mapB = np.where(vmapP== vmapM)[0]
-        vmapB = vmapM[mapB]
-
-        mapB += 1
-            
-        # reshape vmapM and vmapP to be vectors and create boundary node list
-        vmapP = vmapP[:]
-        vmapM = vmapM[:]
-        mapP = mapP[:] 
-        mapB = np.find[vmapP==vmapM]
-        vmapB = vmapM[mapB]
-        
-    # return [vmapM-1, vmapP-1, vmapB-1, mapB-1]
+        self.vmapM = vmapM.ravel('F')
+        self.vmapP = vmapP.ravel('F')
+        self.vmapB = vmapM[vmapP == vmapM]
 
     def get_minimum_node_distance(self):
         points, _ = jacobi_gauss(0, 0, self.n_order)
