@@ -149,8 +149,8 @@ def vandermonde(N: int, r, s):
 def derivateMatrix(N: int, r, s, V):
 
     Vr, Vs = gradVandermonde(N, r, s)
-    Dr = Vr/V
-    Ds = Vs/V
+    Dr = np.matmul(Vr,np.linalg.inv(V))
+    Ds = np.matmul(Vs,np.linalg.inv(V))
 
     return Dr, Ds
 
@@ -255,13 +255,59 @@ def lift(N):
     return lift
 
 def geometricFactors(x, y, Dr, Ds):
-    xr = Dr*x
-    xs = Ds*x
-    yr = Dr*y
-    ys = Ds*y
+    xr = np.matmul(Dr,x)
+    xs = np.matmul(Ds,x)
+    yr = np.matmul(Dr,y)
+    ys = np.matmul(Ds,y)
     J = -xs*yr + xr*ys
     rx = ys/J
     sx =-yr/J 
     ry =-xs/J
     sy = xr/J
     return rx, sx, ry, sy, J
+
+def normals(x, y, Dr, Ds, N, K):
+
+    xr = np.matmul(Dr,x)
+    xs = np.matmul(Ds,x)
+    yr = np.matmul(Dr,y)
+    ys = np.matmul(Ds,y)
+
+    r, s  = xy_to_rs(*set_nodes(N))
+
+    fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
+    fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
+    fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
+    Fmask  = np.transpose(np.array([fmask1, fmask2, fmask3]))
+
+    fxr = xr[Fmask, :] 
+    fxs = xs[Fmask, :] 
+    fyr = yr[Fmask, :]
+    fys = ys[Fmask, :]
+
+    Nfp = (N+1)*(N+2)/2
+
+    nx = np.zeros(3*Nfp, K)
+    ny = np.zeros(3*Nfp, K)
+
+    fid1 = np.linspace(1,Nfp).transpose()
+    fid2 = np.linspace(Nfp+1,2*Nfp).transpose()
+    fid3 = np.linspace(2*Nfp+1,3*Nfp).transpose()
+
+    # face 1
+    nx[fid1, :] =  fyr[fid1, :] 
+    ny[fid1, :] = -fxr[fid1, :]
+
+    # face 2
+    nx[fid2, :] =  fys[fid2, :]-fyr[fid2, :] 
+    ny[fid2, :] = -fxs[fid2, :]+fxr[fid2, :]
+
+    # face 3
+    nx[fid3, :] = -fys[fid3, :] 
+    ny[fid3, :] =  fxs[fid3, :]
+
+    # normalise
+    sJ = np.sqrt(nx*nx+ny*ny)
+    nx = nx/sJ 
+    ny = ny/sJ
+    return nx, ny, sJ

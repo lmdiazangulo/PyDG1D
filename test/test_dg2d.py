@@ -145,6 +145,29 @@ def test_gradSimplexP():
     assert np.allclose(dmodedr, dmodedrRef, rtol=1e-3)
     assert np.allclose(dmodeds, dmodedsRef, rtol=1e-3)
 
+def test_gradVandermonde_N1():
+
+    r, s = (
+        np.array([-1., 1., -1.]),
+        np.array([-1., -1., 1.])
+    )
+
+    V2Dr, V2Ds = dg.gradVandermonde(1, r, s)
+
+    V2DrExp = np.array([
+        [0., 0., 1.7321],
+        [0., 0., 1.7321],
+        [0., 0., 1.7321]]
+    )
+
+    V2DsExp = np.array([
+        [0., 1.5000, 0.8660],
+        [0., 1.5000, 0.8660],
+        [0., 1.5000, 0.8660]]
+    )
+
+    assert np.allclose(V2Dr, V2DrExp, rtol=1e-3)
+    assert np.allclose(V2Ds, V2DsExp, rtol=1e-3)
 
 def test_gradVandermonde_N2():
 
@@ -176,8 +199,30 @@ def test_gradVandermonde_N2():
     assert np.allclose(V2Dr, V2DrExp, rtol=1e-3)
     assert np.allclose(V2Ds, V2DsExp, rtol=1e-3)
 
+def test_derivative_N1():
 
-def test_DMatrices_N2():
+    r, s = (
+        np.array([-1., 1., -1.]),
+        np.array([-1., -1., 1.])
+    )
+
+    V = dg.vandermonde(1, r, s)
+
+    [Dr, Ds] = dg.derivateMatrix(1, r, s, V)
+
+    DrExp = np.array([
+        [-5.0e-01, 5.0e-01,   0.],
+        [-5.0e-01, 5.0e-01,   0.],
+        [-5.0e-01, 5.0e-01,   0.]]
+    )
+
+    DsExp = np.array([ 
+        [-0.5, 0.0, 0.5],
+        [-0.5, 0.0, 0.5],
+        [-0.5, 0.0, 0.5]]
+    )
+
+def test_derivative_N2():
 
     r, s = (
         np.array([-1., 0., 1., -1., 0., -1.]),
@@ -224,6 +269,10 @@ def test_geometric_factors():
     
 
 def test_normals_146_element():   
+
+    m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+
+    
     # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
     assert np.allclose(np.array([-1.0, -1.0, -1.0, 0.7088, 0.7088, 0.7088, 0.3921, 0.3921, 0.3921]),
                        dg.normals2D(146)[:,0]) 
