@@ -268,13 +268,18 @@ def test_geometric_factors():
     assert np.allclose( J, np.array([[ 0.2090], [ 0.2090], [ 0.2090]]), rtol=1e-3)
     
 
-def test_normals_146_element():   
+def test_normals_two_triangles():   
 
     m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
-
+    N = 1
+    x, y = dg.nodes_coordinates(N, m)
+    r, s = dg.xy_to_rs(*dg.set_nodes(N))
+    Dr, Ds = dg.derivateMatrix(N, r, s, dg.vandermonde(N, r, s))
+    nx, ny, sJ = dg.normals(x, y, Dr, Ds, N, m.number_of_elements())
+    
+    nxExp = np.array([[-1., -1.,  0.707,  0.707, 0., 0.],[-0.707, -0.707,  0.,  0., 1., 1.]])
+    nyExp = np.array([[ 0.,  0., -0.707, -0.707, 1., 1.],[ 0.707,  0.707, -1., -1., 0., 0.]])
     
     # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
-    assert np.allclose(np.array([-1.0, -1.0, -1.0, 0.7088, 0.7088, 0.7088, 0.3921, 0.3921, 0.3921]),
-                       dg.normals2D(146)[:,0]) 
-    assert np.allclose(np.array([-0.9347, -0.9347, -0.9347, 0.4420, 0.4420, 0.4420, 0.7578, 0.7578, 0.7578]),
-                       dg.normals2D(146)[:,145])
+    assert np.allclose(nxExp.transpose(), nx, rtol = 1e-3) 
+    assert np.allclose(nyExp.transpose(), ny, rtol = 1e-3)
