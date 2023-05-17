@@ -11,12 +11,12 @@ TEST_DATA_FOLDER = 'dgtd/testData/'
 def test_pec():
     sp = Maxwell2D(
         n_order = 3, 
-        mesh = readFromGambitFile('Maxwell2D_K146.neu'),
+        mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu'),
         fluxType="Upwind"
     )
     
     final_time = 1.0
-    driver = MaxwellDriver2D(sp)
+    driver = MaxwellDriver(sp)
     
     x0 = 0.0
     s0 = 0.25

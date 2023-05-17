@@ -11,13 +11,8 @@ class Maxwell2D:
         assert mesh.number_of_elements() > 0
 
         self.mesh = mesh
-        self.n_order = n_order
         self.fluxType = fluxType
 
-        self.n_faces = 3
-        self.n_fp = n_order+1
-
-        # Set up material parameters
         self.epsilon = np.ones(mesh.number_of_elements())
         self.mu = np.ones(mesh.number_of_elements())
 
@@ -27,24 +22,16 @@ class Maxwell2D:
         Dr, Ds = derivateMatrix(n_order, r, s, vander)
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
-        self.fmask_1 = np.where(np.abs(s+1) < 1e-10)[0][0]
-        self.fmask_2 = np.where(np.abs(r+s) < 1e-10)[0][0]
-        self.fmask_3 = np.where(np.abs(r+1) < 1e-10)[0][0]
-        self.fmask = [self.fmask_1, self.fmask_2, self.fmask_3].transpose()
-
         self.lift = lift(n_order)
 
         eToE, eToF = mesh.connectivityMatrices()
         va = self.mesh.EToV[:,0]
         vb = self.mesh.EToV[:,1] 
         vc = self.mesh.EToV[:,2]
-        self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(x, y, Dr, Ds) #todo - geometric factors
-        self.nx, self.ny, sJ = normals2D() #todo - normals
-
-        K = self.mesh.number_of_elements()
+        self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(x, y, Dr, Ds)
+        # self.nx, self.ny, sJ = normals()
 
     def number_of_nodes_per_element(self):
-
         return (self.n_order + 1) * (self.n_order + 2) / 2
         
     def computeFlux(self): #Missing Z and Y from materials
