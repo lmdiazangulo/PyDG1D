@@ -270,7 +270,7 @@ def test_geometric_factors():
 
 def test_normals_two_triangles():   
 
-    m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+    m = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
     N = 1
     x, y = nodes_coordinates(N, m)
     r, s = xy_to_rs(*set_nodes(N))
@@ -297,7 +297,7 @@ def test_grad():
     Ez = np.array([[1., 2.],[3., 4.], [5., 6.]])
     rx, sx, ry, sy, _ = geometricFactors(x, y, Dr, Ds)
 
-    Ezx, Ezy = grad2D(Dr, Ds, Ez, rx, sx, ry, sy)
+    Ezx, Ezy = grad(Dr, Ds, Ez, rx, sx, ry, sy)
 
     EzxExp = np.array([[ 4.,  2.],
                        [ 4.,  2.], 
@@ -321,7 +321,7 @@ def test_curl():
     Hy = np.array([[30.,  2.],[50., 3.], [ 10.,  4.]])
 
     rx, sx, ry, sy, _ = geometricFactors(x, y, Dr, Ds)
-    CuZ = curl2D(Dr, Ds, Hx, Hy, rx, sx, ry, sy)
+    CuZ = curl(Dr, Ds, Hx, Hy, rx, sx, ry, sy)
 
     CuZExp = np.array([ [ -16., 21.],
                         [ -16., 21.], 

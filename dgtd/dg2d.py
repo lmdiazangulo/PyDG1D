@@ -377,15 +377,14 @@ def jacobi_gauss(alpha, beta, n_order):
 
     return [points, weight]
 
-def grad2D(Dr, Ds, Fz, rx, sx, ry, sy):
+def grad(Dr, Ds, Fz, rx, sx, ry, sy):
 
     GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
     GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
 
     return GradX, GradY
 
-def curl2D(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
-
+def curl(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
     CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
             - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
 
