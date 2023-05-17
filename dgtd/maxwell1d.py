@@ -37,6 +37,8 @@ class Maxwell1D(SpatialDiscretization):
         self.fmask_2 = np.where(np.abs(r-1) < 1e-10)[0][0]
         self.fmask = [self.fmask_1, self.fmask_2]
 
+        self.mass = np.linalg.inv(vander.dot(vander.transpose()))
+
         self.lift = surface_integral_dg(n_order, vander)
         self.diff_matrix = differentiation_matrix(n_order, r, vander)
         self.rx, self.jacobian = geometric_factors(self.x, self.diff_matrix)
@@ -161,3 +163,12 @@ class Maxwell1D(SpatialDiscretization):
 
         return A
 
+    def getEnergy(self, field):
+        energy = 0.0
+        for k in range(self.mesh.number_of_elements()):
+            energy += np.inner(
+                field[:,k].dot(self.mass),
+                field[:,k]*self.jacobian[:,k]
+            )    
+
+        return energy
