@@ -40,7 +40,7 @@ def warpFactor(N, rout):
     return warp
 
 
-def set_nodes(N):
+def set_nodes_in_equilateral_triangle(N):
     '''
         x, y = set_nodes(N)
         Purpose  : Compute (x,y) nodes in equilateral triangle for polynomial of order N
@@ -147,19 +147,16 @@ def vandermonde(N: int, r, s):
 
     return V
 
-def derivateMatrix(N: int, r, s, V):
-
+def derivateMatrix(N: int, r, s):
+    V = vandermonde(N, r, s)
     Vr, Vs = gradVandermonde(N, r, s)
     Dr = np.matmul(Vr,np.linalg.inv(V))
     Ds = np.matmul(Vs,np.linalg.inv(V))
-
     return Dr, Ds
 
 def gradVandermonde(N: int, r, s):
-
     V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
     V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
-
     a, b = rs_to_ab(r,s)
 
     sk = 0
@@ -205,14 +202,14 @@ def gradSimplexP(a, b, i: int, j: int):
 
 def nodes_coordinates(N, msh: mesh.Mesh2D):
     """
-    Defined to be able to define methods depedent grid properties
+    Builds coordinates for all elements in mesh.
     """
 
     va = msh.EToV[:,0].transpose()
     vb = msh.EToV[:,1].transpose()
     vc = msh.EToV[:,2].transpose()
 
-    r, s  = xy_to_rs(*set_nodes(N))
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
 
     x = 0.5*(- np.outer(r+s, msh.vx[va]) + np.outer(1+r, msh.vx[vb]) + np.outer(1+s, msh.vx[vc]))
     y = 0.5*(- np.outer(r+s, msh.vy[va]) + np.outer(1+r, msh.vy[vb]) + np.outer(1+s, msh.vy[vc]))
@@ -220,7 +217,7 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
     return x, y
 
 def buildFMask(N):
-    r, s  = xy_to_rs(*set_nodes(N))
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
     fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
     fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
     fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
@@ -234,7 +231,7 @@ def lift(N):
     Np = int((N+1) * (N+2) / 2)
     Emat = np.zeros((Np, N_FACES*Nfp))
 
-    r, s  = xy_to_rs(*set_nodes(N))
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
     Fmask, _, _, _ = buildFMask(N)
     
     # face 0

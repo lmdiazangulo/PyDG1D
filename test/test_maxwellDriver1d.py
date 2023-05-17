@@ -66,14 +66,12 @@ def test_periodic():
     sp = Maxwell1D(
         n_order = 2, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
-        fluxType="Upwind"
+        fluxType = "Upwind"
     )
     
     final_time = 1.999
     driver = MaxwellDriver(sp)
-    x0 = 0.0
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldE = np.exp(- sp.x**2/(2*0.25**2))
     
     driver['E'][:] = initialFieldE[:]
     finalFieldE = driver['E']
@@ -93,9 +91,7 @@ def test_sma():
     
     final_time = 3.999
     driver = MaxwellDriver(sp)
-    x0 = 0.0
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldE = np.exp(-(sp.x)**2/(2*0.25**2))
     
     driver['E'][:] = initialFieldE[:]
     finalFieldE = driver['E']

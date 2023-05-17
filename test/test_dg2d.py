@@ -8,14 +8,14 @@ TEST_DATA_FOLDER = 'dgtd/testData/'
 
 
 def test_set_nodes_N1():
-    x, y = set_nodes(1)
+    x, y = set_nodes_in_equilateral_triangle(1)
     assert np.allclose(np.array([-1.0, 1.0, 0.0]), x, rtol=1e-3)
     assert np.allclose(
         np.array([-1/np.sqrt(3.0), -1/np.sqrt(3.0),  2/np.sqrt(3.0)]), y, rtol=1e-3)
 
 
 def test_set_nodes_N2():
-    x, y = set_nodes(2)
+    x, y = set_nodes_in_equilateral_triangle(2)
     assert np.allclose(
         np.array([-1.0, 0.0, 1.0, -0.5, 0.5,  0.0]), x, rtol=1e-3)
     assert np.allclose(
@@ -206,9 +206,7 @@ def test_derivative_N1():
         np.array([-1., -1., 1.])
     )
 
-    V = vandermonde(1, r, s)
-
-    [Dr, Ds] = derivateMatrix(1, r, s, V)
+    [Dr, Ds] = derivateMatrix(1, r, s)
 
     DrExp = np.array([
         [-5.0e-01, 5.0e-01,   0.],
@@ -229,9 +227,7 @@ def test_derivative_N2():
         np.array([-1., -1., -1., 0., 0., 1.])
     )
 
-    V = vandermonde(2, r, s)
-
-    [Dr, Ds] = derivateMatrix(2, r, s, V)
+    [Dr, Ds] = derivateMatrix(2, r, s)
 
     DrExp = np.array([
         [-1.5000, 2.0000, -0.5000, -0.0000, 0.0000, 0.0000],
@@ -256,8 +252,8 @@ def test_geometric_factors():
     N = 1
     x = np.array([[-1.000], [-1.000], [-0.1640]])
     y = np.array([[ 0.000], [-1.000], [-0.1640]])
-    r, s = xy_to_rs(*set_nodes(N))
-    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
+    Dr, Ds = derivateMatrix(N, r, s)
 
     rx, sx, ry, sy, J = geometricFactors(x, y, Dr, Ds)
 
@@ -273,8 +269,8 @@ def test_normals_two_triangles():
     m = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
     N = 1
     x, y = nodes_coordinates(N, m)
-    r, s = xy_to_rs(*set_nodes(N))
-    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
+    Dr, Ds = derivateMatrix(N, r, s)
     nx, ny, sJ = normals(x, y, Dr, Ds, N, m.number_of_elements())
     
 
@@ -291,8 +287,8 @@ def test_grad():
     mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
 
     x, y = nodes_coordinates(N,mesh)
-    r, s = xy_to_rs(*set_nodes(N))
-    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
+    Dr, Ds = derivateMatrix(N, r, s)
     
     Ez = np.array([[1., 2.],[3., 4.], [5., 6.]])
     rx, sx, ry, sy, _ = geometricFactors(x, y, Dr, Ds)
@@ -314,8 +310,8 @@ def test_curl():
     N = 1
     mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
     x, y = nodes_coordinates(N, mesh)
-    r, s = xy_to_rs(*set_nodes(N))
-    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
+    Dr, Ds = derivateMatrix(N, r, s)
     
     Hx = np.array([[ 1., 20.],[ 5., 8.], [300., 40.]])
     Hy = np.array([[30.,  2.],[50., 3.], [ 10.,  4.]])

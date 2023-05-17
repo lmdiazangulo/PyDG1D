@@ -19,7 +19,7 @@ class Maxwell2D(SpatialDiscretization):
         self.epsilon = np.ones(mesh.number_of_elements())
         self.mu = np.ones(mesh.number_of_elements())
 
-        x, y = set_nodes(n_order)
+        x, y = set_nodes_in_equilateral_triangle(n_order)
         r, s = xy_to_rs(x, y)
         vander = vandermonde(n_order, r, s)
         Dr, Ds = derivateMatrix(n_order, r, s, vander)
