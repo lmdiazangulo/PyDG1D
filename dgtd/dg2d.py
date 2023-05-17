@@ -149,9 +149,8 @@ def vandermonde(N: int, r, s):
 def derivateMatrix(N: int, r, s, V):
 
     Vr, Vs = gradVandermonde(N, r, s)
-    Dr = Vr/V
-    Ds = Vs/V
-
+    Dr= np.matmul(Vr, np.linalg.inv(V))
+    Ds= np.matmul(Vs, np.linalg.inv(V))
     return Dr, Ds
 
 def gradVandermonde(N: int, r, s):
@@ -255,13 +254,14 @@ def lift(N):
     return lift
 
 def geometricFactors(x, y, Dr, Ds):
-    xr = Dr*x
-    xs = Ds*x
-    yr = Dr*y
-    ys = Ds*y
+    xr = np.matmul(Dr,x)
+    xs = np.matmul(Ds,x)
+    yr = np.matmul(Dr,y)
+    ys = np.matmul(Ds,y)
     J = -xs*yr + xr*ys
-    rx = ys/J
-    sx =-yr/J 
-    ry =-xs/J
-    sy = xr/J
+    
+    rx =  ys/J
+    sx = -yr/J
+    ry = -xs/J
+    sy =  xr/J
     return rx, sx, ry, sy, J
