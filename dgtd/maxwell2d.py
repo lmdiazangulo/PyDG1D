@@ -81,6 +81,13 @@ class Maxwell2D(SpatialDiscretization):
         
         return dHx, dHy, dEz
     
+    def grad2D(self, Dr, Ds, Ez, rx, sx, ry, sy):
+
+        Ezx = rx*np.matmul(Dr,Ez) + sx*np.matmul(Ds,Ez)
+        Ezy = ry*np.matmul(Dr,Ez) + sy*np.matmul(Ds,Ez)
+
+        return Ezx, Ezy
+
     def computeRHS(self, Hx, Hy, Ez):
 
         Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez) #todo - fobc
@@ -89,7 +96,7 @@ class Maxwell2D(SpatialDiscretization):
         flux_Hx, flux_Hy, flux_Ez = self.computeFlux()
 
         f_scale = 1/self.jacobian[self.fmask]
-        rhs_Ezx, rhs_Ezy = Grad2D(Ez) #todo - Grad2D
+        rhs_Ezx, rhs_Ezy = self.grad2D(self.Dr, self.Ds, Ez, geometricFactors(self.x, self.y, self.Dr, self.Ds)) #todo - Grad2D
         rhs_CuHx, rhs_CuHy, rhs_CuHz = Curl2D(Hx, Hy) #todo - Curl2D
 
         #missing material epsilon/mu
