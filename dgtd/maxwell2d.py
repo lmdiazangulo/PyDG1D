@@ -5,7 +5,7 @@ from .dg2d import *
 from .mesh2d import Mesh2D
 from .lserk4 import * 
 
-class SpatialDiscretization2D:
+class Maxwell2D:
     def __init__(self, n_order: int, mesh: Mesh2D, fluxType="Upwind"):
         assert n_order > 0
         assert mesh.number_of_elements() > 0
