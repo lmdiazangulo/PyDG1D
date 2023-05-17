@@ -231,7 +231,7 @@ def test_derivative_N2():
 
     V = dg.vandermonde(2, r, s)
 
-    [Dr, Ds] = dg.DMatrices(2, r, s, V)
+    [Dr, Ds] = dg.derivateMatrix(2, r, s, V)
 
     DrExp = np.array([
         [-1.5000, 2.0000, -0.5000, -0.0000, 0.0000, 0.0000],
@@ -257,7 +257,7 @@ def test_geometric_factors():
     x = np.array([[-1.000], [-1.000], [-0.1640]])
     y = np.array([[ 0.000], [-1.000], [-0.1640]])
     r, s = dg.xy_to_rs(*dg.set_nodes(N))
-    Dr, Ds = dg.DMatrices(N, r, s, dg.vandermonde(N, r, s))
+    Dr, Ds = dg.derivateMatrix(N, r, s, dg.vandermonde(N, r, s))
 
     rx, sx, ry, sy, J = dg.geometricFactors(x, y, Dr, Ds)
 

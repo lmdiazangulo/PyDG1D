@@ -146,7 +146,7 @@ def vandermonde(N: int, r, s):
 
     return V
 
-def DMatrices(N: int, r, s, V):
+def derivateMatrix(N: int, r, s, V):
 
     Vr, Vs = gradVandermonde(N, r, s)
     Dr = Vr/V
@@ -255,7 +255,15 @@ def lift(N):
     return lift
 
 def geometricFactors(x, y, Dr, Ds):
-    # TODO
+    xr = Dr*x
+    xs = Ds*x
+    yr = Dr*y
+    ys = Ds*y
+    J = -xs*yr + xr*ys
+    rx = ys/J
+    sx =-yr/J 
+    ry =-xs/J
+    sy = xr/J
     return rx, sx, ry, sy, J
 
 def normals(x, y, Dr, Ds, N, K):
