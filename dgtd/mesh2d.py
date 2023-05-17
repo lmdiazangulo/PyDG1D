@@ -1,5 +1,6 @@
 import numpy as np
 
+N_FACES = 3
 
 class Mesh2D:
     def __init__(self, vx, vy, EToV, boundary_label="PEC"):
@@ -9,7 +10,6 @@ class Mesh2D:
         self.vx = vx
         self.vy = vy
         self.EToV = EToV
-
         
         self.boundary_label = boundary_label
 
@@ -18,6 +18,53 @@ class Mesh2D:
 
     def number_of_elements(self):
         return self.EToV.shape[0]
+    
+    def connectivityMatrices(self):
+        '''
+            function [EToE,EToF]= connectivity(self)
+            Purpose: triangle face connect algorithm due to Toby Isaac
+        '''
+        K = self.number_of_elements()
+        Nnodes = self.number_of_vertices()
+                
+        # create list of all faces 0, then 1, & 2
+        fnodes = np.concatenate(
+            (self.EToV[:,[0,1]], 
+             self.EToV[:,[1,2]], 
+             self.EToV[:,[2,0]])
+        )
+        fnodes = np.sort(fnodes, 1)
+
+        # set up default element to element and Element to faces connectivity
+        EToE = np.outer(np.arange(0, K, 1, dtype=int), np.ones((1,N_FACES)))
+        EToF = np.outer(np.ones((K,1)),                np.arange(0, N_FACES, 1, dtype=int))
+
+        # uniquely number each set of three faces by their node numbers 
+        id = fnodes[:,0] * Nnodes + fnodes[:,1] + 1
+        spNodeToNode = np.concatenate((
+            id.reshape(id.size, 1), 
+            np.arange(0, N_FACES*K, 1, dtype=int).reshape(N_FACES*K, 1), 
+            EToE.reshape(N_FACES*K, 1, order='F'), 
+            EToF.reshape(N_FACES*K, 1, order='F')
+        ), 1)
+        spNodeToNode = np.int64(spNodeToNode)
+
+        # Now we sort by global face number.
+        sorted= spNodeToNode[np.argsort(spNodeToNode[:,0]), :]
+
+        # find matches in the sorted face list
+        indices = np.where(sorted[:-1,0]==sorted[1:, 0])[0]
+
+        # make links reflexive 
+        matchL = np.concatenate((sorted[indices,  :], sorted[indices+1,:]))
+        matchR = np.concatenate((sorted[indices+1,:], sorted[indices,  :]))
+
+        # insert matches
+        EToE.transpose().flat[matchL[:,1]] = matchR[:,2]
+        EToF.transpose().flat[matchL[:,1]] = matchR[:,3]
+
+        return EToE, EToF
+
     
 
 def readFromGambitFile(filename: str):

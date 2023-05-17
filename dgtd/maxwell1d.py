@@ -1,19 +1,10 @@
 import numpy as np
 import math
 from .dg1d import *
+from .spatialDiscretization import *
 from .mesh1d import Mesh1D
-from .dg1d import *
-from .mesh1d import Mesh1D
 
-rk4a_ = np.array([0,	-0.417890474499852,	-1.19215169464268,	-
-                 1.69778469247153,	-1.51418344425716])
-rk4b = np.array([0.149659021999229,	0.379210312999627,
-                0.822955029386982,	0.699450455949122,	0.153057247968152])
-rk4c = np.array([0,	0.149659021999229,	0.370400957364205,
-                0.622255763134443,	0.958282130674690])
-
-
-class SpatialDiscretization:
+class Maxwell1D(SpatialDiscretization):
     def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind"):
         assert n_order > 0
         assert mesh.number_of_elements() > 0
@@ -71,6 +62,9 @@ class SpatialDiscretization:
 
     def get_nodes(self):
         return set_nodes(self.n_order, self.mesh.vx[self.mesh.EToV])
+
+    def get_minimum_node_distance(self):
+        return min(np.abs(self.x[0, :] - self.x[1, :]))
 
     def get_impedance(self):
         Z_imp = np.zeros(self.x.shape)
@@ -162,43 +156,3 @@ class SpatialDiscretization:
 
         return A
 
-class MaxwellDriver:
-    def __init__(self, sp: SpatialDiscretization):
-        self.sp = sp
-
-        self.E, self.H = sp.buildFields()
-
-        # Compute time step size
-        x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
-        CFL = 1.0
-        self.dt = CFL * x_min / 2
-        self.time = 0.0
-
-    def step(self, dt=0.0):
-        n_p = self.sp.number_of_nodes_per_element()
-        k = self.sp.mesh.number_of_elements()
-
-        if (dt == 0.0):
-            dt = self.dt
-
-        res_E = np.zeros([n_p, k])
-        res_H = np.zeros([n_p, k])
-        for INTRK in range(0, 5):
-            rhs_E, rhs_H = self.sp.computeRHS(self.E, self.H)
-
-            res_E = rk4a_[INTRK]*res_E + dt*rhs_E
-            res_H = rk4a_[INTRK]*res_H + dt*rhs_H
-
-            self.E += rk4b[INTRK]*res_E
-            self.H += rk4b[INTRK]*res_H
-
-        self.time += dt
-
-    def run(self, final_time):
-        for t_step in range(1, math.ceil(final_time/self.dt)):
-            self.step()
-
-    def run_until(self, final_time):
-        timeRange = np.arange(0.0, final_time, self.dt)
-        for t in timeRange:
-            self.step()

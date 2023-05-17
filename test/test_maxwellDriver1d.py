@@ -2,21 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+from dgtd.maxwellDriver import *
+from dgtd.mesh1d import *
 from dgtd.maxwell1d import *
 from dgtd.mesh1d import *
 
-import dgtd.mesh1d as ms
-import dgtd.maxwell1d as mw
-
 
 def test_spatial_discretization_lift():
-    sp = SpatialDiscretization(1, Mesh1D(0.0, 1.0, 1))
+    sp = Maxwell1D(1, Mesh1D(0.0, 1.0, 1))
     assert   np.allclose(surface_integral_dg(1, vandermonde(1, jacobiGL(0.0,0.0,1))), 
                          np.array([[2.0,-1.0],[-1.0,2.0]]))
 
 
 def test_pec():
-    sp = SpatialDiscretization(
+    sp = Maxwell1D(
         n_order = 2, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Upwind"
@@ -38,7 +37,7 @@ def test_pec():
     assert R[0,1] > 0.9999
 
 def test_periodic():
-    sp = SpatialDiscretization(
+    sp = Maxwell1D(
         n_order = 2, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
         fluxType="Upwind"
@@ -60,7 +59,7 @@ def test_periodic():
     assert R[0,1] > 0.9999
 
 def test_sma():
-    sp = SpatialDiscretization(
+    sp = Maxwell1D(
         n_order = 2, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="SMA"),
         fluxType="Upwind"
