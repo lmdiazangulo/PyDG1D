@@ -219,19 +219,24 @@ def nodes_coordinates(N, msh: mesh.Mesh2D):
 
     return x, y
 
-
-def lift(N):
+def buildFMask(N):
     r, s  = xy_to_rs(*set_nodes(N))
-
     fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
     fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
     fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
     Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
 
+    return Fmask, fmask1, fmask2, fmask3
+
+def lift(N):
+    
     Nfp = int(N + 1)
     Np = int((N+1) * (N+2) / 2)
     Emat = np.zeros((Np, N_FACES*Nfp))
 
+    r, s  = xy_to_rs(*set_nodes(N))
+    Fmask, _, _, _ = buildFMask(N)
+    
     # face 0
     faceR = r[Fmask[:,0]]
     V1D = dg1d.vandermonde(N, faceR)
@@ -275,12 +280,7 @@ def normals(x, y, Dr, Ds, N, K):
     yr = np.matmul(Dr,y)
     ys = np.matmul(Ds,y)
 
-    r, s  = xy_to_rs(*set_nodes(N))
-
-    fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
-    fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
-    fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
-    Fmask  = np.transpose(np.array([fmask1, fmask2, fmask3]))
+    _, fmask1, fmask2, fmask3 = buildFMask(N)
 
     # spNodeToNode = np.concatenate((
     #     id.reshape(id.size, 1), 

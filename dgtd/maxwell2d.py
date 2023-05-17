@@ -47,22 +47,16 @@ class Maxwell2D(SpatialDiscretization):
         Purpose: Connectivity and boundary tables in the K # of Np elements        
         '''
         N = self.n_order
-        m = self.mesh
-        k_elem = self.mesh2D.number_of_elements()
-        n_p = 
-        n_faces = Mesh2D.number_of_vertices()
+        k_elem = self.mesh.number_of_elements()
+        n_p = self.number_of_nodes_per_element()
+        n_faces = 3
         n_fp = N+1
         
         # mask defined in globals
-        
-        jgl = jacobiGL(0, 0, N)
-        fmask_1 = np.where(np.abs(jgl+1) < 1e-10)[0][0]
-        fmask_2 = np.where(np.abs(jgl-1) < 1e-10)[0][0]
-        fmask = [fmask_1, fmask_2]
-
+        Fmask, _, _, _ = buildFMask(N)
         
         # number volume nodes consecutively
-        node_ids = np.reshape(np.arange(k_elem*n_fp), [n_p, k_elem], 'F')
+        node_ids = np.reshape(np.arange(k_elem*n_p), [n_p, k_elem], 'F')
         vmapM   = np.full([k_elem, n_fp, n_faces], 0)
         vmapP   = np.full([k_elem, n_fp, n_faces], 0) 
         mapM    = np.arange(k_elem*n_fp*n_faces)
@@ -71,7 +65,7 @@ class Maxwell2D(SpatialDiscretization):
         # find index of face nodes with respect to volume node ordering
         for k1 in range(k_elem):
             for f1 in range (n_faces):
-                vmapM[k1, :, f1] = node_ids[fmask[f1], k1]
+                vmapM[k1, :, f1] = node_ids[Fmask[f1], k1]
             
         one = np.ones(n_fp)
         for k1 in range (k_elem):
@@ -119,7 +113,7 @@ class Maxwell2D(SpatialDiscretization):
         self.vmapP = vmapP[:]
         self.vmapB = vmapM[mapB]
         
-    return [vmapM-1, vmapP-1, vmapB-1, mapB-1]
+    # return [vmapM-1, vmapP-1, vmapB-1, mapB-1]
 
     def get_minimum_node_distance(self):
         points, _ = jacobi_gauss(0, 0, self.n_order)
