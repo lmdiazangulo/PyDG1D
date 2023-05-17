@@ -1,21 +1,21 @@
 from pytest import approx
 import numpy as np
 
-import dgtd.dg2d as dg
-import dgtd.mesh2d as mesh
+from dgtd.dg2d import *
+from dgtd.mesh2d import *
 
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
 
 def test_set_nodes_N1():
-    x, y = dg.set_nodes(1)
+    x, y = set_nodes(1)
     assert np.allclose(np.array([-1.0, 1.0, 0.0]), x, rtol=1e-3)
     assert np.allclose(
         np.array([-1/np.sqrt(3.0), -1/np.sqrt(3.0),  2/np.sqrt(3.0)]), y, rtol=1e-3)
 
 
 def test_set_nodes_N2():
-    x, y = dg.set_nodes(2)
+    x, y = set_nodes(2)
     assert np.allclose(
         np.array([-1.0, 0.0, 1.0, -0.5, 0.5,  0.0]), x, rtol=1e-3)
     assert np.allclose(
@@ -32,7 +32,7 @@ def test_xy_to_rs():
             [[-((np.sqrt(3.0)+1.0)/3.0), (1.0-3.0*np.sqrt(3.0))/6.0, (-2.0*np.sqrt(3.0)+2.0)/3.0],
              [(4.0*np.sqrt(3.0)-2.0)/6.0, (6.0*np.sqrt(3.0)-2.0)/6.0, (8.0*np.sqrt(3.0)-2.0)/6.0]]
         ),
-        dg.xy_to_rs(x, y)
+        xy_to_rs(x, y)
     )
 
 
@@ -43,9 +43,9 @@ def test_warp_N1():
 
     N = 1
     Np = 3
-    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L3-L2))
-    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L1-L3))
-    assert np.allclose(np.zeros(Np), dg.warpFactor(N, L2-L1))
+    assert np.allclose(np.zeros(Np), warpFactor(N, L3-L2))
+    assert np.allclose(np.zeros(Np), warpFactor(N, L1-L3))
+    assert np.allclose(np.zeros(Np), warpFactor(N, L2-L1))
 
 
 def test_simplex_polynomial():
@@ -53,7 +53,7 @@ def test_simplex_polynomial():
         np.array([-1,  0,  1, -1,  1, -1]),
         np.array([-1, -1, -1,  0,  0,  1])
     )
-    p11 = dg.simplex_polynomial(a, b, 1, 1)
+    p11 = simplex_polynomial(a, b, 1, 1)
     p11Ref = np.array(
         [2.1213, 0.0000, -2.1213, -1.5910, 1.5910, 0.0000]
     )
@@ -67,7 +67,7 @@ def test_rs_to_ab():
         np.array([-1, -1, -1,  0, 0,  1])
     )
 
-    a, b = dg.rs_to_ab(r, s)
+    a, b = rs_to_ab(r, s)
 
     aRef, bRef = (
         np.array([-1,  0,  1, -1,  1, -1]),
@@ -85,7 +85,7 @@ def test_vandermonde_N2():
         np.array([-1, -1, -1,  0, 0,  1])
     )
 
-    V = dg.vandermonde(2, r, s)
+    V = vandermonde(2, r, s)
 
     VRef = np.array(
         [[0.7071, -1.0000,  1.2247, -1.7321,  2.1213,  2.7386],
@@ -102,7 +102,7 @@ def test_vandermonde_N2():
 def test_nodes_coordinates():
     m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
 
-    x, y = dg.nodes_coordinates(2, m)
+    x, y = nodes_coordinates(2, m)
 
     assert x.shape == y.shape
     assert x.shape == (6, 146)
@@ -115,14 +115,14 @@ def test_nodes_coordinates():
 
 
 def test_lift_N1():
-    lift = dg.lift(1)
+    liftMat = lift(1)
 
     liftRef = np.array(
         [[ 2.5000,  0.5000,  -1.5000,  -1.5000,   2.5000,   0.5000],
          [ 0.5000,  2.5000,   2.5000,   0.5000,  -1.5000,  -1.5000],
          [-1.5000, -1.5000,   0.5000,   2.5000,   0.5000,   2.5000]]
     )
-    assert np.allclose(lift, liftRef, rtol=1e-3)
+    assert np.allclose(liftMat, liftRef, rtol=1e-3)
 
 
 def test_gradSimplexP():
@@ -132,7 +132,7 @@ def test_gradSimplexP():
         np.array([-1., -1., -1., 0., 0., 1.])
     )
 
-    dmodedr, dmodeds = dg.gradSimplexP(a, b, 1, 1)
+    dmodedr, dmodeds = gradSimplexP(a, b, 1, 1)
 
     dmodedrRef = np.array(
         [-2.1213, -2.1213, -2.1213, 3.1820, 3.1820, 8.4853]
@@ -152,7 +152,7 @@ def test_gradVandermonde_N1():
         np.array([-1., -1., 1.])
     )
 
-    V2Dr, V2Ds = dg.gradVandermonde(1, r, s)
+    V2Dr, V2Ds = gradVandermonde(1, r, s)
 
     V2DrExp = np.array([
         [0., 0., 1.7321],
@@ -176,7 +176,7 @@ def test_gradVandermonde_N2():
         np.array([-1., -1., -1., 0., 0., 1.])
     )
 
-    V2Dr, V2Ds = dg.gradVandermonde(2, r, s)
+    V2Dr, V2Ds = gradVandermonde(2, r, s)
 
     V2DrExp = np.array([
         [0.0, 0.0, 0.0, 1.7321, -2.1213, -8.2158],
@@ -206,9 +206,9 @@ def test_derivative_N1():
         np.array([-1., -1., 1.])
     )
 
-    V = dg.vandermonde(1, r, s)
+    V = vandermonde(1, r, s)
 
-    [Dr, Ds] = dg.derivateMatrix(1, r, s, V)
+    [Dr, Ds] = derivateMatrix(1, r, s, V)
 
     DrExp = np.array([
         [-5.0e-01, 5.0e-01,   0.],
@@ -229,9 +229,9 @@ def test_derivative_N2():
         np.array([-1., -1., -1., 0., 0., 1.])
     )
 
-    V = dg.vandermonde(2, r, s)
+    V = vandermonde(2, r, s)
 
-    [Dr, Ds] = dg.derivateMatrix(2, r, s, V)
+    [Dr, Ds] = derivateMatrix(2, r, s, V)
 
     DrExp = np.array([
         [-1.5000, 2.0000, -0.5000, -0.0000, 0.0000, 0.0000],
@@ -256,10 +256,10 @@ def test_geometric_factors():
     N = 1
     x = np.array([[-1.000], [-1.000], [-0.1640]])
     y = np.array([[ 0.000], [-1.000], [-0.1640]])
-    r, s = dg.xy_to_rs(*dg.set_nodes(N))
-    Dr, Ds = dg.derivateMatrix(N, r, s, dg.vandermonde(N, r, s))
+    r, s = xy_to_rs(*set_nodes(N))
+    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
 
-    rx, sx, ry, sy, J = dg.geometricFactors(x, y, Dr, Ds)
+    rx, sx, ry, sy, J = geometricFactors(x, y, Dr, Ds)
 
     assert np.allclose(rx, np.array([[-0.3923], [-0.3923], [-0.3923]]), rtol=1e-3)
     assert np.allclose(sx, np.array([[ 2.3923], [ 2.3923], [ 2.3923]]), rtol=1e-3)
@@ -272,10 +272,10 @@ def test_normals_two_triangles():
 
     m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
     N = 1
-    x, y = dg.nodes_coordinates(N, m)
-    r, s = dg.xy_to_rs(*dg.set_nodes(N))
-    Dr, Ds = dg.derivateMatrix(N, r, s, dg.vandermonde(N, r, s))
-    nx, ny, sJ = dg.normals(x, y, Dr, Ds, N, m.number_of_elements())
+    x, y = nodes_coordinates(N, m)
+    r, s = xy_to_rs(*set_nodes(N))
+    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    nx, ny, sJ = normals(x, y, Dr, Ds, N, m.number_of_elements())
     
 
     nxExp = np.array([[-1., -1.,  0.707,  0.707, 0., 0.],[-0.707, -0.707,  0.,  0., 1., 1.]])
@@ -284,3 +284,47 @@ def test_normals_two_triangles():
     # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
     assert np.allclose(nxExp.transpose(), nx, rtol = 1e-3) 
     assert np.allclose(nyExp.transpose(), ny, rtol = 1e-3)
+
+
+def test_grad():
+    N = 1
+    mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+
+    x, y = nodes_coordinates(N,mesh)
+    r, s = xy_to_rs(*set_nodes(N))
+    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    
+    Ez = np.array([[1., 2.],[3., 4.], [5., 6.]])
+    rx, sx, ry, sy, _ = geometricFactors(x, y, Dr, Ds)
+
+    Ezx, Ezy = grad2D(Dr, Ds, Ez, rx, sx, ry, sy)
+
+    EzxExp = np.array([[ 4.,  2.],
+                       [ 4.,  2.], 
+                       [ 4.,  2.]])
+    
+    EzyExp = np.array([[-2., -4.],
+                       [-2., -4.], 
+                       [-2., -4.]])
+    
+    assert np.allclose(EzxExp, Ezx, rtol = 1e-3)
+    assert np.allclose(EzyExp, Ezy, rtol = 1e-3)
+
+def test_curl():
+    N = 1
+    mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+    x, y = nodes_coordinates(N, mesh)
+    r, s = xy_to_rs(*set_nodes(N))
+    Dr, Ds = derivateMatrix(N, r, s, vandermonde(N, r, s))
+    
+    Hx = np.array([[ 1., 20.],[ 5., 8.], [300., 40.]])
+    Hy = np.array([[30.,  2.],[50., 3.], [ 10.,  4.]])
+
+    rx, sx, ry, sy, _ = geometricFactors(x, y, Dr, Ds)
+    CuZ = curl2D(Dr, Ds, Hx, Hy, rx, sx, ry, sy)
+
+    CuZExp = np.array([ [ -16., 21.],
+                        [ -16., 21.], 
+                        [ -16., 21.]])
+    
+    assert np.allclose(CuZExp, CuZ, rtol = 1e-3)

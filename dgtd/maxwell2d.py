@@ -50,7 +50,7 @@ class Maxwell2D(SpatialDiscretization):
         Hy = np.zeros(Hx.shape)
         Ez = np.zeros(Hx.shape)
 
-        return Hx, Hy, Ez
+        return {'Hx': Hx, 'Hy': Hy, 'Ez': Ez}
 
     def computeFlux(self): #Missing Z and Y from materials
 
@@ -110,22 +110,11 @@ class Maxwell2D(SpatialDiscretization):
                         self.mesh.number_of_elements(), order='F')
         
         return dHx, dHy, dEz
-    
-    def grad2D(self, Dr, Ds, Fz, rx, sx, ry, sy):
 
-        GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
-        GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
-
-        return GradX, GradY
-    
-    def curl2D(self, Dr, Ds, Fx, Fy, rx, sx, ry, sy):
-
-        CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
-              - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
-
-        return CuZ
-
-    def computeRHS(self, Hx, Hy, Ez):
+    def computeRHS(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
 
         Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez) #todo - fobc
         self.dHx, self.dHy, self.dEz = self.computeJumps(Hbcx, Hbcy, Ebcz, Hx, Hy, Ez)
@@ -141,6 +130,4 @@ class Maxwell2D(SpatialDiscretization):
         rhs_Hy =  rhs_Ezx  + np.matmul(self.lift, f_scale * flux_Hy)/2.0
         rhs_Ez =  rhs_CuHz + np.matmul(self.lift, f_scale * flux_Ez)/2.0
 
-        return rhs_Hx, rhs_Hy, rhs_Ez
-
-        
+        return {'Hx': rhs_Hx, 'Hy': rhs_Hy, 'Ez': rhs_Ez}

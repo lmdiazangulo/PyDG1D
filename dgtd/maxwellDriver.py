@@ -6,9 +6,8 @@ class MaxwellDriver:
         self.sp = sp
 
         self.fields = sp.buildFields()
-        self.fieldsLabels = sp.buildFieldsLabels()
-        assert len(self.fields) == len(self.fieldsLabels)
         
+
         # Compute time step size
         x_min = sp.get_minimum_node_distance()
         CFL = 1.0
@@ -33,3 +32,6 @@ class MaxwellDriver:
         timeRange = np.arange(0.0, final_time, self.dt)
         for t in timeRange:
             self.step()
+
+    def __getitem__(self, key):
+        return self.fields[key]
