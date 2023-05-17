@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 
 import dgtd.dg1d as dg1d
 import dgtd.mesh2d as mesh
@@ -319,3 +320,73 @@ def normals(x, y, Dr, Ds, N, K):
     nx = nx/sJ 
     ny = ny/sJ
     return nx, ny, sJ
+
+def jacobi_gauss(alpha, beta, n_order):
+    """
+    Compute the order n_order Gauss quadrature points, x, 
+    and weights, w, associated with the Jacobi 
+    polynomial, of type (alpha,beta) > -1 ( <> -0.5).
+    >>> s1 = jacobi_gauss(2,1,0)
+    >>> s2 = [-0.2,  2]
+    >>> np.allclose(s1,s2)
+    True
+    >>> s1 = jacobi_gauss(2,1,1)
+    >>> s2 = [([-0.54691816,  0.26120387]), ([0.76094757, 0.57238576])]
+    >>> np.allclose(s1,s2)
+    True
+    >>> s1 = jacobi_gauss(2,1,2)
+    >>> s2 = [([-0.70882014, -0.13230082,  0.50778763]), ([0.39524241,  0.72312171,  0.21496922])]
+    >>> np.allclose(s1,s2)
+    True
+    """
+    points = np.zeros(n_order)
+    weight = np.zeros(n_order)
+    if n_order == 0:
+        points = -(alpha-beta)/(alpha+beta+2)
+        weight = 2
+        return [points, weight]
+
+    # Form symmetric matrix from recurrence.
+    j_matrix = np.zeros([n_order+1, n_order+1])
+    h1 = np.zeros(n_order+1)
+    aux = np.zeros(n_order)
+
+    for i in range(n_order):
+        aux[i] = 1+i
+
+    for i in range(n_order+1):
+        h1[i] = 2*i+alpha+beta
+
+    j_matrix = np.diag(-0.5*(alpha**2-beta**2)/(h1+2)/h1) \
+        + np.diag(2/(h1[0:n_order]+2)
+                  * np.sqrt(aux*(aux+alpha+beta)*(aux+alpha)
+                            * (aux+beta)/(h1[0:n_order]+1)/(h1[0:n_order]+3)), 1)
+
+    eps = np.finfo(float).eps
+
+    if (alpha+beta < 10*eps):
+        j_matrix[0, 0] = 0.0
+
+    j_matrix += np.transpose(j_matrix)
+
+    [e_val, e_vec] = np.linalg.eig(j_matrix)
+
+    points = e_val
+
+    weight = e_vec[0, :]**2*2**(alpha+beta+1)/(alpha+beta+1)*scipy.special.gamma(alpha+1) \
+        * scipy.special.gamma(beta+1)/scipy.special.gamma(alpha+beta+1)
+
+    return [points, weight]
+
+def grad(Dr, Ds, Fz, rx, sx, ry, sy):
+
+    GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
+    GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
+
+    return GradX, GradY
+
+def curl(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
+    CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
+            - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
+
+    return CuZ

@@ -35,6 +35,9 @@ def jacobiGL(alpha, beta, n_order):
 
 
 def jacobi_gauss(alpha, beta, n_order):
+
+    #JacobiGQ(alpha,beta,N) in Hesthaven
+
     """
     Compute the order n_order Gauss quadrature points, x, 
     and weights, w, associated with the Jacobi 
@@ -511,12 +514,6 @@ def build_maps(n_order, nodes_coord, etoe, etof):
     vmap_b = vmap_m[map_b]
 
     map_b += 1
-    vmap_b
-
-    map_i = 1
-    map_o = k_elem*n_faces
-    vmap_i = 1
-    vmap_0 = k_elem*n_p
 
     return [vmap_m-1, vmap_p-1, vmap_b-1, map_b-1]
 
