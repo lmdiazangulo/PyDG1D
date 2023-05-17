@@ -269,6 +269,10 @@ def test_geometric_factors():
     
 
 def test_normals_146_element():   
+
+    m = mesh.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+
+    
     # With K=146 and N=2, we have size=(9,146) normals' array, we will considere the first and the end column
     assert np.allclose(np.array([-1.0, -1.0, -1.0, 0.7088, 0.7088, 0.7088, 0.3921, 0.3921, 0.3921]),
                        dg.normals2D(146)[:,0]) 

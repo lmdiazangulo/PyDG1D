@@ -268,17 +268,17 @@ def geometricFactors(x, y, Dr, Ds):
 
 def normals(x, y, Dr, Ds, N, K):
 
-    xr = Dr*x
-    yr = Dr*y
-    xs = Ds*x
-    ys = Ds*y
+    xr = np.matmul(Dr,x)
+    xs = np.matmul(Ds,x)
+    yr = np.matmul(Dr,y)
+    ys = np.matmul(Ds,y)
 
     r, s  = xy_to_rs(*set_nodes(N))
 
     fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
     fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
     fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
-    Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
+    Fmask  = np.transpose(np.array([fmask1, fmask2, fmask3]))
 
     fxr = xr[Fmask, :] 
     fxs = xs[Fmask, :] 
