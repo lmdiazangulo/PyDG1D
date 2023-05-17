@@ -2,19 +2,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from dgtd.maxwellDriver2d import *
 from dgtd.mesh2d import *
+from dgtd.maxwell2d import *
+from dgtd.maxwellDriver import *
 
+TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
-    sp = Maxwell1D(
-        n_order = 2, 
-        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+    sp = Maxwell2D(
+        n_order = 3, 
+        mesh = readFromGambitFile('Maxwell2D_K146.neu'),
         fluxType="Upwind"
     )
     
-    final_time = 3.999
+    final_time = 1.0
     driver = MaxwellDriver2D(sp)
+    
     x0 = 0.0
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))

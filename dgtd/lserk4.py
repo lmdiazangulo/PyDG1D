@@ -1,6 +1,6 @@
 import numpy as np
 
-from maxwell1d import *
+from .spatialDiscretization import *
 
 class LSERK4:
     A = np.array([
@@ -15,7 +15,8 @@ class LSERK4:
 
     N_STAGES = 5
 
-    def __init__(self, sp: Maxwell1D, fields):
+    def __init__(self, sp: SpatialDiscretization, fields):
+        self.sp = sp
         self.time = 0.0
 
         self.fieldsRes = list()
@@ -24,11 +25,11 @@ class LSERK4:
     
     def step(self, fields, dt):
         for s in range(0, self.N_STAGES):
-            fieldsRHS = self.sp.computeRHS(fields)
+            fieldsRHS = self.sp.computeRHS(*fields)
             for f in range(len(fields)):
                 self.fieldsRes[f] = self.A[s]*self.fieldsRes[f] + dt*fieldsRHS[f]
             
             for f in range(len(fields)):
-                fields[f] += self.B[s] * self.fieldRes[f]
+                fields[f] += self.B[s] * self.fieldsRes[f]
 
         self.time += dt

@@ -1,14 +1,14 @@
 from .lserk4 import * 
-from .maxwell1d import * 
+from .spatialDiscretization import *
 
-class MaxwellDriver1D:
-    def __init__(self, sp: Maxwell1D, timeIntegratorType = 'LSERK4'):
+class MaxwellDriver:
+    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'LSERK4'):
         self.sp = sp
 
         self.E, self.H = sp.buildFields()
 
         # Compute time step size
-        x_min = min(np.abs(sp.x[0, :] - sp.x[1, :]))
+        x_min = sp.get_minimum_node_distance()
         CFL = 1.0
         self.dt = CFL * x_min / 2
         
@@ -21,10 +21,10 @@ class MaxwellDriver1D:
     def step(self, dt = 0.0):
         if dt == 0.0:
             dt = self.dt
-        self.timeIntegrator(*(self.E, self.H), dt)
+        self.timeIntegrator.step([self.E, self.H], dt)
 
     def run(self, final_time):
-        for t_step in range(1, math.ceil(final_time/self.dt)):
+        for t_step in range(1, np.ceil(final_time/self.dt)):
             self.step()
 
     def run_until(self, final_time):

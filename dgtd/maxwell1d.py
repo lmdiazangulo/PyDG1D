@@ -1,9 +1,10 @@
 import numpy as np
 import math
 from .dg1d import *
+from .spatialDiscretization import *
 from .mesh1d import Mesh1D
 
-class Maxwell1D:
+class Maxwell1D(SpatialDiscretization):
     def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind"):
         assert n_order > 0
         assert mesh.number_of_elements() > 0
@@ -61,6 +62,9 @@ class Maxwell1D:
 
     def get_nodes(self):
         return set_nodes(self.n_order, self.mesh.vx[self.mesh.EToV])
+
+    def get_minimum_node_distance(self):
+        return min(np.abs(self.x[0, :] - self.x[1, :]))
 
     def get_impedance(self):
         Z_imp = np.zeros(self.x.shape)

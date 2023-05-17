@@ -2,11 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from dgtd.maxwellDriver1d import *
+from dgtd.maxwellDriver import *
 from dgtd.mesh1d import *
-
-import dgtd.mesh1d as ms
-import dgtd.maxwell1d as mw
+from dgtd.maxwell1d import *
+from dgtd.mesh1d import *
 
 
 def test_spatial_discretization_lift():
@@ -23,7 +22,7 @@ def test_pec():
     )
     
     final_time = 3.999
-    driver = MaxwellDriver1D(sp)
+    driver = MaxwellDriver(sp)
     x0 = 0.0
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
@@ -45,7 +44,7 @@ def test_periodic():
     )
     
     final_time = 1.999
-    driver = MaxwellDriver1D(sp)
+    driver = MaxwellDriver(sp)
     x0 = 0.0
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
@@ -67,7 +66,7 @@ def test_sma():
     )
     
     final_time = 3.999
-    driver = MaxwellDriver1D(sp)
+    driver = MaxwellDriver(sp)
     x0 = 0.0
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
