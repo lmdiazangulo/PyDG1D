@@ -208,7 +208,7 @@ def test_derivative_N1():
 
     V = dg.vandermonde(1, r, s)
 
-    [Dr, Ds] = dg.DMatrices(1, r, s, V)
+    [Dr, Ds] = dg.derivateMatrix(1, r, s, V)
 
     DrExp = np.array([
         [-5.0e-01, 5.0e-01,   0.],
