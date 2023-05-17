@@ -277,6 +277,7 @@ def test_normals_two_triangles():
     Dr, Ds = dg.derivateMatrix(N, r, s, dg.vandermonde(N, r, s))
     nx, ny, sJ = dg.normals(x, y, Dr, Ds, N, m.number_of_elements())
     
+
     nxExp = np.array([[-1., -1.,  0.707,  0.707, 0., 0.],[-0.707, -0.707,  0.,  0., 1., 1.]])
     nyExp = np.array([[ 0.,  0., -0.707, -0.707, 1., 1.],[ 0.707,  0.707, -1., -1., 0., 0.]])
     

@@ -69,6 +69,29 @@ class Maxwell2D(SpatialDiscretization):
 
         return flux_Hx, flux_Hy, flux_Ez
     
+    def fieldsOnBoundaryConditions(self, Hx, Hy, Ez):
+
+        bcType = self.mesh.boundary_label
+        if bcType == "PEC":
+            Hbcx =   Hx.transpose().take(self.vmap_b)
+            Hbcx =   Hy.transpose().take(self.vmap_b)
+            Ebcz = - Ez.transpose().take(self.vmap_b)
+        elif bcType == "PMC":
+            Hbcx = - Hx.transpose().take(self.vmap_b)
+            Hbcy = - Hy.transpose().take(self.vmap_b)
+            Ebcz =   Ez.transpose().take(self.vmap_b)
+        elif bcType == "SMA":
+            Hbcx = Hx.transpose().take(self.vmap_b) * 0.0
+            Hbcy = Hx.transpose().take(self.vmap_b) * 0.0
+            Ebcz = Ez.transpose().take(self.vmap_b) * 0.0 
+        elif bcType == "Periodic":
+            Hbcx = Hx.transpose().take(self.vmap_b[::-1])
+            Hbcy = Hy.transpose().take(self.vmap_b[::-1])
+            Ebcz = Ez.transpose().take(self.vmap_b[::-1])
+        else:
+            raise ValueError("Invalid boundary label.")
+        return Hbcx, Hbcy, Ebcz
+
     def computeJumps(self, Hbcx, Hbcy, Ebcz, Hx, Hy, Ez):
 
         dHx = Hx.transpose().take(self.vmap_m) - Hx.transpose().take(self.vmap_p)
@@ -88,6 +111,20 @@ class Maxwell2D(SpatialDiscretization):
         
         return dHx, dHy, dEz
     
+    def grad2D(self, Dr, Ds, Fz, rx, sx, ry, sy):
+
+        GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
+        GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
+
+        return GradX, GradY
+    
+    def curl2D(self, Dr, Ds, Fx, Fy, rx, sx, ry, sy):
+
+        CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
+              - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
+
+        return CuZ
+
     def computeRHS(self, Hx, Hy, Ez):
 
         Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez) #todo - fobc
@@ -96,8 +133,8 @@ class Maxwell2D(SpatialDiscretization):
         flux_Hx, flux_Hy, flux_Ez = self.computeFlux()
 
         f_scale = 1/self.jacobian[self.fmask]
-        rhs_Ezx, rhs_Ezy = Grad2D(Ez) #todo - Grad2D
-        rhs_CuHx, rhs_CuHy, rhs_CuHz = Curl2D(Hx, Hy) #todo - Curl2D
+        rhs_Ezx, rhs_Ezy = self.grad2D(self.Dr, self.Ds, Ez, geometricFactors(self.x, self.y, self.Dr, self.Ds))
+        rhs_CuHx, rhs_CuHy, rhs_CuHz = self.curl2D(self.Dr, self.Ds, Hx, Hy, geometricFactors(self.x, self.y, self.Dr, self.Ds))
 
         #missing material epsilon/mu
         rhs_Hx = -rhs_Ezy  + np.matmul(self.lift, f_scale * flux_Hx)/2.0
