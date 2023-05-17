@@ -129,13 +129,6 @@ class Maxwell1D(SpatialDiscretization):
                              np.matmul(self.lift, f_scale * flux_H))
 
         return rhs_E, rhs_H
-
-    def buildFields(self):
-        E = np.zeros([self.number_of_nodes_per_element(),
-                          self.mesh.number_of_elements()])
-        H = np.zeros(E.shape)
-
-        return E, H
     
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()

@@ -5,10 +5,12 @@ from .dg2d import *
 from .mesh2d import Mesh2D
 from .lserk4 import * 
 
-class Maxwell2D:
+class Maxwell2D(SpatialDiscretization):
     def __init__(self, n_order: int, mesh: Mesh2D, fluxType="Upwind"):
         assert n_order > 0
         assert mesh.number_of_elements() > 0
+
+        self.n_order = n_order
 
         self.mesh = mesh
         self.fluxType = fluxType
@@ -29,10 +31,19 @@ class Maxwell2D:
         vb = self.mesh.EToV[:,1] 
         vc = self.mesh.EToV[:,2]
         self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(x, y, Dr, Ds)
-        # self.nx, self.ny, sJ = normals()
+        self.nx, self.ny, sJ = normals(
+            self.x, self.y, 
+            Dr, Ds, 
+            n_order, self.mesh.number_of_elements()
+        )
+
+    def get_minimum_node_distance(self):
+        raise ValueError("Not done")
+        return min(np.abs(self.x[0, :] - self.x[1, :]))
+    
 
     def number_of_nodes_per_element(self):
-        return (self.n_order + 1) * (self.n_order + 2) / 2
+        return int((self.n_order + 1) * (self.n_order + 2) / 2)
         
     def computeFlux(self): #Missing Z and Y from materials
 
