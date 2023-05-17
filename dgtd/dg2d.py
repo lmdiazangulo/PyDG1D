@@ -261,10 +261,11 @@ def geometricFactors(x, y, Dr, Ds):
     yr = np.matmul(Dr,y)
     ys = np.matmul(Ds,y)
     J = -xs*yr + xr*ys
-    rx = ys/J
-    sx =-yr/J 
-    ry =-xs/J
-    sy = xr/J
+    
+    rx =  ys/J
+    sx = -yr/J
+    ry = -xs/J
+    sy =  xr/J
     return rx, sx, ry, sy, J
 
 def normals(x, y, Dr, Ds, N, K):

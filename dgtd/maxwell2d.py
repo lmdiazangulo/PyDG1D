@@ -48,42 +48,78 @@ class Maxwell2D(SpatialDiscretization):
         '''
         N = self.n_order
         m = self.mesh
-
-        # # number volume nodes consecutively
-        # nodeids = reshape(1:K*Np, Np, K);
-        # vmapM   = zeros(Nfp, Nfaces, K); vmapP   = zeros(Nfp, Nfaces, K); 
-        # mapM    = (1:K*Nfp*Nfaces)';     mapP    = reshape(mapM, Nfp, Nfaces, K);
+        k_elem = self.mesh2D.number_of_elements()
+        n_p = 
+        n_faces = Mesh2D.number_of_vertices()
+        n_fp = N+1
         
-        # # find index of face nodes with respect to volume node ordering
-        # for k1=1:K
-        #     for f1=1:Nfaces
-        #         vmapM(:,f1,k1) = nodeids(Fmask(:,f1), k1);
+        # mask defined in globals
+        
+        jgl = jacobiGL(0, 0, N)
+        fmask_1 = np.where(np.abs(jgl+1) < 1e-10)[0][0]
+        fmask_2 = np.where(np.abs(jgl-1) < 1e-10)[0][0]
+        fmask = [fmask_1, fmask_2]
+
+        
+        # number volume nodes consecutively
+        node_ids = np.reshape(np.arange(k_elem*n_fp), [n_p, k_elem], 'F')
+        vmapM   = np.full([k_elem, n_fp, n_faces], 0)
+        vmapP   = np.full([k_elem, n_fp, n_faces], 0) 
+        mapM    = np.arange(k_elem*n_fp*n_faces)
+        mapP    = np.reshape(mapM, (n_fp, n_faces, k_elem))
+
+        # find index of face nodes with respect to volume node ordering
+        for k1 in range(k_elem):
+            for f1 in range (n_faces):
+                vmapM[k1, :, f1] = node_ids[fmask[f1], k1]
             
-        # one = ones(1, Nfp);
-        # for k1=1:K
-        #     for f1=1:Nfaces
-        #         # find neighbor
-        #         k2 = EToE(k1,f1); f2 = EToF(k1,f1);
+        one = np.ones(n_fp)
+        for k1 in range (k_elem):
+            for f1 in range (n_faces):
+                # find neighbor
+                k2 = Mesh2D.EToE(k1,f1)
+                f2 = Mesh2D.EToF(k1,f1)
                 
-        #         # reference length of edge
-        #         v1 = EToV(k1,f1); v2 = EToV(k1, 1+mod(f1,Nfaces));
-        #         refd = sqrt( (VX(v1)-VX(v2))^2 + (VY(v1)-VY(v2))^2 );
+                # reference length of edge
+                v1 = self.EToV(k1,f1)
+                v2 = self.EToV(k1, 1+np.mod(f1,n_faces))
+                refd = np.sqrt( (Mesh2D.vx(v1)-Mesh2D.vx(v2))**2 + (Mesh2D.vy(v1)-Mesh2D.vy(v2))**2 )
 
-        #         # find find volume node numbers of left and right nodes 
-        #         vidM = vmapM(:,f1,k1); vidP = vmapM(:,f2,k2);    
-        #         x1 = x(vidM); y1 = y(vidM); x2 = x(vidP); y2 = y(vidP);
-        #         x1 = x1*one;  y1 = y1*one;  x2 = x2*one;  y2 = y2*one;
+                # find find volume node numbers of left and right nodes 
+                vidM = vmapM[k1, :, f1]
+                vidP = vmapM[k2, :, f2]   
+                x1 = self.x.ravel('F')[vidM]
+                y1 = self.y.ravel('F')[vidM] 
+                x2 = self.x.ravel('F')[vidP] 
+                y2 = self.y.ravel('F')[vidP]
+                x1 = x1*one
+                y1 = y1*one
+                x2 = x2*one
+                y2 = y2*one
 
-        #         # Compute distance matrix
-        #         D = (x1 -x2').^2 + (y1-y2').^2;
-        #         [idM, idP] = find(sqrt(abs(D))<NODETOL*refd);
-        #         vmapP(idM,f1,k1) = vidP(idP); mapP(idM,f1,k1) = idP + (f2-1)*Nfp+(k2-1)*Nfaces*Nfp;
+                # Compute distance matrix
+                distance = (x1 -x2.transpose())**2 + (y1-y2.transpose())**2
+                [idM, idP] = np.find(np.sqrt(np.abs(distance))<NODETOL*refd)
+                vmapP[k1,idM,f1] = vidP[idP]
+                mapP[k1,idM,f1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
 
-        # # reshape vmapM and vmapP to be vectors and create boundary node list
-        # self.vmapM = vmapM(:)
-        # self.vmapP = vmapP(:)
-        # self.vmapB = vmapM(mapB);
+        vmapM += 1
+        vmapP += 1
+
+        vmapP = vmapP.ravel()
+        vmapM = vmapM.ravel()
+
+        mapB = np.where(vmapP== vmapM)[0]
+        vmapB = vmapM[mapB]
+
+        mapB += 1
+            
+        # reshape vmapM and vmapP to be vectors and create boundary node list
+        self.vmapM = vmapM[:]
+        self.vmapP = vmapP[:]
+        self.vmapB = vmapM[mapB]
         
+    return [vmapM-1, vmapP-1, vmapB-1, mapB-1]
 
     def get_minimum_node_distance(self):
         points, _ = jacobi_gauss(0, 0, self.n_order)
