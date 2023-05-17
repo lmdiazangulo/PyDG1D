@@ -38,13 +38,20 @@ class Maxwell2D(SpatialDiscretization):
         )
 
     def get_minimum_node_distance(self):
-
-        points, weight = jacobi_gauss(0,0,self.n_order); 
+        points, _ = jacobi_gauss(0,0,self.n_order); 
         return abs(points[0]-points[1])
 
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)
-        
+
+    def buildFields(self):
+        Hx = np.zeros([self.number_of_nodes_per_element(),
+                          self.mesh.number_of_elements()])
+        Hy = np.zeros(Hx.shape)
+        Ez = np.zeros(Hx.shape)
+
+        return Hx, Hy, Ez
+
     def computeFlux(self): #Missing Z and Y from materials
 
         flux_Hx = -self.ny*self.dEz 

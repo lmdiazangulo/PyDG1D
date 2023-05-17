@@ -5,8 +5,10 @@ class MaxwellDriver:
     def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'LSERK4'):
         self.sp = sp
 
-        self.E, self.H = sp.buildFields()
-
+        self.fields = sp.buildFields()
+        self.fieldsLabels = sp.buildFieldsLabels()
+        assert len(self.fields) == len(self.fieldsLabels)
+        
         # Compute time step size
         x_min = sp.get_minimum_node_distance()
         CFL = 1.0
@@ -14,14 +16,14 @@ class MaxwellDriver:
         
         # Init time integrator
         if timeIntegratorType == 'LSERK4':
-            self.timeIntegrator = LSERK4(self.sp, (self.E, self.H))
+            self.timeIntegrator = LSERK4(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
 
     def step(self, dt = 0.0):
         if dt == 0.0:
             dt = self.dt
-        self.timeIntegrator.step([self.E, self.H], dt)
+        self.timeIntegrator.step(self.fields, dt)
 
     def run(self, final_time):
         for t_step in range(1, np.ceil(final_time/self.dt)):
