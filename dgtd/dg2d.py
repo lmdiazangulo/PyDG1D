@@ -281,31 +281,38 @@ def normals(x, y, Dr, Ds, N, K):
     fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
     Fmask  = np.transpose(np.array([fmask1, fmask2, fmask3]))
 
-    fxr = xr[Fmask, :] 
-    fxs = xs[Fmask, :] 
-    fyr = yr[Fmask, :]
-    fys = ys[Fmask, :]
+    # spNodeToNode = np.concatenate((
+    #     id.reshape(id.size, 1), 
+    #     np.arange(0, N_FACES*K, 1, dtype=int).reshape(N_FACES*K, 1), 
+    #     EToE.reshape(N_FACES*K, 1, order='F'), 
+    #     EToF.reshape(N_FACES*K, 1, order='F')
+    # ), 1)
 
-    Nfp = (N+1)*(N+2)/2
+    fxr = np.concatenate((xr[fmask1], xr[fmask2], xr[fmask3]))
+    fxs = np.concatenate((xs[fmask1], xs[fmask2], xs[fmask3]))
+    fyr = np.concatenate((yr[fmask1], yr[fmask2], yr[fmask3]))
+    fys = np.concatenate((ys[fmask1], ys[fmask2], ys[fmask3]))
 
-    nx = np.zeros(3*Nfp, K)
-    ny = np.zeros(3*Nfp, K)
+    Nfp = int(N+1)
 
-    fid1 = np.linspace(1,Nfp).transpose()
-    fid2 = np.linspace(Nfp+1,2*Nfp).transpose()
-    fid3 = np.linspace(2*Nfp+1,3*Nfp).transpose()
+    nx = np.zeros((3*Nfp, K))
+    ny = np.zeros((3*Nfp, K))
+
+    fid1 = np.linspace(0,        Nfp-1, Nfp, True, False, int).transpose()
+    fid2 = np.linspace(Nfp,  2*Nfp-1, Nfp, True, False, int).transpose()
+    fid3 = np.linspace(2*Nfp,3*Nfp-1, Nfp, True, False, int).transpose()
 
     # face 1
-    nx[fid1, :] =  fyr[fid1, :] 
-    ny[fid1, :] = -fxr[fid1, :]
+    nx[fid1] =  fyr[fid1]
+    ny[fid1] = -fxr[fid1]
 
     # face 2
-    nx[fid2, :] =  fys[fid2, :]-fyr[fid2, :] 
-    ny[fid2, :] = -fxs[fid2, :]+fxr[fid2, :]
+    nx[fid2] =  fys[fid2]-fyr[fid2] 
+    ny[fid2] = -fxs[fid2]+fxr[fid2]
 
     # face 3
-    nx[fid3, :] = -fys[fid3, :] 
-    ny[fid3, :] =  fxs[fid3, :]
+    nx[fid3] = -fys[fid3] 
+    ny[fid3] =  fxs[fid3]
 
     # normalise
     sJ = np.sqrt(nx*nx+ny*ny)
