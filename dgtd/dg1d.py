@@ -35,6 +35,9 @@ def jacobiGL(alpha, beta, n_order):
 
 
 def jacobi_gauss(alpha, beta, n_order):
+
+    #JacobiGQ(alpha,beta,N) in Hesthaven
+
     """
     Compute the order n_order Gauss quadrature points, x, 
     and weights, w, associated with the Jacobi 
