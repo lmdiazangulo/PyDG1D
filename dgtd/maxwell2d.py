@@ -1,14 +1,9 @@
 import numpy as np
 import math
+
 from .dg2d import *
 from .mesh2d import Mesh2D
-
-rk4a = np.array([0, -0.417890474499852, -1.19215169464268,
-                -1.69778469247153,	-1.51418344425716])
-rk4b = np.array([0.149659021999229,	0.379210312999627,
-                0.822955029386982,	0.699450455949122,	0.153057247968152])
-rk4c = np.array([0,	0.149659021999229,	0.370400957364205,
-                0.622255763134443,	0.958282130674690])
+from .lserk4 import * 
 
 class SpatialDiscretization2D:
     def __init__(self, n_order: int, mesh: Mesh2D, fluxType="Upwind"):
@@ -29,7 +24,7 @@ class SpatialDiscretization2D:
         x, y = set_nodes(n_order)
         r, s = xy_to_rs(x, y)
         vander = vandermonde(n_order, r, s)
-        Dr, Ds = Dmatrices2D(n_order, r, s, vander)
+        Dr, Ds = derivateMatrix(n_order, r, s, vander)
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
         self.fmask_1 = np.where(np.abs(s+1) < 1e-10)[0][0]
@@ -39,7 +34,7 @@ class SpatialDiscretization2D:
 
         self.lift = lift(n_order)
 
-        etoe, etof = connect2D(mesh.EToV) #todo - connect2d
+        eToE, eToF = mesh.connectivityMatrices()
         va = self.mesh.EToV[:,0]
         vb = self.mesh.EToV[:,1] 
         vc = self.mesh.EToV[:,2]

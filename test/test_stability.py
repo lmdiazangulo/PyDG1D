@@ -18,8 +18,8 @@ def test_centered_RK44():
     f_rk44 = p(z)/q(z)   
     
     msh = Mesh1D(0, 20, 30, boundary_label='PEC')
-    A_cen = dg.SpatialDiscretization(n_order=3, mesh=msh, fluxType='Centered').buildEvolutionOperator()
-    A_upw = dg.SpatialDiscretization(n_order=3, mesh=msh, fluxType='Upwind').buildEvolutionOperator()
+    A_cen = dg.Maxwell1D(n_order=3, mesh=msh, fluxType='Centered').buildEvolutionOperator()
+    A_upw = dg.Maxwell1D(n_order=3, mesh=msh, fluxType='Upwind').buildEvolutionOperator()
     A_cen_eig, _ = np.linalg.eig(A_cen)
     A_upw_eig, _ = np.linalg.eig(A_upw)
 
