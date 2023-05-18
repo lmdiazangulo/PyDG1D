@@ -13,3 +13,4 @@ def test_build_maps():
     assert sp.vmapM.size == 48
     assert sp.vmapP.size == 48
     assert sp.vmapB.size == 16
+    assert sp.mapB.size == 16

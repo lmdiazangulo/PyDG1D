@@ -270,7 +270,7 @@ def geometricFactors(x, y, Dr, Ds):
     sy =  xr/J
     return rx, sx, ry, sy, J
 
-def normals(x, y, Dr, Ds, N, K):
+def normals(x, y, Dr, Ds, N):
 
     xr = np.matmul(Dr,x)
     xs = np.matmul(Ds,x)
@@ -279,13 +279,6 @@ def normals(x, y, Dr, Ds, N, K):
 
     _, fmask1, fmask2, fmask3 = buildFMask(N)
 
-    # spNodeToNode = np.concatenate((
-    #     id.reshape(id.size, 1), 
-    #     np.arange(0, N_FACES*K, 1, dtype=int).reshape(N_FACES*K, 1), 
-    #     EToE.reshape(N_FACES*K, 1, order='F'), 
-    #     EToF.reshape(N_FACES*K, 1, order='F')
-    # ), 1)
-
     fxr = np.concatenate((xr[fmask1], xr[fmask2], xr[fmask3]))
     fxs = np.concatenate((xs[fmask1], xs[fmask2], xs[fmask3]))
     fyr = np.concatenate((yr[fmask1], yr[fmask2], yr[fmask3]))
@@ -293,6 +286,7 @@ def normals(x, y, Dr, Ds, N, K):
 
     Nfp = int(N+1)
 
+    K = x.shape[1]
     nx = np.zeros((3*Nfp, K))
     ny = np.zeros((3*Nfp, K))
 

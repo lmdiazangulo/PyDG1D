@@ -205,21 +205,29 @@ def vandermonde_grad(n_order, r):
 
     return grad_vander
 
+def mass_matrix(n_order, r):
+    vander = vandermonde(n_order, r)
+    mass = np.linalg.inv(vander.dot(vander.transpose()))
+    return mass
 
-def differentiation_matrix(n_order, r, vander):
+def buildFMask(r):
+    fmask_1 = np.where(np.abs(r+1) < 1e-10)[0][0]
+    fmask_2 = np.where(np.abs(r-1) < 1e-10)[0][0]
+    fmask = [fmask_1, fmask_2]
+
+    return fmask, fmask_1, fmask_2
+
+def differentiation_matrix(n_order, r):
     """
     Initialize the (r) differentiation matrices
     of the interval evaluated at (r) at order n_order
     V is the 1d Vandermonde matrix
-    >>> r = jacobi_gauss_lobatto(0,0,2)
-    >>> v = vandermonde(2,r)
     >>> differentiation_matrix(2,r,v)
     array([[-1.5,  2. , -0.5],
            [-0.5,  0. ,  0.5],
            [ 0.5, -2. ,  1.5]])
     >>> r = jacobi_gauss_lobatto(0,0,3)
-    >>> v = vandermonde(3,r)
-    >>> A1 = differentiation_matrix(3,r,v)
+    >>> A1 = differentiation_matrix(3,r)
     >>> A2 = ([[-3.00000000e+00,  4.04508497e+00, -1.54508497e+00,  5.00000000e-01], \
                [-8.09016994e-01, -4.05396129e-16,  1.11803399e+00, -3.09016994e-01], \
                [ 3.09016994e-01, -1.11803399e+00,  6.28036983e-16,  8.09016994e-01], \
@@ -227,13 +235,14 @@ def differentiation_matrix(n_order, r, vander):
     >>> np.allclose(A1,A2)
     True
     """
+    vander = vandermonde(n_order, r)
     v_r = vandermonde_grad(n_order, r)
     v_inv = np.linalg.inv(vander)
     diff_matrix = np.matmul(v_r, v_inv)
     return diff_matrix
 
 
-def surface_integral_dg(n_order, vander):
+def surface_integral_dg(n_order, r):
     """ LIFT1D
     Compute surface integral term in DG formulation
     >>> r = jacobi_gauss_lobatto(0,0,2)
@@ -250,8 +259,10 @@ def surface_integral_dg(n_order, vander):
            [ 0.89442719, -0.89442719],
            [-2.        ,  8.        ]])
     """
-    n_p = n_order+1
 
+    vander = vandermonde(n_order,r)
+
+    n_p = n_order+1
     emat = np.zeros([n_p, n_faces*n_fp])
     emat[0, 0] = 1.0
     emat[n_p-1, 1] = 1.0

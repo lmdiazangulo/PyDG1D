@@ -271,7 +271,7 @@ def test_normals_two_triangles():
     x, y = nodes_coordinates(N, m)
     r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
     Dr, Ds = derivateMatrix(N, r, s)
-    nx, ny, sJ = normals(x, y, Dr, Ds, N, m.number_of_elements())
+    nx, ny, sJ = normals(x, y, Dr, Ds, N)
     
 
     nxExp = np.array([[-1., -1.,  0.707,  0.707, 0., 0.],[-0.707, -0.707,  0.,  0., 1., 1.]])

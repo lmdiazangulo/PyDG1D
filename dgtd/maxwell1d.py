@@ -23,9 +23,7 @@ class Maxwell1D(SpatialDiscretization):
         self.epsilon = np.ones(mesh.number_of_elements())
         self.mu = np.ones(mesh.number_of_elements())
 
-        r = jacobiGL(alpha, beta, n_order)
-        jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
-        vander = vandermonde(n_order, r)
+        
         self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx)
         self.nx = normals(mesh.number_of_elements())
 
@@ -33,14 +31,13 @@ class Maxwell1D(SpatialDiscretization):
         self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(
             n_order, self.x, etoe, etof)
 
-        self.fmask_1 = np.where(np.abs(r+1) < 1e-10)[0][0]
-        self.fmask_2 = np.where(np.abs(r-1) < 1e-10)[0][0]
-        self.fmask = [self.fmask_1, self.fmask_2]
+        r = jacobiGL(alpha, beta, n_order)
+        self.fmask, self.fmask_1, self.fmask_2 = buildFMask(r)
 
-        self.mass = np.linalg.inv(vander.dot(vander.transpose()))
+        self.mass = mass_matrix(n_order, r)
+        self.lift = surface_integral_dg(n_order, r)
+        self.diff_matrix = differentiation_matrix(n_order, r)
 
-        self.lift = surface_integral_dg(n_order, vander)
-        self.diff_matrix = differentiation_matrix(n_order, r, vander)
         self.rx, self.jacobian = geometric_factors(self.x, self.diff_matrix)
 
         K = self.mesh.number_of_elements()
