@@ -8,7 +8,7 @@ from dgtd.maxwellDriver import *
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
-    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
+    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
     sp = Maxwell2D(1, msh, 'Upwind')
     
     final_time = 2.0
