@@ -6,16 +6,16 @@ class MaxwellDriver:
         self.sp = sp
 
         self.fields = sp.buildFields()
+
         
         # Compute time step size
+        r_min = sp.get_minimum_node_distance()
         if (sp.get_mesh().dimension == 1):
-            x_min = sp.get_minimum_node_distance()
             CFL = 1.0
-            self.dt = CFL * x_min / 2
+            self.dt = CFL * r_min / 2.0
         elif (sp.get_mesh().dimension == 2):
-            r_min = sp.get_minimum_node_distance()
             dtscale = sp.get_dt_scale()
-            self.dt = min(dtscale)*r_min*2./3.
+            self.dt = min(dtscale)*r_min*2.0/3.0
             
         # Init time integrator
         if timeIntegratorType == 'LSERK4':

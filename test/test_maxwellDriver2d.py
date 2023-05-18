@@ -8,10 +8,10 @@ from dgtd.maxwellDriver import *
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
-    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
+    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2Triang.neu')
     sp = Maxwell2D(1, msh, 'Upwind')
     
-    final_time = 1.0
+    final_time = 2.0
     driver = MaxwellDriver(sp)
     
     x0 = 0.0
@@ -23,8 +23,16 @@ def test_pec():
     # plt.figure()
     # plt.triplot(msh.getTriangulation())
 
-    for _ in range(10):
+    time = 0.0
+    while (time < final_time):
+        
+        if (time + driver.dt > final_time):
+            driver.dt = final_time - time
+        
         driver.step()
+
+        time += driver.dt
+
     #     plt.tricontourf(msh.getTriangulation(), driver['Ez'])
     #     plt.pause(0.01)
     #     plt.cla()

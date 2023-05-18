@@ -153,7 +153,7 @@ class Maxwell2D(SpatialDiscretization):
 
     def computeFlux(self, Hx, Hy, Ez):
         dHx, dHy, dEz = self.computeJumps(Hx, Hy, Ez)
-        flux_Hx = -self.ny * dEz
+        flux_Hx =  self.ny * dEz
         flux_Hy = -self.nx * dEz
         flux_Ez = -self.nx * dHy + self.ny * dHx
 
