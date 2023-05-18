@@ -1,6 +1,5 @@
 import dgtd.mesh2d as ms
 import numpy as np
-import matplotlib.tri as mtri
 import matplotlib.pyplot as plt
 
 TEST_DATA_FOLDER = 'dgtd/testData/'
@@ -29,6 +28,7 @@ def test_connectivityMatrices():
     
 def test_plot_mesh():
     msh = ms.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    tri = mtri.Triangulation(msh.vx, msh.vy, msh.EToV.tolist())
-    # plt.triplot(tri, c='k', lw=1.0)
+    # plt.triplot(msh.getTriangulation(), c='k', lw=1.0)
+    # plt.gca().set_aspect('equal')
+    # plt.show()
     assert True

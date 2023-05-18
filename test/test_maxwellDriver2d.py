@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
 from dgtd.mesh2d import *
 from dgtd.maxwell2d import *
@@ -9,11 +8,8 @@ from dgtd.maxwellDriver import *
 TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
-    sp = Maxwell2D(
-        n_order = 3, 
-        mesh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu'),
-        fluxType="Upwind"
-    )
+    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
+    sp = Maxwell2D(1, msh, 'Centered')
     
     final_time = 1.0
     driver = MaxwellDriver(sp)
@@ -24,7 +20,14 @@ def test_pec():
     
     driver['Ez'][:] = initialFieldE[:]
     
-    driver.run_until(final_time)
+    plt.figure()
+    plt.triplot(msh.getTriangulation())
+
+    for _ in range(10):
+        driver.step()
+        plt.tricontourf(tri, driver['Ez'])
+        plt.pause(0.01)
+        plt.cla()
 
     finalFieldE = driver['Ez']
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
