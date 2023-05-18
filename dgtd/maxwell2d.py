@@ -120,7 +120,7 @@ class Maxwell2D(SpatialDiscretization):
 
     def computeRHS(self, Hx, Hy, Ez):
 
-        Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez) #todo - fobc
+        Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez)
         self.dHx, self.dHy, self.dEz = self.computeJumps(Hbcx, Hbcy, Ebcz, Hx, Hy, Ez)
 
         flux_Hx, flux_Hy, flux_Ez = self.computeFlux()
