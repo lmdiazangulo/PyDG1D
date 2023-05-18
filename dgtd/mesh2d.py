@@ -3,11 +3,13 @@ import matplotlib.tri as mtri
 
 N_FACES = 3
 
+
 class Mesh2D:
     def __init__(self, vx, vy, EToV, boundary_label="PEC"):
         assert vx.shape == vy.shape
         assert np.max(np.max(EToV))+1  == vx.shape[0]
-
+        
+        self.dimension = 2
         self.vx = vx
         self.vy = vy
         self.EToV = EToV

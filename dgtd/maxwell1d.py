@@ -59,6 +59,9 @@ class Maxwell1D(SpatialDiscretization):
     def number_of_nodes_per_element(self):
         return self.n_order + 1
 
+    def get_mesh(self):
+        return self.mesh
+
     def get_nodes(self):
         return set_nodes(self.n_order, self.mesh.vx[self.mesh.EToV])
 

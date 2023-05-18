@@ -2,6 +2,8 @@ import numpy as np
 import scipy.special
 import math
 
+DIMENSION = 1
+
 # n_faces, n_fp
 n_faces = 2
 n_fp = 1

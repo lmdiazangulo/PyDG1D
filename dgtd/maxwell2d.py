@@ -137,6 +137,9 @@ class Maxwell2D(SpatialDiscretization):
 
         return dtscale
 
+    def get_mesh(self):
+        return self.mesh
+
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)
 
