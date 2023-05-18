@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.tri as mtri
 
 N_FACES = 3
 
@@ -18,6 +19,9 @@ class Mesh2D:
 
     def number_of_elements(self):
         return self.EToV.shape[0]
+    
+    def getTriangulation(self):
+        return mtri.Triangulation(self.vx, self.vy, self.EToV.tolist())
     
     def connectivityMatrices(self):
         '''
@@ -88,7 +92,7 @@ def readFromGambitFile(filename: str):
         vy[i] = float(splitted_line[2])   
     
     # read element to node connectivity
-    EToV = np.zeros((Nk, 3), dtype=int)
+    EToV = np.zeros((Nk, N_FACES), dtype=int)
     for k in range(Nk):
         elements_section_begin = COORDINATES_SECTION + Nv + 2
         splitted_line = lines[k + elements_section_begin].split()

@@ -22,7 +22,7 @@ class Maxwell2D(SpatialDiscretization):
         self.mu = np.ones(mesh.number_of_elements())
 
         r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(n_order))
-        Dr, Ds = derivateMatrix(n_order, r, s)
+        self.Dr, self.Ds = derivateMatrix(n_order, r, s)
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
         self.lift = lift(n_order)
@@ -32,16 +32,16 @@ class Maxwell2D(SpatialDiscretization):
         vb = self.mesh.EToV[:, 1]
         vc = self.mesh.EToV[:, 2]
         self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(
-            self.x, self.y, Dr, Ds)
+            self.x, self.y, self.Dr, self.Ds)
         
         fmask, _, _, _ = buildFMask(n_order)
 
-        self.f_scale = 1.0/self.jacobian[fmask]
-        self.nx, self.ny, _ = normals(
+        self.nx, self.ny, sJ = normals(
             self.x, self.y,
-            Dr, Ds,
+            self.Dr, self.Ds,
             n_order
         )
+        self.f_scale = sJ/self.jacobian[fmask.ravel('F')]
 
         self.buildMaps()
 
