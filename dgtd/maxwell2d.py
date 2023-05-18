@@ -115,6 +115,27 @@ class Maxwell2D(SpatialDiscretization):
     def get_minimum_node_distance(self):
         points, _ = jacobi_gauss(0, 0, self.n_order)
         return abs(points[0]-points[1])
+    
+    def get_dt_scale(self):
+
+        r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(self.n_order))
+        vmask1 = np.where(np.abs(s+r+2) < NODETOL)[0]
+        vmask2 = np.where(np.abs(r-1) < NODETOL)[0]
+        vmask3 = np.where(np.abs(s-1) < NODETOL)[0]
+        vmask  = np.array([vmask1, vmask2, vmask3]).transpose()
+
+        vx = self.x[np.squeeze(vmask.reshape(-1, 1)), :]
+        vy = self.y[np.squeeze(vmask.reshape(-1, 1)), :]
+
+        len1 = np.sqrt((vx[0,:]-vx[1,:])**2+(vy[0,:]-vy[1,:])**2)
+        len2 = np.sqrt((vx[1,:]-vx[2,:])**2+(vy[1,:]-vy[2,:])**2)
+        len3 = np.sqrt((vx[2,:]-vx[0,:])**2+(vy[2,:]-vy[0,:])**2)
+        sper = (len1 + len2 + len3)/2.0
+        area = np.sqrt(sper*(sper-len1)*(sper-len2)*(sper-len3))
+
+        dtscale = area/sper
+
+        return dtscale
 
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)

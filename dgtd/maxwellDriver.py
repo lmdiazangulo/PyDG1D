@@ -10,6 +10,7 @@ class MaxwellDriver:
 
         # Compute time step size
         x_min = sp.get_minimum_node_distance()
+        dtscale = sp.get_dt_scale()
         CFL = 1.0
         self.dt = CFL * x_min / 2
         
