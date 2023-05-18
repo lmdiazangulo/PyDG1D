@@ -40,7 +40,7 @@ def warpFactor(N, rout):
     return warp
 
 
-def set_nodes(N):
+def set_nodes_in_equilateral_triangle(N):
     '''
         x, y = set_nodes(N)
         Purpose  : Compute (x,y) nodes in equilateral triangle for polynomial of order N
@@ -147,19 +147,16 @@ def vandermonde(N: int, r, s):
 
     return V
 
-def derivateMatrix(N: int, r, s, V):
-
+def derivateMatrix(N: int, r, s):
+    V = vandermonde(N, r, s)
     Vr, Vs = gradVandermonde(N, r, s)
     Dr = np.matmul(Vr,np.linalg.inv(V))
     Ds = np.matmul(Vs,np.linalg.inv(V))
-
     return Dr, Ds
 
 def gradVandermonde(N: int, r, s):
-
     V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
     V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
-
     a, b = rs_to_ab(r,s)
 
     sk = 0
@@ -205,33 +202,38 @@ def gradSimplexP(a, b, i: int, j: int):
 
 def nodes_coordinates(N, msh: mesh.Mesh2D):
     """
-    Defined to be able to define methods depedent grid properties
+    Builds coordinates for all elements in mesh.
     """
 
     va = msh.EToV[:,0].transpose()
     vb = msh.EToV[:,1].transpose()
     vc = msh.EToV[:,2].transpose()
 
-    r, s  = xy_to_rs(*set_nodes(N))
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
 
     x = 0.5*(- np.outer(r+s, msh.vx[va]) + np.outer(1+r, msh.vx[vb]) + np.outer(1+s, msh.vx[vc]))
     y = 0.5*(- np.outer(r+s, msh.vy[va]) + np.outer(1+r, msh.vy[vb]) + np.outer(1+s, msh.vy[vc]))
 
     return x, y
 
-
-def lift(N):
-    r, s  = xy_to_rs(*set_nodes(N))
-
+def buildFMask(N):
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
     fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
     fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
     fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
     Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
 
+    return Fmask, fmask1, fmask2, fmask3
+
+def lift(N):
+    
     Nfp = int(N + 1)
     Np = int((N+1) * (N+2) / 2)
     Emat = np.zeros((Np, N_FACES*Nfp))
 
+    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
+    Fmask, _, _, _ = buildFMask(N)
+    
     # face 0
     faceR = r[Fmask[:,0]]
     V1D = dg1d.vandermonde(N, faceR)
@@ -261,32 +263,21 @@ def geometricFactors(x, y, Dr, Ds):
     yr = np.matmul(Dr,y)
     ys = np.matmul(Ds,y)
     J = -xs*yr + xr*ys
-    rx = ys/J
-    sx =-yr/J 
-    ry =-xs/J
-    sy = xr/J
+    
+    rx =  ys/J
+    sx = -yr/J
+    ry = -xs/J
+    sy =  xr/J
     return rx, sx, ry, sy, J
 
-def normals(x, y, Dr, Ds, N, K):
+def normals(x, y, Dr, Ds, N):
 
     xr = np.matmul(Dr,x)
     xs = np.matmul(Ds,x)
     yr = np.matmul(Dr,y)
     ys = np.matmul(Ds,y)
 
-    r, s  = xy_to_rs(*set_nodes(N))
-
-    fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
-    fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
-    fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
-    Fmask  = np.transpose(np.array([fmask1, fmask2, fmask3]))
-
-    # spNodeToNode = np.concatenate((
-    #     id.reshape(id.size, 1), 
-    #     np.arange(0, N_FACES*K, 1, dtype=int).reshape(N_FACES*K, 1), 
-    #     EToE.reshape(N_FACES*K, 1, order='F'), 
-    #     EToF.reshape(N_FACES*K, 1, order='F')
-    # ), 1)
+    _, fmask1, fmask2, fmask3 = buildFMask(N)
 
     fxr = np.concatenate((xr[fmask1], xr[fmask2], xr[fmask3]))
     fxs = np.concatenate((xs[fmask1], xs[fmask2], xs[fmask3]))
@@ -295,6 +286,7 @@ def normals(x, y, Dr, Ds, N, K):
 
     Nfp = int(N+1)
 
+    K = x.shape[1]
     nx = np.zeros((3*Nfp, K))
     ny = np.zeros((3*Nfp, K))
 
@@ -376,3 +368,16 @@ def jacobi_gauss(alpha, beta, n_order):
         * scipy.special.gamma(beta+1)/scipy.special.gamma(alpha+beta+1)
 
     return [points, weight]
+
+def grad(Dr, Ds, Fz, rx, sx, ry, sy):
+
+    GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
+    GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
+
+    return GradX, GradY
+
+def curl(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
+    CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
+            - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
+
+    return CuZ

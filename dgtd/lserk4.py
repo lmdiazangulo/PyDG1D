@@ -19,17 +19,17 @@ class LSERK4:
         self.sp = sp
         self.time = 0.0
 
-        self.fieldsRes = list()
-        for f in fields:
-            self.fieldsRes.append(np.zeros(f.shape))
+        self.fieldsRes = dict()
+        for l, f in fields.items():
+            self.fieldsRes[l] = np.zeros(f.shape)
     
     def step(self, fields, dt):
         for s in range(0, self.N_STAGES):
-            fieldsRHS = self.sp.computeRHS(*fields)
-            for f in range(len(fields)):
-                self.fieldsRes[f] = self.A[s]*self.fieldsRes[f] + dt*fieldsRHS[f]
+            fieldsRHS = self.sp.computeRHS(fields)
+            for l, f in fieldsRHS.items():
+                self.fieldsRes[l] = self.A[s]*self.fieldsRes[l] + dt*f
             
-            for f in range(len(fields)):
-                fields[f] += self.B[s] * self.fieldsRes[f]
+            for l, f in fields.items():
+                fields[l] += self.B[s] * self.fieldsRes[l]
 
         self.time += dt

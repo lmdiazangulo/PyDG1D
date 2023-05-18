@@ -23,9 +23,7 @@ class Maxwell1D(SpatialDiscretization):
         self.epsilon = np.ones(mesh.number_of_elements())
         self.mu = np.ones(mesh.number_of_elements())
 
-        r = jacobiGL(alpha, beta, n_order)
-        jacobi_p = jacobi_polynomial(r, alpha, beta, n_order)
-        vander = vandermonde(n_order, r)
+        
         self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx)
         self.nx = normals(mesh.number_of_elements())
 
@@ -33,12 +31,13 @@ class Maxwell1D(SpatialDiscretization):
         self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(
             n_order, self.x, etoe, etof)
 
-        self.fmask_1 = np.where(np.abs(r+1) < 1e-10)[0][0]
-        self.fmask_2 = np.where(np.abs(r-1) < 1e-10)[0][0]
-        self.fmask = [self.fmask_1, self.fmask_2]
+        r = jacobiGL(alpha, beta, n_order)
+        self.fmask, self.fmask_1, self.fmask_2 = buildFMask(r)
 
-        self.lift = surface_integral_dg(n_order, vander)
-        self.diff_matrix = differentiation_matrix(n_order, r, vander)
+        self.mass = mass_matrix(n_order, r)
+        self.lift = surface_integral_dg(n_order, r)
+        self.diff_matrix = differentiation_matrix(n_order, r)
+
         self.rx, self.jacobian = geometric_factors(self.x, self.diff_matrix)
 
         K = self.mesh.number_of_elements()
@@ -65,6 +64,13 @@ class Maxwell1D(SpatialDiscretization):
 
     def get_minimum_node_distance(self):
         return min(np.abs(self.x[0, :] - self.x[1, :]))
+    
+    def buildFields(self):
+        E = np.zeros([self.number_of_nodes_per_element(),
+                          self.mesh.number_of_elements()])
+        H = np.zeros(E.shape)
+
+        return {"E": E, "H": H}
 
     def get_impedance(self):
         Z_imp = np.zeros(self.x.shape)
@@ -95,9 +101,11 @@ class Maxwell1D(SpatialDiscretization):
         if self.fluxType == "Upwind":
             flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
-        else:
+        elif self.fluxType == "Centered":
             flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH)
             flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE)
+        else: 
+            raise ValueError("Invalid fluxType label")
         return flux_E, flux_H
 
     def computeJumps(self, Ebc, Hbc, E, H):
@@ -111,7 +119,9 @@ class Maxwell1D(SpatialDiscretization):
                              self.mesh.number_of_elements(), order='F')
         return dE, dH
 
-    def computeRHS(self, E, H):
+    def computeRHS(self, fields):
+        E = fields['E']
+        H = fields['H']
 
         Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
         self.dE, self.dH = self.computeJumps(Ebc, Hbc, E, H)
@@ -128,7 +138,7 @@ class Maxwell1D(SpatialDiscretization):
         rhs_H = 1/self.mu * (np.multiply(-1*self.rx, rhs_drE) +
                              np.matmul(self.lift, f_scale * flux_H))
 
-        return rhs_E, rhs_H
+        return {'E': rhs_E, 'H': rhs_H }
     
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
@@ -136,16 +146,36 @@ class Maxwell1D(SpatialDiscretization):
         N = 2 * Np * K
         A = np.zeros((N,N))
         for i in range(N):
-            E, H = self.buildFields()
+            fields = self.buildFields()
             node = i % Np
             elem = int(np.floor(i / Np)) % K
             if i < N/2:
-                E[node, elem] = 1.0
+                fields['E'][node, elem] = 1.0
             else:
-                H[node, elem] = 1.0
-            rhsE, rhsH = self.computeRHS(E, H)
-            q0 = np.vstack([rhsE.reshape(Np*K,1,order='F'), rhsH.reshape(Np*K,1, order='F')])
+                fields['H'][node, elem] = 1.0
+            fieldsRHS = self.computeRHS(fields)
+            q0 = np.vstack([
+                fieldsRHS['E'].reshape(Np*K,1,order='F'), 
+                fieldsRHS['H'].reshape(Np*K,1, order='F')
+            ])
             A[:,i] = q0[:,0]
 
         return A
 
+    def getEnergy(self, field):
+        '''
+        Gets energy stored in field by computing
+            field^T * MassMatrix * field * Jacobian.
+        for each element and then the sum.
+        '''
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        assert field.shape == (Np, K)
+        energy = 0.0
+        for k in range(K):
+            energy += np.inner(
+                field[:,k].dot(self.mass),
+                field[:,k]*self.jacobian[:,k]
+            )    
+
+        return energy

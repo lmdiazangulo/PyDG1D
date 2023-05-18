@@ -36,8 +36,8 @@ class Mesh2D:
         fnodes = np.sort(fnodes, 1)
 
         # set up default element to element and Element to faces connectivity
-        EToE = np.outer(np.arange(0, K, 1, dtype=int), np.ones((1,N_FACES)))
-        EToF = np.outer(np.ones((K,1)),                np.arange(0, N_FACES, 1, dtype=int))
+        EToE = np.outer(np.arange(0, K, 1, dtype=int), np.ones((1,N_FACES), dtype=int))
+        EToF = np.outer(np.ones((K,1), dtype=int),     np.arange(0, N_FACES, 1, dtype=int))
 
         # uniquely number each set of three faces by their node numbers 
         id = fnodes[:,0] * Nnodes + fnodes[:,1] + 1
