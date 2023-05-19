@@ -9,7 +9,7 @@ TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    sp = Maxwell2D(3, msh, 'Upwind')
+    sp = Maxwell2D(2, msh, 'Upwind')
     
     final_time = 2.0
     driver = MaxwellDriver(sp)
@@ -21,12 +21,10 @@ def test_pec():
   
     fig = plt.figure()
     for _ in range(100):       
-        driver.step()
-
-        sp.plot_field(3, driver['Ez'], fig)
+        sp.plot_field(2, driver['Ez'], fig)
         plt.pause(0.01)
         plt.cla()
-
+        driver.step()
 
     finalFieldE = driver['Ez']
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
