@@ -54,8 +54,8 @@ def test_plotField2D():
                     ])
     #build equally spaced grid on reference triangle
     Npout = int((Nout+1)*(Nout+2)/2)
-    rout = np.zeros((Npout,1))
-    sout = np.zeros((Npout,1))
+    rout = np.zeros((Npout))
+    sout = np.zeros((Npout))
     counter = np.zeros((Nout+1, Nout+1))
     sk = 0
     for n in range (Nout+1):
@@ -66,12 +66,12 @@ def test_plotField2D():
             sk += 1
             
     # build matrix to interpolate field data to equally spaced nodes
-    Vout = dg2d.Vandermonde2D(Nout, rout, sout)
+    Vout = dg2d.vandermonde(Nout, rout, sout)
     interp = Vout*np.linalg.inv(Vout)
 
     #build triangulation of equally spaced nodes on reference triangle
     for n in range (Nout+1):
-        for m in range (Nout+1-n):
+        for m in range (Nout-n):
             v1 = counter[n,m]
             v2 = counter[n,m+1]
             v3 = counter[n+1,m]
@@ -82,9 +82,11 @@ def test_plotField2D():
             tri = np.vstack([[v1, v2, v3]])
 
     # build triangulation for all equally spaced nodes on all elements
-    for k in range(K):
-        TRI = np.vstack((tri+(k-1)*Npout))
+    TRI = np.zeros((K*2,Npout))
+    for k in range(K+1):
+        TRI[k,:] = np.stack((tri+(k)*Npout))
 
+    TRI_t = TRI[:,:]
     #interpolate node coordinates and field to equally spaced nodes
     xout = interp*xin 
     yout = interp*yin 
