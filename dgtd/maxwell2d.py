@@ -299,7 +299,6 @@ class Maxwell2D(SpatialDiscretization):
         uout = interp.dot(field)
 
         # Render and format solution field
-        
         plt.tricontourf(
             xout.ravel('F'), 
             yout.ravel('F'), 

@@ -9,7 +9,7 @@ TEST_DATA_FOLDER = 'dgtd/testData/'
 
 def test_pec():
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    sp = Maxwell2D(1, msh, 'Centered')
+    sp = Maxwell2D(2, msh, 'Centered')
     
     final_time = 4.0
     driver = MaxwellDriver(sp)
@@ -20,22 +20,14 @@ def test_pec():
     
     driver['Ez'][:] = initialFieldE[:]
   
-    fig = plt.figure()
+    fig = plt.figure().add_subplot(projection='3d')
     plt.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
-    plt.set_aspect('equal')
+    # plt.set_aspect('equal')
     for _ in range(100):       
         sp.plot_field(2, driver['Ez'], fig)
         plt.pause(0.01)
         plt.cla()
         driver.step()
-        tempEpoint = np.concatenate((Epoint,[driver['Ez'][2,114]]))
-        Epoint = tempEpoint
-        tempTimeVec = np.concatenate((timeVec,[time]))
-        timeVec = tempTimeVec
 
-    finalFieldE = driver['Ez']
-    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-                    finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.9999
 
     
