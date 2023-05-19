@@ -76,17 +76,17 @@ def test_plotField2D():
             v2 = counter[n,m+1]
             v3 = counter[n+1,m]
             v4 = counter[n+1,m+1]
-        if v4:
-            tri = np.vstack(([v1, v2, v3],[v2, v4, v3]))
-        else:
-            tri = np.vstack([[v1, v2, v3]])
+            if v4:
+                tri = np.vstack(([v1, v2, v3],[v2, v4, v3]))
+            else:
+                tri = np.vstack([[v1, v2, v3]])
 
     # build triangulation for all equally spaced nodes on all elements
-    TRI = np.zeros((K*2,Npout))
+    TRI = np.zeros((K,Npout))
     for k in range(K+1):
         TRI[k,:] = np.stack((tri+(k)*Npout))
 
-    TRI_t = TRI[:,:]
+    TRI_1 = TRI
     #interpolate node coordinates and field to equally spaced nodes
     xout = interp*xin 
     yout = interp*yin 
