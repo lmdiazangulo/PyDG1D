@@ -142,6 +142,31 @@ class Maxwell2D(SpatialDiscretization):
 
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)
+    
+    def buildEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node, elem] = 1.0
+            elif i > N/3 and i < 2*N/3:
+                fields['Hx'][node, elem] = 1.0
+            else:
+                fields['Hy'][node, elem] = 1.0
+            fieldsRHS = self.computeRHS(fields)
+            q0 = np.vstack([
+                fieldsRHS['Ez'].reshape(Np*K,1, order='F'), 
+                fieldsRHS['Hx'].reshape(Np*K,1, order='F'),
+                fieldsRHS['Hy'].reshape(Np*K,1, order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
 
     def buildFields(self):
         Hx = np.zeros([self.number_of_nodes_per_element(),
@@ -158,7 +183,7 @@ class Maxwell2D(SpatialDiscretization):
         flux_Ez = -self.nx * dHy + self.ny * dHx
 
         if self.fluxType == "Upwind":
-            ndotdH = self.nx * dHx+ self.ny * dHy
+            ndotdH = self.nx * dHx + self.ny * dHy
             flux_Hx += ndotdH * self.nx - dHx
             flux_Hy += ndotdH * self.ny - dHy
             flux_Ez -= dEz
