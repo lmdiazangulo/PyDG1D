@@ -274,8 +274,8 @@ class Maxwell2D(SpatialDiscretization):
         uout = interp.dot(field)
 
         # Render and format solution field
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_trisurf(
+        
+        plt.tricontourf(
             xout.ravel('F'), 
             yout.ravel('F'), 
             uout.ravel('F'), 

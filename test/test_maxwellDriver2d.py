@@ -20,6 +20,8 @@ def test_pec():
     driver['Ez'][:] = initialFieldE[:]
   
     fig = plt.figure()
+    plt.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
+    plt.set_aspect('equal')
     for _ in range(100):       
         sp.plot_field(2, driver['Ez'], fig)
         plt.pause(0.01)
