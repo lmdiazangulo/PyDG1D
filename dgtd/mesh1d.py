@@ -3,6 +3,8 @@ import numpy as np
 class Mesh1D:
     def __init__(self, xmin, xmax, k_elem, boundary_label="PEC"):
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
+
+        self.dimension = 1
         self.vx = vx
         self.EToV = EToV
         self.boundary_label = boundary_label
@@ -12,7 +14,6 @@ class Mesh1D:
 
     def number_of_elements(self):
         return self.vx.shape[0] - 1
-
 
 def mesh_generator(xmin,xmax,k_elem):
     """
