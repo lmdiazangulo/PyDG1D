@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import matplotlib.pyplot as plt
 
 from .dg2d import *
 from .mesh2d import Mesh2D
@@ -231,3 +231,53 @@ class Maxwell2D(SpatialDiscretization):
         rhs_Ez =  rhs_CuHz + np.matmul(self.lift, self.f_scale * flux_Ez)/2.0
 
         return {'Hx': rhs_Hx, 'Hy': rhs_Hy, 'Ez': rhs_Ez}
+    
+    def plot_field(self, Nout, field, fig):
+        # Build equally spaced grid on reference triangle
+        Npout = int((Nout+1)*(Nout+2)/2)
+        rout = np.zeros((Npout))
+        sout = np.zeros((Npout))
+        counter = np.zeros((Nout+1, Nout+1))
+        sk = 0
+        for n in range (Nout+1):
+            for m in range (Nout+1-n):
+                rout[sk] = -1 + 2*m/Nout
+                sout[sk] = -1 + 2*n/Nout
+                counter[n,m] = sk
+                sk += 1
+                
+        # Build matrix to interpolate field data to equally spaced nodes
+        Vout = vandermonde(Nout, rout, sout)
+        interp = Vout.dot(np.linalg.inv(Vout))
+
+        # Build triangulation of equally spaced nodes on reference triangle
+        tri = np.array([], dtype=int).reshape(0,3)
+        for n in range (Nout+1):
+            for m in range (Nout-n):
+                v1 = counter[n,m]
+                v2 = counter[n,m+1]
+                v3 = counter[n+1,m]
+                v4 = counter[n+1,m+1]
+                if v4:
+                    tri = np.vstack(([v1, v2, v3],[v2, v4, v3]))
+                else:
+                    tri = np.vstack((tri, [[v1, v2, v3]]))
+
+        # Build triangulation for all equally spaced nodes on all elements
+        TRI = np.array([], dtype=int).reshape(0,3)
+        for k in range(self.mesh.number_of_elements()):
+            TRI = np.vstack((TRI, tri+(k)*Npout))
+
+        # Interpolate node coordinates and field to equally spaced nodes
+        xout = interp.dot(self.x) 
+        yout = interp.dot(self.y) 
+        uout = interp.dot(field)
+
+        # Render and format solution field
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_trisurf(
+            xout.ravel('F'), 
+            yout.ravel('F'), 
+            uout.ravel('F'), 
+            triangles=TRI, cmap='viridis'
+        )
