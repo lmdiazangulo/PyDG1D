@@ -298,10 +298,13 @@ class Maxwell2D(SpatialDiscretization):
         yout = interp.dot(self.y) 
         uout = interp.dot(field)
 
+        levels = np.linspace(-1, 1, 100)
         # Render and format solution field
         plt.tricontourf(
             xout.ravel('F'), 
             yout.ravel('F'), 
             uout.ravel('F'), 
-            triangles=TRI, cmap='viridis'
+            triangles=TRI, 
+            cmap='viridis',
+            levels=levels
         )
