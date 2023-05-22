@@ -122,7 +122,7 @@ def rs_to_ab(r, s):
 
     for n in range(Np):
         if not np.isclose(s[n], 1.0):
-            a[n] = 2.0 * (1.0+r[n]) / (1.0-s[n]) - 1
+            a[n] = 2.0 * (1.0+r[n]) / (1.0-s[n]) - 1.0
         else:
             a[n] = -1.0
     b = s
@@ -155,19 +155,16 @@ def derivateMatrix(N: int, r, s):
     return Dr, Ds
 
 def gradVandermonde(N: int, r, s):
-    V2Dr = np.zeros((len(r),int((N+1)*(N+2)/2)))
-    V2Ds = np.zeros((len(r),int((N+1)*(N+2)/2)))
+    Vr = np.zeros((len(r),int((N+1)*(N+2)/2)))
+    Vs = np.zeros((len(r),int((N+1)*(N+2)/2)))
     a, b = rs_to_ab(r,s)
 
     sk = 0
     for i in range(0, N+1, 1):
         for j in range(0, N-i+1, 1):
-            V2Drtmp, V2Dstmp = gradSimplexP(a, b, i, j)
-            V2Dr[:,sk] = V2Drtmp
-            V2Ds[:,sk] = V2Dstmp
+            Vr[:,sk], Vs[:,sk] = gradSimplexP(a, b, i, j)
             sk += 1
-
-    return V2Dr, V2Ds
+    return Vr, Vs
 
 def gradSimplexP(a, b, i: int, j: int):
 
@@ -177,17 +174,17 @@ def gradSimplexP(a, b, i: int, j: int):
     dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
 
     dmodedr = dfa*gb
-    bcoeff = (0.5*(1-b))**(i-1)
+    bcoeff = (0.5*(1.0-b))**(i-1.0)
 
     if (i>0):
         dmodedr = dmodedr*bcoeff
     
-    dmodeds = dfa*(gb*(0.5*(1+a)))
+    dmodeds = dfa*(gb*(0.5*(1.0+a)))
 
     if (i>0):
         dmodeds = dmodeds*bcoeff
 
-    tmp = dgb*(0.5*(1-b))**(i)
+    tmp = dgb*(0.5*(1.0-b))**(i)
 
     if (i>0):
         gbcoeff = 0.5*i*gb
@@ -195,8 +192,8 @@ def gradSimplexP(a, b, i: int, j: int):
 
     dmodeds += fa*tmp
 
-    dmodedr *= 2**(i+0.5)
-    dmodeds *= 2**(i+0.5)
+    dmodedr *= 2.0**(i+0.5)
+    dmodeds *= 2.0**(i+0.5)
 
     return dmodedr, dmodeds
 
