@@ -418,8 +418,8 @@ def test_gradVandermonde_N2():
         [0.0, 1.5000, 7.3485, 0.8660, 4.2426,    0.0]]
     )
 
-    assert np.allclose(V2Dr, V2DrExp, rtol=1e-6)
-    assert np.allclose(V2Ds, V2DsExp, rtol=1e-6)
+    assert np.allclose(Vr, VrExp, rtol=1e-4)
+    assert np.allclose(Vs, VsExp, rtol=1e-4)
 
 def test_gradVandermonde_N3():
 

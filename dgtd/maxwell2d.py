@@ -284,7 +284,7 @@ class Maxwell2D(SpatialDiscretization):
                 v3 = counter[n+1,m]
                 v4 = counter[n+1,m+1]
                 if v4:
-                    tri = np.vstack(([v1, v2, v3],[v2, v4, v3]))
+                    tri = np.vstack((tri, [v1, v2, v3],[v2, v4, v3]))
                 else:
                     tri = np.vstack((tri, [[v1, v2, v3]]))
 
@@ -298,7 +298,7 @@ class Maxwell2D(SpatialDiscretization):
         yout = interp.dot(self.y) 
         uout = interp.dot(field)
 
-        levels = np.linspace(-1, 1, 100)
+        levels = np.linspace(-1, 1, 200)
         # Render and format solution field
         plt.tricontourf(
             xout.ravel('F'), 
