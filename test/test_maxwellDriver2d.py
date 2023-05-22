@@ -30,4 +30,6 @@ def test_pec():
         driver.step()
 
 
+    assert True
+
     
