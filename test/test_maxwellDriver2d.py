@@ -10,8 +10,8 @@ TEST_DATA_FOLDER = 'dgtd/testData/'
 def test_pec():
     N = 5
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    sp = Maxwell2D(N, msh, 'Centered')
-  
+    sp = Maxwell2D(5, msh, 'Upwind')
+    
     final_time = 4.0
     driver = MaxwellDriver(sp)
     

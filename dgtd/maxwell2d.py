@@ -82,7 +82,7 @@ class Maxwell2D(SpatialDiscretization):
 
                 # reference length of edge
                 v1 = msh.EToV[k1, f1]
-                v2 = msh.EToV[k1, np.mod(f1, n_faces)]
+                v2 = msh.EToV[k1, np.mod(f1+1, n_faces)]
                 refd = np.sqrt(
                     (msh.vx[v1]-msh.vx[v2])**2 + (msh.vy[v1]-msh.vy[v2])**2
                 )
