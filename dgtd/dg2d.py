@@ -378,3 +378,5 @@ def curl(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
             - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
 
     return CuZ
+
+
