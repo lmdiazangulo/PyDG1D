@@ -193,7 +193,7 @@ class Maxwell1D(SpatialDiscretization):
                 fields['H'][node, elem] = 1.0
             fieldsRHS = self.computeRHS(fields)
             q0 = np.vstack([
-                fieldsRHS['E'].reshape(Np*K,1,order='F'), 
+                fieldsRHS['E'].reshape(Np*K,1, order='F'), 
                 fieldsRHS['H'].reshape(Np*K,1, order='F')
             ])
             A[:,i] = q0[:,0]
