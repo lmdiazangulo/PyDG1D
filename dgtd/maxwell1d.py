@@ -39,6 +39,7 @@ class Maxwell1D(SpatialDiscretization):
         self.diff_matrix = differentiation_matrix(n_order, r)
 
         self.rx, self.jacobian = geometric_factors(self.x, self.diff_matrix)
+        self.f_scale = 1/self.jacobian[self.fmask]
 
         K = self.mesh.number_of_elements()
         Z_imp = self.get_impedance()
@@ -100,18 +101,43 @@ class Maxwell1D(SpatialDiscretization):
             raise ValueError("Invalid boundary label.")
         return Ebc, Hbc
 
-    def computeFlux(self):
+    def computeFluxE(self, E, H):
+        dE, dH = self.computeJumps(E, H)
+        
         if self.fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH-self.dE)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE-self.dH)
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
         elif self.fluxType == "Centered":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*self.dH)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*self.dE)
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
+        else: 
+            raise ValueError("Invalid fluxType label")
+        return flux_E
+
+    def computeFluxH(self, E, H):
+        dE, dH = self.computeJumps(E, H)
+        
+        if self.fluxType == "Upwind":
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
+        elif self.fluxType == "Centered":
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
+        else: 
+            raise ValueError("Invalid fluxType label")
+        return flux_H
+
+    def computeFlux(self, E, H):
+        dE, dH = self.computeJumps(E, H)
+        
+        if self.fluxType == "Upwind":
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
+        elif self.fluxType == "Centered":
+            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
+            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
         else: 
             raise ValueError("Invalid fluxType label")
         return flux_E, flux_H
 
-    def computeJumps(self, Ebc, Hbc, E, H):
+    def computeJumps(self, E, H):
+        Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
         dE = E.transpose().take(self.vmap_m) - E.transpose().take(self.vmap_p)
         dH = H.transpose().take(self.vmap_m) - H.transpose().take(self.vmap_p)
         dE[self.map_b] = E.transpose().take(self.vmap_b)-Ebc
@@ -122,26 +148,35 @@ class Maxwell1D(SpatialDiscretization):
                              self.mesh.number_of_elements(), order='F')
         return dE, dH
 
-    def computeRHS(self, fields):
+    def computeRHSE(self, fields):
+        E = fields['E']
+        H = fields['H']
+        
+        flux_E = self.computeFluxE(E, H)
+        rhs_drH = np.matmul(self.diff_matrix, H)
+        rhsE = 1/self.epsilon * \
+            (np.multiply(-1*self.rx, rhs_drH) +
+             np.matmul(self.lift, self.f_scale * flux_E))
+        
+        return rhsE
+
+
+    def computeRHSH(self, fields):
         E = fields['E']
         H = fields['H']
 
-        Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
-        self.dE, self.dH = self.computeJumps(Ebc, Hbc, E, H)
-
-        flux_E, flux_H = self.computeFlux()
-
-        # Compute right hand sides of the PDE’s
-        f_scale = 1/self.jacobian[self.fmask]
-        rhs_drH = np.matmul(self.diff_matrix, H)
+        flux_H = self.computeFluxH(E, H)
         rhs_drE = np.matmul(self.diff_matrix, E)
-        rhs_E = 1/self.epsilon * \
-            (np.multiply(-1*self.rx, rhs_drH) +
-             np.matmul(self.lift, f_scale * flux_E))
-        rhs_H = 1/self.mu * (np.multiply(-1*self.rx, rhs_drE) +
-                             np.matmul(self.lift, f_scale * flux_H))
+        rhsH = 1/self.mu * (np.multiply(-1*self.rx, rhs_drE) +
+                             np.matmul(self.lift, self.f_scale * flux_H))
+        return rhsH
 
-        return {'E': rhs_E, 'H': rhs_H }
+
+    def computeRHS(self, fields):
+        rhsE = self.computeRHSE(fields)
+        rhsH = self.computeRHSH(fields)
+        
+        return {'E': rhsE, 'H': rhsH }
     
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
