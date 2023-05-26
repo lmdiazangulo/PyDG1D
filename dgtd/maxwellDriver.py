@@ -22,6 +22,11 @@ class MaxwellDriver:
             self.timeIntegrator = LSERK4(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
+        
+        if timeIntegratorType == 'Leapfrog':
+            self.timeIntegrator = Leapfrog(self.sp, self.fields)
+        else:
+            raise ValueError('Invalid time integrator')
 
     def step(self, dt = 0.0):
         if dt == 0.0:
