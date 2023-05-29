@@ -401,3 +401,20 @@ def test_plot_field():
     # fig = plt.figure()
     sp.plot_field(1, uin)
     # plt.show()
+
+def test_partial_rhs_assembly_equals_full():
+    fullEvolOp   = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildEvolutionOperator()
+    stiffnessOp  = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildStiffnessEvolutionOperator()
+    zeroNormalOp = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildZeroNormalEvolutionOperator()
+    oneNormalOp  = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildOneNormalEvolutionOperator()
+    twoNormalOp  = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildTwoNormalEvolutionOperator()
+
+    assert np.allclose(fullEvolOp, stiffnessOp + zeroNormalOp + oneNormalOp + twoNormalOp, rtol=1e-3)
+
+def test_full_evolution_operator():
+    import sys
+    evolOp = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildEvolutionOperator()
+    # These commands allow for a proper representation of the matrix without new lines
+    np.set_printoptions(threshold=np.inf)
+    np.set_printoptions(linewidth=np.inf)
+    print(evolOp)

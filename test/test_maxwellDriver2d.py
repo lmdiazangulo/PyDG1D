@@ -16,8 +16,8 @@ def resonant_cavity_ez_field(x, y, t):
     return np.sin(m*np.pi*x)*np.sin(n*np.pi*y)*np.cos(w*t)
 
 def test_pec():
-    N = 8
-    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
+    N = 1
+    msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K2.neu')
     sp = Maxwell2D(N, msh, 'Upwind')
     
     driver = MaxwellDriver(sp)

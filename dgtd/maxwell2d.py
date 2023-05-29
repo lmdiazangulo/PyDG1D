@@ -154,7 +154,7 @@ class Maxwell2D(SpatialDiscretization):
             elem = int(np.floor(i / Np)) % K
             if i < N/3:
                 fields['Ez'][node, elem] = 1.0
-            elif i > N/3 and i < 2*N/3:
+            elif i >= N/3 and i < 2*N/3:
                 fields['Hx'][node, elem] = 1.0
             else:
                 fields['Hy'][node, elem] = 1.0
@@ -168,6 +168,106 @@ class Maxwell2D(SpatialDiscretization):
 
         return A
 
+    def buildStiffnessEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsStiffness = self.computeRHSStiffness(fields)
+            q0 = np.vstack([
+                fieldsStiffness['Ez'].reshape(Np*K,1,order='F'),
+                fieldsStiffness['Hx'].reshape(Np*K,1,order='F'),
+                fieldsStiffness['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+
+    def buildZeroNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsZeroNormal = self.computeRHSZeroNormal(fields)
+            q0 = np.vstack([
+                fieldsZeroNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsZeroNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsZeroNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+    
+    def buildOneNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsOneNormal = self.computeRHSOneNormal(fields)
+            q0 = np.vstack([
+                fieldsOneNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsOneNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsOneNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+    
+    def buildTwoNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsTwoNormal = self.computeRHSTwoNormal(fields)
+            q0 = np.vstack([
+                fieldsTwoNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsTwoNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsTwoNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+
     def buildFields(self):
         Hx = np.zeros([self.number_of_nodes_per_element(),
                        self.mesh.number_of_elements()])
@@ -175,22 +275,56 @@ class Maxwell2D(SpatialDiscretization):
         Ez = np.zeros(Hx.shape)
 
         return {'Hx': Hx, 'Hy': Hy, 'Ez': Ez}
+    
+    def computeZeroNormalFlux(self, dEz):
 
-    def computeFlux(self, Hx, Hy, Ez):
-        dHx, dHy, dEz = self.computeJumps(Hx, Hy, Ez)
-        flux_Hx =  self.ny * dEz
-        flux_Hy = -self.nx * dEz
-        flux_Ez = -self.nx * dHy + self.ny * dHx
+        flux_Hx_Zero_Normal = 0
+        flux_Hy_Zero_Normal = 0
+        flux_Ez_Zero_Normal = 0
 
         if self.fluxType == "Upwind":
-            ndotdH = self.nx * dHx + self.ny * dHy
-            flux_Hx += ndotdH * self.nx - dHx
-            flux_Hy += ndotdH * self.ny - dHy
-            flux_Ez -= dEz
+            flux_Ez_Zero_Normal -= dEz
         elif self.fluxType == "Centered":
             pass
         else:
             raise ValueError("Invalid flux type.")
+        
+        return flux_Hx_Zero_Normal, flux_Hy_Zero_Normal, flux_Ez_Zero_Normal
+    
+    def computeOneNormalFlux(self, dHx, dHy, dEz):
+
+        flux_Hx_One_Normal =  self.ny * dEz
+        flux_Hy_One_Normal = -self.nx * dEz
+        flux_Ez_One_Normal = -self.nx * dHy + self.ny * dHx
+
+        return flux_Hx_One_Normal, flux_Hy_One_Normal, flux_Ez_One_Normal
+    
+    def computeTwoNormalFlux(self, dHx, dHy):
+
+        flux_Hx_Two_Normal = 0
+        flux_Hy_Two_Normal = 0
+        flux_Ez_Two_Normal = 0
+
+        if self.fluxType == "Upwind":
+            ndotdH = self.nx * dHx + self.ny * dHy
+            flux_Hx_Two_Normal += ndotdH * self.nx
+            flux_Hy_Two_Normal += ndotdH * self.ny
+        elif self.fluxType == "Centered":
+            pass
+        else:
+            raise ValueError("Invalid flux type.")
+        
+        return flux_Hx_Two_Normal, flux_Hy_Two_Normal, flux_Ez_Two_Normal
+
+    def computeFlux(self, Hx, Hy, Ez):
+
+        dHx, dHy, dEz = self.computeJumps(Hx, Hy, Ez)
+        f_Hx_zero, f_Hy_zero, f_Ez_zero = self.computeZeroNormalFlux(dEz)
+        f_Hx_one,   f_Hy_one,  f_Ez_one = self.computeOneNormalFlux(dHx, dHy, dEz)
+        f_Hx_two,   f_Hy_two,  f_Ez_two = self.computeTwoNormalFlux(dHx, dHy)
+        flux_Hx =  f_Hx_zero + f_Hx_one + f_Hx_two
+        flux_Hy =  f_Hy_zero + f_Hy_one + f_Hy_two
+        flux_Ez =  f_Ez_zero + f_Ez_one + f_Ez_two
 
         return flux_Hx, flux_Hy, flux_Ez
 
@@ -257,6 +391,69 @@ class Maxwell2D(SpatialDiscretization):
 
         return {'Hx': rhs_Hx, 'Hy': rhs_Hy, 'Ez': rhs_Ez}
     
+    def computeRHSStiffness(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
+
+        rhs_Ezx, rhs_Ezy = grad(
+            self.Dr, self.Ds, Ez, self.rx, self.sx, self.ry, self.sy
+        )
+        rhs_CuHz = curl(
+            self.Dr, self.Ds, Hx, Hy, self.rx, self.sx, self.ry, self.sy
+        )
+
+        rhs_Hx_stiffness = -rhs_Ezy
+        rhs_Hy_stiffness =  rhs_Ezx
+        rhs_Ez_stiffness =  rhs_CuHz
+
+        return {'Hx': rhs_Hx_stiffness, 'Hy': rhs_Hy_stiffness, 'Ez': rhs_Ez_stiffness}
+
+    
+    def computeRHSZeroNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
+
+        _ , _ , dEz = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_zero_normal, flux_Hy_zero_normal, flux_Ez_zero_normal = self.computeZeroNormalFlux(dEz)
+
+        rhs_Hx_zero_normal = np.matmul(self.lift, self.f_scale * flux_Hx_zero_normal)/2.0
+        rhs_Hy_zero_normal = np.matmul(self.lift, self.f_scale * flux_Hy_zero_normal)/2.0
+        rhs_Ez_zero_normal = np.matmul(self.lift, self.f_scale * flux_Ez_zero_normal)/2.0
+
+        return {'Hx': rhs_Hx_zero_normal, 'Hy': rhs_Hy_zero_normal, 'Ez': rhs_Ez_zero_normal}
+    
+    def computeRHSOneNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
+
+        dHx , dHy , dEz = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_one_normal, flux_Hy_one_normal, flux_Ez_one_normal = self.computeOneNormalFlux(dHx , dHy , dEz)
+
+        rhs_Hx_one_normal = np.matmul(self.lift, self.f_scale * flux_Hx_one_normal)/2.0
+        rhs_Hy_one_normal = np.matmul(self.lift, self.f_scale * flux_Hy_one_normal)/2.0
+        rhs_Ez_one_normal = np.matmul(self.lift, self.f_scale * flux_Ez_one_normal)/2.0
+
+        return {'Hx': rhs_Hx_one_normal, 'Hy': rhs_Hy_one_normal, 'Ez': rhs_Ez_one_normal}
+    
+    def computeRHSTwoNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
+
+        dHx , dHy , _ = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_two_normal, flux_Hy_two_normal, flux_Ez_two_normal = self.computeTwoNormalFlux(dHx, dHy)
+
+        rhs_Hx_two_normal = np.matmul(self.lift, self.f_scale * flux_Hx_two_normal)/2.0
+        rhs_Hy_two_normal = np.matmul(self.lift, self.f_scale * flux_Hy_two_normal)/2.0
+        rhs_Ez_two_normal = np.matmul(self.lift, self.f_scale * flux_Ez_two_normal)/2.0
+
+        return {'Hx': rhs_Hx_two_normal, 'Hy': rhs_Hy_two_normal, 'Ez': rhs_Ez_two_normal}
+
+
+
     def plot_field(self, Nout, field):
         # Build equally spaced grid on reference triangle
         Npout = int((Nout+1)*(Nout+2)/2)
