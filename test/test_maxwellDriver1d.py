@@ -101,7 +101,7 @@ def test_energy_evolution_centered_lf2():
         fluxType="Centered"
     )
     
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.95)
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.75)
     driver['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
     
     Nsteps = 500
