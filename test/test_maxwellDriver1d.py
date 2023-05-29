@@ -89,10 +89,10 @@ def test_energy_evolution_centered():
     totalEnergy = energyE + energyH
     assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5
 
-    # plt.plot(energyE)
-    # plt.plot(energyH)
-    # plt.plot(totalEnergy)
-    # plt.show()
+    plt.plot(energyE)
+    plt.plot(energyH)
+    plt.plot(totalEnergy)
+    plt.show()
 
 def test_energy_evolution_centered_lf2():
     sp = Maxwell1D(
@@ -104,7 +104,7 @@ def test_energy_evolution_centered_lf2():
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.75)
     driver['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
     
-    Nsteps = 500
+    Nsteps = 15000
     energyE = np.zeros(Nsteps)
     energyH = np.zeros(Nsteps)
     for n in range(Nsteps):
@@ -112,7 +112,9 @@ def test_energy_evolution_centered_lf2():
         energyH[n] = sp.getEnergy(driver['H'])
         driver.step()
         
-    plt.plot(energyE + energyH)
+    totalEnergy = energyE + energyH
+    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5    
+    plt.plot(totalEnergy)
     #plt.plot(energyH)
     plt.grid()
     plt.show()
