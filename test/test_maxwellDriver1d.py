@@ -21,8 +21,9 @@ def test_pec():
         fluxType="Centered"
     )
     
+    
     final_time = 3.999
-    driver = MaxwellDriver(sp)
+    driver = MaxwellDriver(sp, timeIntegratorType = 'Leapfrog')
     x0 = 0.0
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
