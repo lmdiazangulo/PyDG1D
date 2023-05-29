@@ -1,9 +1,12 @@
-from .lserk4 import * 
-from .leapfrog import *
+from .LSERK4 import * 
+from .LF2 import *
 from .spatialDiscretization import *
 
 class MaxwellDriver:
-    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'LSERK4'):
+    def __init__(self, 
+                 sp: SpatialDiscretization, 
+                 timeIntegratorType = 'LSERK4',
+                 CFL = 1.0):
         self.sp = sp
 
         self.fields = sp.buildFields()
@@ -12,17 +15,16 @@ class MaxwellDriver:
         # Compute time step size
         r_min = sp.get_minimum_node_distance()
         if (sp.get_mesh().dimension == 1):
-            CFL = 1.0
             self.dt = CFL * r_min / 2.0
         elif (sp.get_mesh().dimension == 2):
             dtscale = sp.get_dt_scale()
-            self.dt = min(dtscale)*r_min*2.0/3.0
+            self.dt = CFL * min(dtscale)*r_min*2.0/3.0
             
         # Init time integrator
         if timeIntegratorType == 'LSERK4':
             self.timeIntegrator = LSERK4(self.sp, self.fields)
-        elif timeIntegratorType == 'Leapfrog':
-            self.timeIntegrator = Leapfrog(self.sp, self.fields)
+        elif timeIntegratorType == 'LF2':
+            self.timeIntegrator = LF2(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
 

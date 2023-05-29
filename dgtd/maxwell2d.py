@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from .dg2d import *
 from .mesh2d import Mesh2D
-from .lserk4 import *
+from .LSERK4 import *
 
 
 class Maxwell2D(SpatialDiscretization):
