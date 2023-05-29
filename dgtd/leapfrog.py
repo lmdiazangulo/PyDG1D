@@ -18,6 +18,6 @@ class Leapfrog:
             self.fieldsRes[l] = self.fieldsRes[l] + dt*f
             
         for l, f in fields.items():
-            fields[l] += self.fieldsRes[l]+dt
+            fields[l] += self.fieldsRes[l]
 
         self.time += dt

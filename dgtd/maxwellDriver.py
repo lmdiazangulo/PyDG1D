@@ -3,7 +3,7 @@ from .leapfrog import *
 from .spatialDiscretization import *
 
 class MaxwellDriver:
-    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'Leapfrog'):
+    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'LSERK4'):
         self.sp = sp
 
         self.fields = sp.buildFields()
