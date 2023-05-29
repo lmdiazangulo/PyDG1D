@@ -12,11 +12,12 @@ class LF2:
         E = fields['E']
         H = fields['H']
         
-        H12 = H + 1/2*dt*self.sp.computeRHSH(fields)
+        if self.time == 0.0:
+            H += 0.5*dt*self.sp.computeRHSH(fields)
         
         self.time += dt/2
         E += dt*self.sp.computeRHSE(fields)
         self.time += dt/2
-        H = H12+dt*self.sp.computeRHSH(fields)
+        H += dt*self.sp.computeRHSH(fields)
         
         
