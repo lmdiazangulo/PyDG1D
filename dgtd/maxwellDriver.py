@@ -1,8 +1,9 @@
 from .lserk4 import * 
+from .leapfrog import *
 from .spatialDiscretization import *
 
 class MaxwellDriver:
-    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'LSERK4'):
+    def __init__(self, sp: SpatialDiscretization, timeIntegratorType = 'Leapfrog'):
         self.sp = sp
 
         self.fields = sp.buildFields()
@@ -20,10 +21,7 @@ class MaxwellDriver:
         # Init time integrator
         if timeIntegratorType == 'LSERK4':
             self.timeIntegrator = LSERK4(self.sp, self.fields)
-        else:
-            raise ValueError('Invalid time integrator')
-        
-        if timeIntegratorType == 'Leapfrog':
+        elif timeIntegratorType == 'Leapfrog':
             self.timeIntegrator = Leapfrog(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')

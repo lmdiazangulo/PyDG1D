@@ -18,7 +18,7 @@ def test_pec():
     sp = Maxwell1D(
         n_order = 5, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
-        fluxType="Upwind"
+        fluxType="Centered"
     )
     
     final_time = 3.999
