@@ -1,5 +1,9 @@
 from .LSERK4 import * 
+from .IRK4 import * 
+from .LSERK74 import * 
+from .LSERK134 import * 
 from .LF2 import *
+from .LF2V import *
 from .spatialDiscretization import *
 
 class MaxwellDriver:
@@ -23,8 +27,16 @@ class MaxwellDriver:
         # Init time integrator
         if timeIntegratorType == 'LSERK4':
             self.timeIntegrator = LSERK4(self.sp, self.fields)
+        elif timeIntegratorType == 'LSERK74':
+            self.timeIntegrator = LSERK74(self.sp, self.fields)
+        elif timeIntegratorType == 'LSERK134':
+            self.timeIntegrator = LSERK134(self.sp, self.fields)
         elif timeIntegratorType == 'LF2':
             self.timeIntegrator = LF2(self.sp, self.fields)
+        elif timeIntegratorType == 'LF2V':
+            self.timeIntegrator = LF2V(self.sp, self.fields)
+        elif timeIntegratorType == 'IRK4':
+            self.timeIntegrator = IRK4(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
 

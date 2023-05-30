@@ -11,7 +11,7 @@ class LF2:
     def step(self, fields, dt):
         E = fields['E']
         H = fields['H']
-        
+          
         if self.time == 0.0:
             H += 0.5*dt*self.sp.computeRHSH(fields)
         
