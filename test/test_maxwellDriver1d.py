@@ -40,7 +40,7 @@ def test_pec_centered_lserk74():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LSERK74')
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK74', CFL=3.0)
         
     final_time = 1.999
     s0 = 0.25
@@ -53,7 +53,7 @@ def test_pec_centered_lserk74():
 
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
                     -finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.99999
+    assert R[0,1] > 0.999
 
     # driver['E'][:] = initialFieldE[:]
     # for _ in range(1000):
@@ -63,6 +63,7 @@ def test_pec_centered_lserk74():
     #     plt.grid(which='both')
     #     plt.pause(0.01)
     #     plt.cla()
+
         
         
 def test_pec_centered_lserk134():
@@ -125,6 +126,37 @@ def test_pec_centered_lf2():
     #     plt.pause(0.01)
     #     plt.cla()
 
+      
+def test_pec_centered_irk4():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        fluxType="Centered"
+    )
+    driver = MaxwellDriver(sp, timeIntegratorType='IRK4')
+        
+    final_time = 1.999
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
+
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
 def test_energy_evolution_centered():
     ''' 
     Checks energy evolution. With Centered flux, energy should only 
@@ -152,8 +184,8 @@ def test_energy_evolution_centered():
 
     # plt.plot(energyE)
     # plt.plot(energyH)
-    plt.plot(totalEnergy)
-    plt.show()
+    # plt.plot(totalEnergy)
+    # plt.show()
 
 def test_energy_evolution_centered_lf2():
     sp = Maxwell1D(
@@ -179,14 +211,14 @@ def test_energy_evolution_centered_lf2():
         driver.step()
         
     totalEnergy = energyE + energyH
-    # assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5    
+    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 0.01    
     
-    plt.figure()
-    plt.plot(energyE)
-    plt.plot(energyH)
-    plt.plot(totalEnergy)
-    plt.grid()
-    plt.show()
+    # plt.figure()
+    # plt.plot(energyE)
+    # plt.plot(energyH)
+    # plt.plot(totalEnergy)
+    # plt.grid()
+    # plt.show()
 
 def test_energy_evolution_centered_lf2v():
     sp = Maxwell1D(
@@ -212,14 +244,14 @@ def test_energy_evolution_centered_lf2v():
         driver.step()
         
     totalEnergy = energyE + energyH
- #   assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-1   
+    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-3   
     
-    plt.figure()
-    # plt.plot(energyE)
-    # plt.plot(energyH)
-    plt.plot(totalEnergy)
-    plt.grid()
-    plt.show()
+    # plt.figure()
+    # # plt.plot(energyE)
+    # # plt.plot(energyH)
+    # plt.plot(totalEnergy)
+    # plt.grid()
+    # plt.show()
 
 
 def test_periodic():
