@@ -160,7 +160,6 @@ class Maxwell1D(SpatialDiscretization):
         
         return rhsE
 
-
     def computeRHSH(self, fields):
         E = fields['E']
         H = fields['H']
@@ -171,13 +170,24 @@ class Maxwell1D(SpatialDiscretization):
                              np.matmul(self.lift, self.f_scale * flux_H))
         return rhsH
 
-
     def computeRHS(self, fields):
         rhsE = self.computeRHSE(fields)
         rhsH = self.computeRHSH(fields)
         
         return {'E': rhsE, 'H': rhsH }
+
+    def convertToVector(self, fields):
+        return np.concatenate((
+            fields['E'].ravel(order='F'), 
+            fields['H'].ravel(order='F')
+        ))
     
+    def copyVectorToFields(self, vec, fields):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        fields['E'][:,:] = vec[:(vec.size//2)].reshape(Np, K, order='F')
+        fields['H'][:,:] = vec[(vec.size//2):].reshape(Np, K, order='F')
+
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()

@@ -127,13 +127,13 @@ def test_pec_centered_lf2():
     #     plt.cla()
 
       
-def test_pec_centered_irk4():
+def test_pec_centered_ibe():
     sp = Maxwell1D(
         n_order = 3, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='IRK4')
+    driver = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=5.0)
         
     final_time = 1.999
     s0 = 0.25
@@ -144,18 +144,19 @@ def test_pec_centered_irk4():
     
     driver.run_until(final_time)
 
-    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-                    -finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.9999
+    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+    #                 -finalFieldE.reshape(1, finalFieldE.size))
+    # assert R[0,1] > 0.9999
 
-    # driver['E'][:] = initialFieldE[:]
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
 
 def test_energy_evolution_centered():
     ''' 

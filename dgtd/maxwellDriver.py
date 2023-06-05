@@ -1,5 +1,5 @@
 from .LSERK4 import * 
-from .IRK4 import * 
+from .IBE import * 
 from .LSERK74 import * 
 from .LSERK134 import * 
 from .LF2 import *
@@ -35,8 +35,8 @@ class MaxwellDriver:
             self.timeIntegrator = LF2(self.sp, self.fields)
         elif timeIntegratorType == 'LF2V':
             self.timeIntegrator = LF2V(self.sp, self.fields)
-        elif timeIntegratorType == 'IRK4':
-            self.timeIntegrator = IRK4(self.sp, self.fields)
+        elif timeIntegratorType == 'IBE':
+            self.timeIntegrator = IBE(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
 

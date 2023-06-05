@@ -20,11 +20,13 @@ def test_pec():
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
     sp = Maxwell2D(N, msh, 'Upwind')
     
-    driver = MaxwellDriver(sp)
+    driver = MaxwellDriver(sp, CFL=0.8)
     driver['Ez'][:] = resonant_cavity_ez_field(sp.x, sp.y, 0)
     
     fig = plt.figure()
     ax = fig.add_subplot(111)  
+
+    assert False
     for _ in range(50):       
         ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
         sp.plot_field(N, driver['Ez'])
