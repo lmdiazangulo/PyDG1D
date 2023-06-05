@@ -28,7 +28,7 @@ class IRK4:
         x0 = y[k-1]
         while i < maxiter and dif > tol:
             [fx0, dfx0] = f(t[k], x0)
-            g = x0 - y[k-1] - h/24*(f(t[k-3],y[k-3])[0] -5*f(t[k-2],y[k-2])[0]+ 19*f(t[k-1],y[k-1])[0] +9*fx0)
+            g = x0 - y[k-1] - h/24*(f(t[k-3],y[k-3]) -5*f(t[k-2],y[k-2])+ 19*f(t[k-1],y[k-1]) +9*fx0)
             dg = 1-h/24*9*dfx0
             x1 = x0-g/dg
             dif=abs(x1-x0)
