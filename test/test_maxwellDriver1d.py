@@ -40,7 +40,7 @@ def test_pec_centered_lserk74():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LSERK74', CFL=3.0)
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK74', CFL=1.0)
         
     final_time = 1.999
     s0 = 0.25
@@ -59,9 +59,10 @@ def test_pec_centered_lserk74():
     # for _ in range(1000):
     #     driver.step()
     #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
     #     plt.ylim(-1, 1)
     #     plt.grid(which='both')
-    #     plt.pause(0.01)
+    #     plt.pause(0.1)
     #     plt.cla()
 
         
@@ -133,7 +134,7 @@ def test_pec_centered_ibe():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=5.0)
+    driver = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=0.041456824790)
         
     final_time = 1.999
     s0 = 0.25
@@ -144,9 +145,9 @@ def test_pec_centered_ibe():
     
     driver.run_until(final_time)
 
-    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-    #                 -finalFieldE.reshape(1, finalFieldE.size))
-    # assert R[0,1] > 0.9999
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
     for _ in range(1000):
@@ -165,7 +166,7 @@ def test_pec_centered_cn():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='CN', CFL=2.0)
+    driver = MaxwellDriver(sp, timeIntegratorType='CN', CFL=15.0)
         
     final_time = 1.999
     s0 = 0.25
@@ -187,7 +188,7 @@ def test_pec_centered_cn():
         plt.plot(sp.x, driver['H'],'r')
         plt.ylim(-1, 1)
         plt.grid(which='both')
-        plt.pause(0.1)
+        plt.pause(0.051)
         plt.cla()
         
 def test_energy_evolution_centered():
