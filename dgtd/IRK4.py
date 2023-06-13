@@ -9,25 +9,24 @@ A = np.array([1/4,              1/4-np.sqrt(3)/6,   1/4+np.sqrt(3)/6,   1/4])
 b = np.array([1/2,              1/2])
 c = np.array([1/2-np.sqrt(3)/6, 1/2+np.sqrt(3)/6])
 
-class RK4:
+class IRK4:
     def __init__(self, sp: SpatialDiscretization, fields):
         self.sp = sp
         self.time = 0.0
 
         self.A = sp.buildEvolutionOperator()          
 
-    def runge_kutta_4_residual(self, yp, f, dt, yo):
-        
-        return yp - yo - 0.5*dt*(np.matmul(f, yp)+np.matmul(f, yo))
-
+    def k_residual(self, k, f, dt, yo):
+        k1, k2 = k 
+        return (k1-np.matmul(f, yo + dt/4 *k1), k2-np.matmul(f, yo + dt/4 * (2*k1+k2)))
 
     def step(self, fields, dt):
         yo = self.sp.convertToVector(fields)
         
-        yp = yo + dt * self.A.dot(yo)
-        yp = fsolve(self.crank_nicolson_residual, yp, args = (self.A, dt, yo )) 
-
-        self.sp.copyVectorToFields(yp, fields)
+        k = (1,1)
+        yp = 0
+        k1, k2 = fsolve(self.k_residual, k, args = (self.A, dt, yo ))
+        yp = yp + yo - dt/2 * (k1 + k2)
         
         
         

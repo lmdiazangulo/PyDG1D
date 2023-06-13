@@ -16,6 +16,7 @@ class CN:
 
 
     def step(self, fields, dt):
+        
         yo = self.sp.convertToVector(fields)
         
         yp = yo + dt * self.A.dot(yo)
