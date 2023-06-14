@@ -23,7 +23,7 @@ class IRK4:
     def step(self, fields, dt):
         yo = self.sp.convertToVector(fields)
         
-        k = (1,1)
+        k = np.ones((2,len(yo)))
         yp = 0
         k1, k2 = fsolve(self.k_residual, k, args = (self.A, dt, yo ))
         yp = yp + yo - dt/2 * (k1 + k2)
