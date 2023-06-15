@@ -12,7 +12,7 @@ class CN:
         self.A = sp.buildEvolutionOperator()          
 
     def crank_nicolson_residual(self, yp, f, dt, yo):
-        return yp - yo - 0.5*dt*(np.matmul(f, yp)+np.matmul(f, yo))
+        return yp - yo - 0.5*dt*(np.matmul(f, yp) + np.matmul(f, yo))
 
 
     def step(self, fields, dt):

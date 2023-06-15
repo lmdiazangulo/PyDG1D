@@ -178,52 +178,48 @@ def test_pec_centered_cn():
     
     driver.run_until(final_time)
 
-    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-    #                 -finalFieldE.reshape(1, finalFieldE.size))
-    # assert R[0,1] > 0.9999
-
-    driver['E'][:] = initialFieldE[:]
-    # for _ in range(100):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.x, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.051)
-    #     plt.cla()
-        
-def test_pec_centered_irk4():
-    sp = Maxwell1D(
-        n_order = 3, 
-        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
-        fluxType="Centered"
-    )
-    driver = MaxwellDriver(sp, timeIntegratorType='IRK4', CFL=5.0)
-        
-    final_time = 1.999
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
-    
-    driver['E'][:] = initialFieldE[:]
-    finalFieldE = driver['E']
-    
-    driver.run_until(final_time)
-
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
                     -finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.9999
 
-    
-    
     driver['E'][:] = initialFieldE[:]
-    # for _ in range(100):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.x, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.051)
-    #     plt.cla()
+    for _ in range(100):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.051)
+        plt.cla()
+        
+def test_pec_centered_irk4():
+    sp = Maxwell1D(
+        n_order = 5, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
+        fluxType="Upwind"
+    )
+    driver = MaxwellDriver(sp, timeIntegratorType='IRK4', CFL=8)
+        
+    final_time = 5.999
+    s0 = 0.25
+    initialField = np.exp(-(sp.x)**2/(2*s0**2))
+        
+    driver['E'][:] = initialField[:]
+    driver['H'][:] = initialField[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    driver['E'][:] = initialField[:]
+    driver['H'][:] = initialField[:]
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.001)
+        plt.cla()
         
 def test_energy_evolution_centered():
     ''' 
