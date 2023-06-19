@@ -1,5 +1,6 @@
 from .LSERK4 import * 
-from .IRK4 import * 
+from .DIRK2 import * 
+from .IGLRK4 import *
 from .IBE import * 
 from .CN import * 
 from .AM2 import * 
@@ -42,8 +43,10 @@ class MaxwellDriver:
             self.timeIntegrator = IBE(self.sp, self.fields)
         elif timeIntegratorType == 'CN':
             self.timeIntegrator = CN(self.sp, self.fields)
-        elif timeIntegratorType == 'IRK4':
-            self.timeIntegrator = IRK4(self.sp, self.fields)
+        elif timeIntegratorType == 'DIRK2':
+            self.timeIntegrator = DIRK2(self.sp, self.fields)
+        elif timeIntegratorType == 'IGLRK4':
+            self.timeIntegrator = IGLRK4(self.sp, self.fields)
         elif timeIntegratorType == 'AM2':
             self.timeIntegrator = AM2(self.sp, self.fields)
         else:

@@ -9,7 +9,7 @@ from .spatialDiscretization import *
 # b = np.array([1/2,              1/2])
 # c = np.array([1/2-np.sqrt(3)/6, 1/2+np.sqrt(3)/6])
 
-class IRK4:
+class DIRK2:
     def __init__(self, sp: SpatialDiscretization, fields):
         self.sp = sp
         self.time = 0.0

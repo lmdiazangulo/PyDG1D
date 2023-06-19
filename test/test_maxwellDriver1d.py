@@ -192,13 +192,13 @@ def test_pec_centered_cn():
         plt.pause(0.051)
         plt.cla()
         
-def test_pec_centered_irk4():
+def test_pec_centered_dirk2():
     sp = Maxwell1D(
         n_order = 5, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
         fluxType="Upwind"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='IRK4', CFL=8)
+    driver = MaxwellDriver(sp, timeIntegratorType='DIRK2', CFL=8)
         
     final_time = 5.999
     s0 = 0.25
@@ -220,7 +220,36 @@ def test_pec_centered_irk4():
         plt.grid(which='both')
         plt.pause(0.001)
         plt.cla()
+       
+def test_pec_centered_iglrk4():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
+        fluxType="Upwind"
+    )
+    driver = MaxwellDriver(sp, timeIntegratorType='IGLRK4', CFL=2)
         
+    final_time = 3.999
+    s0 = 0.25
+    initialField = np.exp(-(sp.x)**2/(2*s0**2))
+        
+    driver['E'][:] = initialField[:]
+    driver['H'][:] = initialField[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    driver['E'][:] = initialField[:]
+    driver['H'][:] = initialField[:]
+    for _ in range(500):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.001)
+        plt.cla()
+                
 def test_energy_evolution_centered():
     ''' 
     Checks energy evolution. With Centered flux, energy should only 
