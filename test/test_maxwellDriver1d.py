@@ -33,11 +33,22 @@ def test_pec():
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
                     -finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.9999
+    
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(172):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
+
 
 
 def test_pec_centered_lserk74():
     sp = Maxwell1D(
-        n_order = 3, 
+        n_order = 5, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
@@ -56,15 +67,15 @@ def test_pec_centered_lserk74():
                     -finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.999
 
-    # driver['E'][:] = initialFieldE[:]
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.x, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.1)
-    #     plt.cla()
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(130):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.000001)
+        plt.cla()
 
         
         
@@ -85,12 +96,12 @@ def test_pec_centered_lserk134():
     
     driver.run_until(final_time)
 
-    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-    #                 -finalFieldE.reshape(1, finalFieldE.size))
-    # assert R[0,1] > 0.999
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(1000):
+    for _ in range(100):
         driver.step()
         plt.plot(sp.x, driver['E'],'b')
         plt.ylim(-1, 1)
@@ -128,6 +139,36 @@ def test_pec_centered_lf2():
     #     plt.pause(0.01)
     #     plt.cla()
 
+def test_pec_centered_lf2v():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        fluxType="Centered"
+    )
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2V')
+        
+    final_time = 1.999
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
+
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
       
 def test_pec_centered_ibe():
     sp = Maxwell1D(
@@ -135,7 +176,7 @@ def test_pec_centered_ibe():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=2)
+    driver = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=1.5)
         
     final_time = 1.999
     s0 = 0.25
@@ -151,14 +192,14 @@ def test_pec_centered_ibe():
     # assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
-    # for _ in range(100):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.x, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.001)
-    #     plt.cla()
+    for _ in range(150):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
         
         
 def test_pec_centered_cn():
@@ -167,7 +208,7 @@ def test_pec_centered_cn():
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='CN', CFL=3.0)
+    driver = MaxwellDriver(sp, timeIntegratorType='CN', CFL=1.0)
         
     final_time = 1.999
     s0 = 0.25
@@ -183,14 +224,15 @@ def test_pec_centered_cn():
     assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(100):
+    for _ in range(159):
         driver.step()
         plt.plot(sp.x, driver['E'],'b')
         plt.plot(sp.x, driver['H'],'r')
         plt.ylim(-1, 1)
         plt.grid(which='both')
-        plt.pause(0.051)
+        plt.pause(0.01)
         plt.cla()
+
         
 def test_pec_centered_dirk2():
     sp = Maxwell1D(
