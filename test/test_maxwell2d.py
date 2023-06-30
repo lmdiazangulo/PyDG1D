@@ -398,9 +398,9 @@ def test_plot_field():
         [-1.6564e-03,  -1.6564e-03,   2.5271e-03,  -8.2897e-03,  -1.4559e-02,  -4.3292e-02,  -1.7840e-02,  -1.7483e-02],
         [-1.2718e-01,  -1.9385e-02,  -2.2464e-02,  -8.2897e-03,  -2.2464e-02,  -1.1068e-01,  -9.7667e-02,  -1.1068e-01]
     ])
-    # fig = plt.figure()
+    fig = plt.figure()
     sp.plot_field(1, uin)
-    # plt.show()
+    plt.show()
 
 def test_partial_rhs_assembly_equals_full():
     fullEvolOp   = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildEvolutionOperator()

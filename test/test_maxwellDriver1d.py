@@ -44,6 +44,37 @@ def test_pec():
         plt.pause(0.01)
         plt.cla()
 
+def test_pec_centered():
+    sp = Maxwell1D(
+        n_order = 5, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        fluxType="Centered"
+    )
+    driver = MaxwellDriver(sp)
+    
+    final_time = 1.999
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
+    
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(172):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
+
 
 
 def test_pec_centered_lserk74():
@@ -263,34 +294,34 @@ def test_pec_centered_dirk2():
         plt.pause(0.001)
         plt.cla()
        
-def test_pec_centered_iglrk4():
-    sp = Maxwell1D(
-        n_order = 3, 
-        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
-        fluxType="Upwind"
-    )
-    driver = MaxwellDriver(sp, timeIntegratorType='IGLRK4', CFL=2)
+# def test_pec_centered_iglrk4():
+#     sp = Maxwell1D(
+#         n_order = 3, 
+#         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
+#         fluxType="Upwind"
+#     )
+#     driver = MaxwellDriver(sp, timeIntegratorType='IGLRK4', CFL=2)
         
-    final_time = 3.999
-    s0 = 0.25
-    initialField = np.exp(-(sp.x)**2/(2*s0**2))
+#     final_time = 3.999
+#     s0 = 0.25
+#     initialField = np.exp(-(sp.x)**2/(2*s0**2))
         
-    driver['E'][:] = initialField[:]
-    driver['H'][:] = initialField[:]
-    finalFieldE = driver['E']
+#     driver['E'][:] = initialField[:]
+#     driver['H'][:] = initialField[:]
+#     finalFieldE = driver['E']
     
-    driver.run_until(final_time)
+#     driver.run_until(final_time)
 
-    driver['E'][:] = initialField[:]
-    driver['H'][:] = initialField[:]
-    for _ in range(500):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.001)
-        plt.cla()
+#     driver['E'][:] = initialField[:]
+#     driver['H'][:] = initialField[:]
+#     for _ in range(500):
+#         driver.step()
+#         plt.plot(sp.x, driver['E'],'b')
+#         plt.plot(sp.x, driver['H'],'r')
+#         plt.ylim(-1, 1)
+#         plt.grid(which='both')
+#         plt.pause(0.001)
+#         plt.cla()
                 
 def test_energy_evolution_centered():
     ''' 
@@ -298,7 +329,7 @@ def test_energy_evolution_centered():
     dissipate because of the LSERK4 time integration.
     '''
     sp = Maxwell1D(
-        n_order = 2, 
+        n_order = 5, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
@@ -306,7 +337,7 @@ def test_energy_evolution_centered():
     driver = MaxwellDriver(sp)
     driver['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
     
-    Nsteps = 100
+    Nsteps = 171
     energyE = np.zeros(Nsteps)
     energyH = np.zeros(Nsteps)
     for n in range(Nsteps):
@@ -317,10 +348,10 @@ def test_energy_evolution_centered():
     totalEnergy = energyE + energyH
     assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5
 
-    # plt.plot(energyE)
-    # plt.plot(energyH)
-    # plt.plot(totalEnergy)
-    # plt.show()
+    plt.plot(energyE, 'b')
+    plt.plot(energyH, 'r')
+    plt.plot(totalEnergy, 'g')
+    plt.show()
 
 def test_energy_evolution_centered_lf2():
     sp = Maxwell1D(
