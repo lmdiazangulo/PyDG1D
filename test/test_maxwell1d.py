@@ -13,3 +13,12 @@ def test_get_energy_N1():
 
     fields['E'].fill(1.0)
     assert np.isclose(sp.getEnergy(fields['E']),         1.0, rtol=1e-9)
+
+def test_buildEvolutionOperator():
+    m = Mesh1D(0, 1, 10)
+    sp = Maxwell1D(1, m, "Centered")
+    A = sp.buildEvolutionOperator()
+
+    # import matplotlib.pyplot as plt
+    # plt.spy(A)
+    # plt.show()
