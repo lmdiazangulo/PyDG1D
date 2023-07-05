@@ -57,13 +57,13 @@ def test_pec_centered_lf2():
     # assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(1000):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
 def test_energy_evolution_centered():
     ''' 

@@ -1,4 +1,4 @@
-from .LSERK4 import * 
+from .lserk4 import * 
 from .LF2 import *
 from .spatialDiscretization import *
 
