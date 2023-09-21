@@ -8,6 +8,7 @@ from .LSERK74 import *
 from .LSERK134 import * 
 from .LF2 import *
 from .LF2V import *
+from .EULER import *
 from .spatialDiscretization import *
 
 class MaxwellDriver:
@@ -29,7 +30,9 @@ class MaxwellDriver:
             self.dt = CFL * min(dtscale)*r_min*2.0/3.0
             
         # Init time integrator
-        if timeIntegratorType == 'LSERK4':
+        if timeIntegratorType == 'EULER':
+            self.timeIntegrator = EULER(self.sp, self.fields)
+        elif timeIntegratorType == 'LSERK4':
             self.timeIntegrator = LSERK4(self.sp, self.fields)
         elif timeIntegratorType == 'LSERK74':
             self.timeIntegrator = LSERK74(self.sp, self.fields)

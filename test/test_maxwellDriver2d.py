@@ -18,15 +18,15 @@ def resonant_cavity_ez_field(x, y, t):
 def test_pec():
     N = 1
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    sp = Maxwell2D(N, msh, 'Centered')
+    sp = Maxwell2D(N, msh, 'Upwind')
     
-    driver = MaxwellDriver(sp, CFL=0.05)
+    driver = MaxwellDriver(sp, CFL=0.5)
     driver['Ez'][:] = resonant_cavity_ez_field(sp.x, sp.y, 0)
     
     fig = plt.figure()
     ax = fig.add_subplot(111)  
 
-    # assert False
+    assert False
     for _ in range(40):       
         ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
         sp.plot_field(N, driver['Ez'])

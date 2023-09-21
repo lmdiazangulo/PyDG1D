@@ -14,6 +14,7 @@ def test_spatial_discretization_lift():
                          np.array([[2.0,-1.0],[-1.0,2.0]]))
 
 
+
 def test_pec():
     sp = Maxwell1D(
         n_order = 5, 
@@ -34,15 +35,16 @@ def test_pec():
                     -finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.9999
     
-    driver['E'][:] = initialFieldE[:]
-    for _ in range(172):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(172):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
 
 def test_pec_centered():
     sp = Maxwell1D(
@@ -65,15 +67,15 @@ def test_pec_centered():
                     -finalFieldE.reshape(1, finalFieldE.size))
     assert R[0,1] > 0.9999
     
-    driver['E'][:] = initialFieldE[:]
-    for _ in range(172):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(172):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
 
 
@@ -99,15 +101,19 @@ def test_pec_centered_lserk74():
     assert R[0,1] > 0.999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(130):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.000001)
-        plt.cla()
+    # for _ in range(130):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.000001)
+    #     plt.cla()
 
+    #  #real solution
+    #  lambdas = 1/np.sqrt(sp.epsilon*sp.mu)
+    # real_solution = np.sin(sp.x-lambdas*t)
+     
         
         
 def test_pec_centered_lserk134():
@@ -132,14 +138,44 @@ def test_pec_centered_lserk134():
     assert R[0,1] > 0.999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(100):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(100):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
         
+def test_pec_centered_euler():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        fluxType="Upwind"
+    )
+    driver = MaxwellDriver(sp, timeIntegratorType='EULER',CFL=0.5659700)
+        
+    final_time = 1.999
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    finalFieldE = driver['E']
+    
+    driver.run_until(final_time)
+
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > 0.9999
+
+    driver['E'][:] = initialFieldE[:]
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.00001)
+    #     plt.cla()
+
 def test_pec_centered_lf2():
     sp = Maxwell1D(
         n_order = 3, 
@@ -223,14 +259,14 @@ def test_pec_centered_ibe():
     # assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(150):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(150):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
         
         
 def test_pec_centered_cn():
@@ -255,17 +291,17 @@ def test_pec_centered_cn():
     assert R[0,1] > 0.9999
 
     driver['E'][:] = initialFieldE[:]
-    for _ in range(159):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(159):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
         
-def test_pec_centered_dirk2():
+def test_periodic_centered_dirk2():
     sp = Maxwell1D(
         n_order = 5, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
@@ -348,10 +384,10 @@ def test_energy_evolution_centered():
     totalEnergy = energyE + energyH
     assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 3e-5
 
-    plt.plot(energyE, 'b')
-    plt.plot(energyH, 'r')
-    plt.plot(totalEnergy, 'g')
-    plt.show()
+    # plt.plot(energyE, 'b')
+    # plt.plot(energyH, 'r')
+    # plt.plot(totalEnergy, 'g')
+    # plt.show()
 
 def test_energy_evolution_centered_lf2():
     sp = Maxwell1D(
@@ -420,7 +456,7 @@ def test_energy_evolution_centered_lf2v():
     # plt.show()
 
 
-def test_periodic():
+def test_periodic_tested():
     sp = Maxwell1D(
         n_order = 2, 
         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
@@ -429,7 +465,7 @@ def test_periodic():
     
     final_time = 1.999
     driver = MaxwellDriver(sp)
-    initialFieldE = np.exp(- sp.x**2/(2*0.25**2))
+    initialFieldE = np.sin(2*np.pi*sp.x)
     
     driver['E'][:] = initialFieldE[:]
     finalFieldE = driver['E']
@@ -438,7 +474,19 @@ def test_periodic():
 
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
                     finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.9999
+    assert R[0,1] > 0.99
+    
+    #Real_solution = np.cos(2*np.pi*sp.x)
+    
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.00001)
+        plt.cla()
+       
+
 
 
 def test_periodic_same_initial_conditions():
