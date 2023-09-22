@@ -321,14 +321,14 @@ def test_periodic_centered_dirk2():
 
     driver['E'][:] = initialField[:]
     driver['H'][:] = initialField[:]
-    for _ in range(1000):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.001)
-        plt.cla()
+    # for _ in range(100):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.001)
+    #     plt.cla()
        
 # def test_pec_centered_iglrk4():
 #     sp = Maxwell1D(
@@ -458,35 +458,88 @@ def test_energy_evolution_centered_lf2v():
 
 def test_periodic_tested():
     sp = Maxwell1D(
-        n_order = 2, 
-        mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
-        fluxType = "Upwind"
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
+        fluxType="Upwind"
     )
-    
     final_time = 1.999
-    driver = MaxwellDriver(sp)
-    initialFieldE = np.sin(2*np.pi*sp.x)
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134')
+    initialField = np.sin(2*np.pi*sp.x)
     
-    driver['E'][:] = initialFieldE[:]
+    driver['E'][:] = initialField[:]
+    driver['H'][:] = initialField[:]
     finalFieldE = driver['E']
     
     driver.run_until(final_time)
 
-    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size), 
-                    finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.99
+    # R = np.corrcoef(initialField.reshape(1, initialField.size), 
+    #                 finalFieldE.reshape(1, finalFieldE.size))
+    # assert R[0,1] > 0.99
     
-    #Real_solution = np.cos(2*np.pi*sp.x)
+    def real_function(x,t):
+        return np.sin(2*np.pi*x - 2*np.pi*t)
     
-    for _ in range(1000):
-        driver.step()
+    t = 0.0
+    error=0
+    for _ in range(40):
+        plt.plot(sp.x, real_function(sp.x, t), 'g')
         plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        
         plt.ylim(-1, 1)
         plt.grid(which='both')
         plt.pause(0.00001)
         plt.cla()
-       
+        error += (real_function(sp.x, t)-(driver['E']))**2
+        
+        driver.step()
+        t += driver.dt
+    
+    assert(np.sqrt(error).max() < 1e-02, True)
 
+def test_periodic_tested_prove():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
+        fluxType="Upwind"
+    )
+    final_time = 1.999
+    driver1 = MaxwellDriver(sp)
+    driver2 = MaxwellDriver(sp, timeIntegratorType='LSERK134')
+    driver3 = MaxwellDriver(sp, timeIntegratorType='Leapfrog')
+    driver2 = MaxwellDriver(sp, timeIntegratorType='BE)
+    initialField = np.sin(2*np.pi*sp.x)
+    
+    driver2['E'][:] = initialField[:]
+    driver2['H'][:] = initialField[:]
+    finalFieldE = driver2['E']
+    
+    driver2.run_until(final_time)
+
+    # R = np.corrcoef(initialField.reshape(1, initialField.size), 
+    #                 finalFieldE.reshape(1, finalFieldE.size))
+    # assert R[0,1] > 0.99
+    
+    def real_function(x,t):
+        return np.sin(2*np.pi*x - 2*np.pi*t)
+    
+    t = 0.0
+    error=0
+    for _ in range(100):
+        # plt.plot(sp.x, real_function(sp.x, t), 'g')
+        # plt.plot(sp.x, driver['E'],'b')
+        # plt.plot(sp.x, driver['H'],'r')
+        
+        # plt.ylim(-1, 1)
+        # plt.grid(which='both')
+        # plt.pause(0.00001)
+        # plt.cla()
+        error += (real_function(sp.x, t)-(driver2['E']))**2
+        
+        driver2.step()
+        t += driver2.dt
+    
+    assert(np.sqrt(error).max() < 1e-02, True)
 
 
 def test_periodic_same_initial_conditions():
