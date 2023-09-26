@@ -17,10 +17,11 @@ class IBE:
     def step(self, fields, dt):
         yo = self.sp.convertToVector(fields)
         
-        yp = yo + dt * self.A.dot(yo)
+        yp = yo + dt/2 * self.A.dot(yo)
         yp = fsolve(self.backward_euler, yp, args = (self.A, dt, yo )) 
 
-        self.sp.copyVectorToFields(yp, fields)
+        self.time += dt
         
+        self.sp.copyVectorToFields(yp, fields)
         
         

@@ -504,17 +504,155 @@ def test_periodic_tested_prove():
         fluxType="Upwind"
     )
     final_time = 1.999
-    driver1 = MaxwellDriver(sp)
-    driver2 = MaxwellDriver(sp, timeIntegratorType='LSERK134')
-    driver3 = MaxwellDriver(sp, timeIntegratorType='Leapfrog')
-    driver2 = MaxwellDriver(sp, timeIntegratorType='BE)
+    driver1 = MaxwellDriver(sp, CFL=0.25)
+    driver2 = MaxwellDriver(sp, timeIntegratorType='LSERK74')
+    driver3 = MaxwellDriver(sp, timeIntegratorType='LSERK134')
+    driver4 = MaxwellDriver(sp, timeIntegratorType='EULER')
+    driver5 = MaxwellDriver(sp, timeIntegratorType='LF2V')
+    driver6 = MaxwellDriver(sp, timeIntegratorType='IBE', CFL=0.25)
+    driver7 = MaxwellDriver(sp, timeIntegratorType='CN', CFL=0.25)
     initialField = np.sin(2*np.pi*sp.x)
+    
+    driver1['E'][:] = initialField[:]
+    driver1['H'][:] = initialField[:]
+    finalFieldE = driver2['E']
     
     driver2['E'][:] = initialField[:]
     driver2['H'][:] = initialField[:]
-    finalFieldE = driver2['E']
+    finalFieldE2 = driver2['E']
     
+    driver3['E'][:] = initialField[:]
+    driver3['H'][:] = initialField[:]
+    finalFieldE3 = driver3['E']
+    
+    driver4['E'][:] = initialField[:]
+    driver4['H'][:] = initialField[:]
+    finalFieldE4 = driver4['E']
+    
+    driver5['E'][:] = initialField[:]
+    driver5['H'][:] = initialField[:]
+    finalFieldE5 = driver5['E']
+    
+    driver6['E'][:] = initialField[:]
+    driver6['H'][:] = initialField[:]
+    finalFieldE6 = driver6['E']
+    
+    driver7['E'][:] = initialField[:]
+    driver7['H'][:] = initialField[:]
+    finalFieldE7 = driver7['E']
+    
+    driver1.run_until(final_time)
     driver2.run_until(final_time)
+    driver3.run_until(final_time)
+    driver4.run_until(final_time)
+    driver5.run_until(final_time)
+    driver6.run_until(final_time)
+    driver7.run_until(final_time)    
+    
+    def real_function(x,t):
+        return np.sin(2*np.pi*x - 2*np.pi*t)
+    
+    t = 0.0
+    
+    for _ in range(100):
+        plt.plot(sp.x, real_function(sp.x, driver7.timeIntegrator.time), 'g')
+        plt.plot(sp.x, driver6['E'],'brown')
+        plt.plot(sp.x, driver7['E'],'m')
+        
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.00001)
+        plt.cla()
+        
+        driver7.step()
+        driver6.step()
+        
+        
+    # for _ in range(100):
+    #     plt.plot(sp.x, real_function(sp.x, driver1.timeIntegrator.time), 'g')
+    #     plt.plot(sp.x, driver4['E'],'y')
+    #     plt.plot(sp.x, driver5['E'],'black')
+    
+        
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.00001)
+    #     plt.cla()
+        
+    #     driver1.step()
+    #     driver4.step()
+    #     driver5.step()
+        
+    # for _ in range(100):
+    #     plt.plot(sp.x, real_function(sp.x, driver1.timeIntegrator.time), 'g')
+    #     plt.plot(sp.x, driver1['E'],'b')
+    #     plt.plot(sp.x, driver2['E'],'r')
+    #     plt.plot(sp.x, driver3['E'],'cyan')
+ 
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.00001)
+    #     plt.cla()
+
+    #     driver1.step()
+    #     driver2.step()
+    #     driver3.step()
+    
+    R = np.corrcoef(initialField.reshape(1, initialField.size), 
+                    finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0,1] > -0.99
+    
+def test_errors():
+    sp = Maxwell1D(
+        n_order = 3, 
+        mesh = Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
+        fluxType="Upwind"
+    )
+    final_time = 1.999
+    driver1 = MaxwellDriver(sp)
+    driver2 = MaxwellDriver(sp, timeIntegratorType='LSERK74')
+    driver3 = MaxwellDriver(sp, timeIntegratorType='LSERK134')
+    driver4 = MaxwellDriver(sp, timeIntegratorType='EULER')
+    driver5 = MaxwellDriver(sp, timeIntegratorType='LF2V')
+    driver6 = MaxwellDriver(sp, timeIntegratorType='IBE')
+    driver7 = MaxwellDriver(sp, timeIntegratorType='CN')
+    initialField = np.sin(2*np.pi*sp.x)
+    
+    driver1['E'][:] = initialField[:]
+    driver1['H'][:] = initialField[:]
+    finalFieldE1 = driver1['E']
+    
+    driver2['E'][:] = initialField[:]
+    driver2['H'][:] = initialField[:]
+    finalFieldE2 = driver2['E']
+    
+    driver3['E'][:] = initialField[:]
+    driver3['H'][:] = initialField[:]
+    finalFieldE3 = driver3['E']
+    
+    driver4['E'][:] = initialField[:]
+    driver4['H'][:] = initialField[:]
+    finalFieldE4 = driver4['E']
+    
+    driver5['E'][:] = initialField[:]
+    driver5['H'][:] = initialField[:]
+    finalFieldE5 = driver5['E']
+    
+    driver6['E'][:] = initialField[:]
+    driver6['H'][:] = initialField[:]
+    finalFieldE6 = driver6['E']
+    
+    driver7['E'][:] = initialField[:]
+    driver7['H'][:] = initialField[:]
+    finalFieldE7 = driver7['E']
+    
+    driver1.run_until(final_time)
+    driver2.run_until(final_time)
+    driver3.run_until(final_time)
+    driver4.run_until(final_time)
+    driver5.run_until(final_time)
+    driver6.run_until(final_time)
+    driver7.run_until(final_time)    
 
     # R = np.corrcoef(initialField.reshape(1, initialField.size), 
     #                 finalFieldE.reshape(1, finalFieldE.size))
@@ -524,24 +662,43 @@ def test_periodic_tested_prove():
         return np.sin(2*np.pi*x - 2*np.pi*t)
     
     t = 0.0
-    error=0
+    error_abs = 0
+    error = 0
+
     for _ in range(100):
-        # plt.plot(sp.x, real_function(sp.x, t), 'g')
-        # plt.plot(sp.x, driver['E'],'b')
-        # plt.plot(sp.x, driver['H'],'r')
+        plt.plot(sp.x, real_function(sp.x, driver1.timeIntegrator.time), 'g')
+        #plt.plot(error_abs,'b')
+        plt.plot(sp.x, driver1['E'],'b')
+        plt.plot(sp.x, driver2['E'],'r')
+        plt.plot(sp.x, driver3['E'],'cyan')
+        plt.plot(sp.x, driver4['E'],'y')
+        plt.plot(sp.x, driver5['E'],'black')
+        plt.plot(sp.x, driver6['E'],'brown')
+        plt.plot(sp.x, driver7['E'],'m')
         
-        # plt.ylim(-1, 1)
-        # plt.grid(which='both')
-        # plt.pause(0.00001)
-        # plt.cla()
-        error += (real_function(sp.x, t)-(driver2['E']))**2
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.00001)
+        plt.cla()
+        real_value = real_function(sp.x, t)
+        aprox_value = (driver2['E'])
         
+        driver1.step()
         driver2.step()
-        t += driver2.dt
+        driver3.step()
+        driver4.step()
+        driver5.step()
+        driver6.step()
+        driver7.step()
     
-    assert(np.sqrt(error).max() < 1e-02, True)
-
-
+    print(driver2.step)    
+    error_RMSE = np.sqrt(np.sum(real_function(sp.x, driver2.timeIntegrator.time)-(driver2['E']))**2/driver2['E'].size)
+    mean_absolute_error = np.sum(real_function(sp.x, driver2.timeIntegrator.time)-(driver2['E']))**2/driver2['E'].size
+    
+    # MS_E = np.square(np.subtract(real_function(sp.x, driver2.timeIntegrator.time),driver2['E'])).mean()
+    
+    assert(np.sqrt(error_abs).max() < 1e-02, True)
+ 
 def test_periodic_same_initial_conditions():
     sp = Maxwell1D(
         n_order = 2, 

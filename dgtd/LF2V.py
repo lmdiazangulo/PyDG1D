@@ -22,11 +22,11 @@ class LF2V:
         
         
         #Position Verlet
-        self.time += dt/2
+        
         E += 0.5*dt*self.sp.computeRHSE(fields)
         
-        self.time += dt/2
-        H += dt*self.sp.computeRHSH(fields)
+        self.time += dt
+        H += 0.5*dt*self.sp.computeRHSH(fields)
         E += 0.5*dt*self.sp.computeRHSE(fields)
         
         

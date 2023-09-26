@@ -13,9 +13,13 @@ class EULER:
         H = fields['H']
         
         
-        # if self.time == 0.0:
-        #     H += dt*self.sp.computeRHSH(fields)
+        if self.time == 0.0:
+            
+            E += dt/2*self.sp.computeRHSE(fields)
+            H += dt/2*self.sp.computeRHSH(fields)
         
         self.time += dt
-        E += dt*self.sp.computeRHSE(fields)
-        H += dt*self.sp.computeRHSH(fields)
+        
+        H += dt/2*self.sp.computeRHSH(fields)
+        E += dt/2*self.sp.computeRHSE(fields)
+   

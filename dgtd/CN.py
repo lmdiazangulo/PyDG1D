@@ -21,6 +21,8 @@ class CN:
         
         yp = yo + dt * self.A.dot(yo)
         yp = fsolve(self.crank_nicolson_residual, yp, args = (self.A, dt, yo )) 
+        
+        self.time += dt
 
         self.sp.copyVectorToFields(yp, fields)
         
