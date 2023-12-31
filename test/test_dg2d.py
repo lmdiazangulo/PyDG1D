@@ -4,7 +4,7 @@ import numpy as np
 from dgtd.dg2d import *
 from dgtd.mesh2d import *
 
-TEST_DATA_FOLDER = 'dgtd/testData/'
+TEST_DATA_FOLDER = 'testData/'
 
 
 def test_set_nodes_N1():

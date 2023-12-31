@@ -562,3 +562,31 @@ def node_indices(N):
     for i in range(Np):
         nId[i] = [N-i, i]
     return nId.astype(int)
+
+
+def reorder_array(A, Np, K, ordering):
+    # Assumes that the original array contains all DoF ordered as:
+    # [ E_0, ..., E_{K-1}, H_0, ..., H_{K-1} ]
+    N = A.shape[0] 
+    new_order = np.arange(N, dtype=int)
+    if ordering == 'byElements':
+        for i in range(N):
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/2:
+                new_order[2*elem*Np+node] = i
+            else:
+                new_order[2*elem*Np+Np+node] = i
+    if ordering == 'interleaved':
+        for i in range(N):
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/2:
+                new_order[2*elem*Np+node*2] = i
+            else:
+                new_order[2*elem*Np+node*2+1] = i
+    if (len(A.shape) == 1):
+        A1 = [A[i] for i in new_order]
+    elif (len(A.shape) == 2):
+        A1 = [[A[i][j] for j in new_order] for i in new_order]
+    return np.array(A1)

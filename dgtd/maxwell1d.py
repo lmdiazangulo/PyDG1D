@@ -188,7 +188,7 @@ class Maxwell1D(SpatialDiscretization):
         fields['E'][:,:] = vec[:(vec.size//2)].reshape(Np, K, order='F')
         fields['H'][:,:] = vec[(vec.size//2):].reshape(Np, K, order='F')
 
-    def buildEvolutionOperator(self):
+    def buildEvolutionOperator(self, sorting='EH'):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         N = 2 * Np * K
@@ -207,9 +207,8 @@ class Maxwell1D(SpatialDiscretization):
                 fieldsRHS['H'].reshape(Np*K,1, order='F')
             ])
             A[:,i] = q0[:,0]
-
         return A
-
+    
     def getEnergy(self, field):
         '''
         Gets energy stored in field by computing
