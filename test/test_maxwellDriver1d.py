@@ -915,3 +915,25 @@ def test_sma():
     driver.run_until(final_time)
 
     assert np.allclose(0.0, finalFieldE, atol=1e-6)
+
+def test_buildDrivedEvolutionOperator():
+    sp = Maxwell1D(
+        n_order = 2, 
+        mesh = Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
+        fluxType="Centered"
+    )
+    driver = MaxwellDriver(sp)
+    
+    Np = sp.number_of_nodes_per_element()
+    K = sp.mesh.number_of_elements()
+    sorting = 'byElements'
+
+    A = reorder_array(sp.buildEvolutionOperator(), Np, K, sorting)
+
+    driver.dt = 1.0
+    A_drived = reorder_array(
+        driver.buildDrivedEvolutionOperator(), Np, K, sorting)
+
+    # plt.spy(A_drived, markersize=4)
+    plt.spy(A, markersize=4)
+    plt.show()
