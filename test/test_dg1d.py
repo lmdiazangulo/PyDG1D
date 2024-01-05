@@ -235,3 +235,11 @@ def test_node_indices_N_1_2():
                                  [0,2]]), 
                        dg.node_indices(2))
     
+def test_split_and_assemble_blocks():
+    A = np.random.randn(4,4)
+    
+    blocks = dg.splitInBlocks(A, 2)
+    assembledBlocks = dg.assembleBlocks(blocks)
+    
+    assert len(blocks) == 2
+    assert np.all(A == assembledBlocks)

@@ -592,3 +592,19 @@ def reorder_array(A, Np, K, ordering):
     elif (len(A.shape) == 2):
         A1 = [[A[i][j] for j in new_order] for i in new_order]
     return np.array(A1)
+
+def splitInBlocks(A, blockSize):
+    nBlocks = tuple (int(dim / blockSize) for dim in A.shape)
+    
+    res = [[None for i in range(nBlocks[0])] for j in range(nBlocks[1])]
+    blockRows = np.split(A, nBlocks[0])    
+    for i in np.arange(nBlocks[0]):
+        blocks = np.split(blockRows[i], nBlocks[1], 1)
+        for j in np.arange(nBlocks[1]):
+            res[i][j] = blocks[j]
+    return res
+
+def assembleBlocks(blocks):
+    rowBlocks = [np.concatenate(blocks[i], 1) for i in range(len(blocks))]
+    res = np.concatenate(rowBlocks, 0)
+    return res
