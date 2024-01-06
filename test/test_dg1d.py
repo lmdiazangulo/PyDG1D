@@ -243,3 +243,14 @@ def test_split_and_assemble_blocks():
     
     assert len(blocks) == 2
     assert np.all(A == assembledBlocks)
+
+def test_mass_matrix():
+    # Assumes h = 1.
+    n_order = 2
+    M = dg.mass_matrix(n_order, dg.jacobiGL(0, 0, n_order))
+
+    expected = np.array([[ 4.,  2., -1.],
+                         [ 2., 16.,  2.],
+                         [-1.,  2.,  4.]]) / 15
+    
+    assert np.allclose(M, expected)

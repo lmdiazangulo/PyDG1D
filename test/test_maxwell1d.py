@@ -42,4 +42,12 @@ def test_buildEvolutionOperator_sorting():
     assert np.allclose(np.sort(np.imag(eigA)),
                        np.sort(np.imag(eigA_by_elem)))
 
+def test_build_global_mass_matrix():
+    sp = Maxwell1D(2, Mesh1D(0, 1, 3))
+    M = sp.buildGlobalMassMatrix()
     
+    # plt.spy(M)
+    # plt.show()
+
+    N = 2 * sp.mesh.number_of_elements() * sp.number_of_nodes_per_element()
+    assert M.shape == (N, N)

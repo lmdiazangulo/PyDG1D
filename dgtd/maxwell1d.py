@@ -209,6 +209,19 @@ class Maxwell1D(SpatialDiscretization):
             A[:,i] = q0[:,0]
         return A
     
+    def buildGlobalMassMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 2 * Np * K
+        M = np.zeros((N,N))
+        for k in range(K):
+            ini = k*Np
+            end = (k+1)*Np
+            M[ini:end, ini:end] = self.mass * self.jacobian[0,k]
+        M[int(N/2):,int(N/2):] = M[:int(N/2), :int(N/2)]
+        
+        return M
+
     def getEnergy(self, field):
         '''
         Gets energy stored in field by computing
