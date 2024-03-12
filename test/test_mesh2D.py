@@ -5,7 +5,7 @@ from matplotlib import cm
 import dgtd.mesh2d as ms
 import dgtd.dg2d as dg2d
 
-TEST_DATA_FOLDER = 'dgtd/testData/'
+TEST_DATA_FOLDER = 'testData/'
 
 def test_read_mesh_K8():
     msh = ms.readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K8.neu')

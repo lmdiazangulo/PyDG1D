@@ -17,10 +17,10 @@ class LF2:
         if self.time == 0.0:
             E_initial = E
             H_initial = H
-            time = time + dt
+            self.time = self.time + dt
             E_new = self.sp.computeRHSE(fields)
             H_new = self.sp.computeRHSH(fields)
-            time = time + dt
+            self.time = self.time + dt
             
             E_old = E_new
             H_old = H_new

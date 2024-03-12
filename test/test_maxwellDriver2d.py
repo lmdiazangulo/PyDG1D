@@ -5,7 +5,7 @@ from dgtd.mesh2d import *
 from dgtd.maxwell2d import *
 from dgtd.maxwellDriver import *
 
-TEST_DATA_FOLDER = 'dgtd/testData/'
+TEST_DATA_FOLDER = 'testData/'
 
 def resonant_cavity_ez_field(x, y, t):
     ''' Hesthaven's book p. 205 '''
@@ -16,27 +16,27 @@ def resonant_cavity_ez_field(x, y, t):
     return np.sin(m*np.pi*x)*np.sin(n*np.pi*y)*np.cos(w*t)
 
 def test_pec():
-    N = 1
+    N = 2
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
-    sp = Maxwell2D(N, msh, 'Upwind')
+    sp = Maxwell2D(N, msh, 'Centered')
     
-    driver = MaxwellDriver(sp, CFL=0.5)
+    driver = MaxwellDriver(sp, CFL=1)
     driver['Ez'][:] = resonant_cavity_ez_field(sp.x, sp.y, 0)
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111)  
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)  
+    # ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
+    # plt.show()
 
-    assert False
     for _ in range(40):       
-        ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
-        sp.plot_field(N, driver['Ez'])
-        plt.pause(0.001)
-        plt.cla()
+        # sp.plot_field(N, driver['Ez'])
+        # plt.pause(0.001)
+        # plt.cla()
 
         driver.step()
 
     ez_expected = resonant_cavity_ez_field(sp.x, sp.y, driver.timeIntegrator.time)
-    # R = np.corrcoef(ez_expected, driver['Ez'])
-    # assert R[0,1] > 0.999
+    R = np.corrcoef(ez_expected, driver['Ez'])
+    assert R[0,1] > 0.9
 
     
