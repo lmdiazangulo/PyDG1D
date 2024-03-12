@@ -24,29 +24,20 @@ class FDTD1D(SpatialDiscretization):
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def fieldsOnBoundaryConditions(self, E, H):
-        #raise ValueError("Not implemented")
-        bcType = self.mesh.boundary_label
-        if bcType == "PEC":
-            Ebc = - E.transpose().take(self.vmap_b)
-            Hbc = H.transpose().take(self.vmap_b)
-        elif bcType == "PMC":
-            Hbc = - H.transpose().take(self.vmap_b)
-            Ebc = E.transpose().take(self.vmap_b)
-        elif bcType == "SMA":
-            Hbc = H.transpose().take(self.vmap_b) * 0.0
-            Ebc = E.transpose().take(self.vmap_b) * 0.0
-        elif bcType == "Periodic":
-            Ebc = E.transpose().take(self.vmap_b[::-1])
-            Hbc = H.transpose().take(self.vmap_b[::-1])
-        else:
-            raise ValueError("Invalid boundary label.")
-        return Ebc, Hbc
-
     def computeRHSE(self, fields):
         H = fields['H']
         rhsE = np.zeros(fields['E'].shape)
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.mesh.boundary_label == "PEC":
+            rhsE[0] = 0.0
+            rhsE[-1] = 0.0
+        elif self.mesh.boundary_label  == "Periodic":
+            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])           
+            rhsE[-1] = rhsE[0]
+        else:
+            raise ValueError("Invalid boundary label.")
+        
         return rhsE
 
     def computeRHSH(self, fields):
@@ -62,26 +53,19 @@ class FDTD1D(SpatialDiscretization):
     def isStaggered(self):
         return False
 
-    def buildEvolutionOperator(self, sorting='EH'):
-        raise ValueError("Not implemented")
-        Np = self.number_of_nodes_per_element()
-        K = self.mesh.number_of_elements()
-        N = 2 * Np * K
+    def buildEvolutionOperator(self):
+        NE = len(self.x) 
+        N = NE + len(self.xH)
         A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
-            node = i % Np
-            elem = int(np.floor(i / Np)) % K
-            if i < N/2:
-                fields['E'][node, elem] = 1.0
+            if i < NE:
+                fields['E'][i] = 1.0
             else:
-                fields['H'][node, elem] = 1.0
+                fields['H'][i - NE] = 1.0
             fieldsRHS = self.computeRHS(fields)
-            q0 = np.vstack([
-                fieldsRHS['E'].reshape(Np*K, 1, order='F'),
-                fieldsRHS['H'].reshape(Np*K, 1, order='F')
-            ])
-            A[:, i] = q0[:, 0]
+            q0 = np.concatenate([ fieldsRHS['E'], fieldsRHS['H'] ])
+            A[:, i] = q0[:]
         return A
 
     def getEnergy(self, field):
