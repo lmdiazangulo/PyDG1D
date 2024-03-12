@@ -62,26 +62,19 @@ class FDTD1D(SpatialDiscretization):
     def isStaggered(self):
         return False
 
-    def buildEvolutionOperator(self, sorting='EH'):
-        raise ValueError("Not implemented")
-        Np = self.number_of_nodes_per_element()
-        K = self.mesh.number_of_elements()
-        N = 2 * Np * K
+    def buildEvolutionOperator(self):
+        NE = len(self.x) 
+        N = NE + len(self.xH)
         A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
-            node = i % Np
-            elem = int(np.floor(i / Np)) % K
-            if i < N/2:
-                fields['E'][node, elem] = 1.0
+            if i < NE:
+                fields['E'][i] = 1.0
             else:
-                fields['H'][node, elem] = 1.0
+                fields['H'][i - NE] = 1.0
             fieldsRHS = self.computeRHS(fields)
-            q0 = np.vstack([
-                fieldsRHS['E'].reshape(Np*K, 1, order='F'),
-                fieldsRHS['H'].reshape(Np*K, 1, order='F')
-            ])
-            A[:, i] = q0[:, 0]
+            q0 = np.concatenate([ fieldsRHS['E'], fieldsRHS['H'] ])
+            A[:, i] = q0[:]
         return A
 
     def getEnergy(self, field):
