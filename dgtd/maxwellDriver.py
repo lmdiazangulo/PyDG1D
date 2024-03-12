@@ -28,6 +28,9 @@ class MaxwellDriver:
         elif (sp.get_mesh().dimension == 2):
             dtscale = sp.get_dt_scale()
             self.dt = CFL * min(dtscale)*r_min*2.0/3.0
+        
+        if (sp.isStaggered()):
+            self.dt *= 2.0
             
         # Init time integrator
         if timeIntegratorType == 'EULER':
@@ -40,7 +43,6 @@ class MaxwellDriver:
             self.timeIntegrator = LSERK134(self.sp, self.fields)
         elif timeIntegratorType == 'LF2':
             self.timeIntegrator = LF2(self.sp, self.fields)
-            self.dt *= 2.0
         elif timeIntegratorType == 'LF2V':
             self.timeIntegrator = LF2V(self.sp, self.fields)
         elif timeIntegratorType == 'IBE':

@@ -11,3 +11,6 @@ class SpatialDiscretization():
     
     def get_mesh(self):
         return self.mesh
+    
+    def isStaggered(self):
+        return False

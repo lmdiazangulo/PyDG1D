@@ -58,6 +58,9 @@ class FDTD1D(SpatialDiscretization):
         rhsH = self.computeRHSH(fields)
 
         return {'E': rhsE, 'H': rhsH}
+    
+    def isStaggered(self):
+        return False
 
     def buildEvolutionOperator(self, sorting='EH'):
         raise ValueError("Not implemented")

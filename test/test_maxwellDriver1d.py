@@ -224,20 +224,20 @@ def test_pec_centered_lf2():
     driver['E'][:] = initialFieldE[:]
     finalFieldE = driver['E']
 
-    # driver.run_until(final_time)
+    driver.run_until(final_time)
 
-    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
-    #                 -finalFieldE.reshape(1, finalFieldE.size))
-    # assert R[0, 1] > 0.9999
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0, 1] > 0.9999
 
-    driver['E'][:] = initialFieldE[:]
-    for _ in range(1000):
-        driver.step()
-        plt.plot(sp.x, driver['E'], 'b')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], 'b')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
 
 @pytest.mark.skip(reason="Doesn't work. Deactivated to pass automated tests.")
