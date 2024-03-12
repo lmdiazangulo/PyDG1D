@@ -2,6 +2,8 @@ import numpy as np
 
 class Mesh1D:
     def __init__(self, xmin, xmax, k_elem, boundary_label="PEC"):
+        
+        assert k_elem > 0
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
 
         self.dimension = 1

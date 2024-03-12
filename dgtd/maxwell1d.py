@@ -7,7 +7,6 @@ from .mesh1d import Mesh1D
 class Maxwell1D(SpatialDiscretization):
     def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind"):
         assert n_order > 0
-        assert mesh.number_of_elements() > 0
 
         self.mesh = mesh
         self.n_order = n_order

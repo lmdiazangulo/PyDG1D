@@ -5,10 +5,9 @@ import matplotlib.animation as animation
 from dgtd.maxwellDriver import *
 from dgtd.mesh1d import *
 from dgtd.maxwell1d import *
-from dgtd.mesh1d import *
+from fdtd.fdtd1d import *
 
 import pytest
-
 import time
 
 from nodepy import runge_kutta_method as rk
@@ -22,6 +21,21 @@ def test_spatial_discretization_lift():
     sp = Maxwell1D(1, Mesh1D(0.0, 1.0, 1))
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
+
+
+def test_fdtd_periodic():
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    driver = MaxwellDriver(sp)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    driver.run_until(2.0)
+
+    finalFieldE = driver['E'][:]
+    R = np.corrcoef(initialFieldE, -finalFieldE)
+    assert R[0, 1] > 0.9999
 
 
 def test_pec():
@@ -489,7 +503,7 @@ def test_periodic_tested():
 
     R = np.corrcoef(initialField.reshape(1, initialField.size),
                     finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.99
+    assert R[0, 1] > 0.99
 
     def real_function(x, t):
         return np.sin(2*np.pi*x - 2*np.pi*t)
@@ -513,6 +527,7 @@ def test_periodic_tested():
     assert (np.sqrt(error).max() < 1e-02, True)
 
 
+@pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_LSERK_errors():
     sp = Maxwell1D(
         n_order=3,
@@ -568,6 +583,7 @@ def test_periodic_LSERK_errors():
     #                 finalFieldE.reshape(1, finalFieldE.size))
     # assert R[0,1] > -0.99
 
+
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_implicit_errors():
     sp = Maxwell1D(
@@ -608,6 +624,7 @@ def test_periodic_implicit_errors():
 
         drIBE.step()
         drCN.step()
+
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_euler_errors():
@@ -662,6 +679,7 @@ def test_periodic_euler_errors():
 
         drEULER.step()
 
+
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_computational_cost():
     sp = Maxwell1D(
@@ -712,7 +730,7 @@ def test_computational_cost():
     print("CPU TIME LSERK54", cpuTimeLSERK54/drLSERK54.timeIntegrator.time)
     print("CPU TIME IBE", cpuTimeIBE/drIBE.timeIntegrator.time)
     print("CPU TIME CN", cpuTimeCN / drCN.timeIntegrator.time)
-    assert (True)
+
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_errors():
@@ -812,6 +830,7 @@ def test_errors():
     # Show dt in driver
 
     assert (np.sqrt(error_abs).max() < 1e-02, True)
+
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_max_time_step():
@@ -925,6 +944,7 @@ def test_sma():
     driver.run_until(final_time)
 
     assert np.allclose(0.0, finalFieldE, atol=1e-6)
+
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_buildDrivedEvolutionOperator():

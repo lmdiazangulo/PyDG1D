@@ -8,4 +8,3 @@ The DGTD algorithms are python translations from the ones in
     Hesthaven, J. S., & Warburton, T. 
     Nodal discontinuous Galerkin methods: algorithms, analysis, and applications. 
     2007. Springer Science & Business Media.
-
