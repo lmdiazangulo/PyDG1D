@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+sys.path.append("..")
 
 from dgtd.spatialDiscretization import *
 from dgtd.mesh1d import Mesh1D
