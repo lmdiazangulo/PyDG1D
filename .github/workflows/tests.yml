@@ -17,7 +17,7 @@ jobs:
   builds-and-tests:
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
         
     name: ${{ matrix.os }}
 
