@@ -47,6 +47,19 @@ def test_fdtd_pec():
     #     plt.pause(0.01)
     #     plt.cla()
 
+def test_fdtd_periodic():
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    driver.run_until(4.0)
+
+    finalFieldE = driver['E'][:]
+    R = np.corrcoef(initialFieldE, finalFieldE)
+    assert R[0, 1] > 0.9999
 
 def test_pec():
     sp = Maxwell1D(
