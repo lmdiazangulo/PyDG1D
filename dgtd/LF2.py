@@ -10,27 +10,11 @@ class LF2:
 
     def step(self, fields, dt):
         E = fields['E']
-        H = fields['H']
-        E_aux = E
-        H_aux = H
-          
-        if self.time == 0.0:
-            E_initial = E
-            H_initial = H
-            self.time = self.time + dt
-            E_new = self.sp.computeRHSE(fields)
-            H_new = self.sp.computeRHSH(fields)
-            self.time = self.time + dt
-            
-            E_old = E_new
-            H_old = H_new
-            
-            E_new += dt*self.sp.computeRHSE(fields)
-            H_new += dt*self.sp.computeRHSH(fields)
+        H = fields['H'] 
         
-        self.time += dt
+        self.time += dt/2
         E += dt*self.sp.computeRHSE(fields)
-        self.time += dt
+        self.time += dt/2
         H += dt*self.sp.computeRHSH(fields)
         
         

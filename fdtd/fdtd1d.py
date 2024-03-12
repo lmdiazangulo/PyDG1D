@@ -6,24 +6,23 @@ from dgtd.mesh1d import Mesh1D
 
 class FDTD1D(SpatialDiscretization):
     def __init__(self, mesh: Mesh1D):
-        
-        self.mesh = mesh
-        
-        self.n_faces = 2
-        self.n_fp = 1      
+        SpatialDiscretization.__init__(self, mesh)
 
-        self.xE = mesh.vx
-        self.xH = (self.xE[:-1] + self.xE[1:]) / 2.0
+        self.x = mesh.vx
+        self.xH = (self.x[:-1] + self.x[1:]) / 2.0
+        self.dx = self.x[1:] - self.x[:-1]
+        self.dxH = self.xH[1:] - self.xH[:-1]
 
         K = self.mesh.number_of_elements()
- 
-    
+
     def buildFields(self):
-        E = np.zeros(self.xE.shape)
+        E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
 
         return {"E": E, "H": H}
 
+    def get_minimum_node_distance(self):
+        return np.min(self.dx)
 
     def fieldsOnBoundaryConditions(self, E, H):
         raise ValueError("Not implemented")
@@ -44,25 +43,15 @@ class FDTD1D(SpatialDiscretization):
         #     raise ValueError("Invalid boundary label.")
         # return Ebc, Hbc
 
-
     def computeRHSE(self, fields):
-        E = fields['E']
         H = fields['H']
-
-        raise ValueError("Not implemented")
-        # rhsE = 1/self.epsilon * \
-        #     (np.multiply(-1*self.rx, rhs_drH) +
-        #      np.matmul(self.lift, self.f_scale * flux_E))
-
+        rhsE = np.zeros(fields['E'].shape)
+        rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
         return rhsE
 
     def computeRHSH(self, fields):
         E = fields['E']
-        H = fields['H']
-        raise ValueError("Not implemented")
-        rhsH = 1/self.mu * (np.multiply(-1*self.rx, rhs_drE) +
-                            np.matmul(self.lift, self.f_scale * flux_H))
-        return rhsH
+        return - (1.0/self.dx) * (E[1:] - E[:-1])
 
     def computeRHS(self, fields):
         rhsE = self.computeRHSE(fields)
@@ -70,7 +59,6 @@ class FDTD1D(SpatialDiscretization):
 
         return {'E': rhsE, 'H': rhsH}
 
-    
     def buildEvolutionOperator(self, sorting='EH'):
         raise ValueError("Not implemented")
         Np = self.number_of_nodes_per_element()
@@ -92,7 +80,6 @@ class FDTD1D(SpatialDiscretization):
             ])
             A[:, i] = q0[:, 0]
         return A
-
 
     def getEnergy(self, field):
         raise ValueError("Not implemented")

@@ -40,6 +40,7 @@ class MaxwellDriver:
             self.timeIntegrator = LSERK134(self.sp, self.fields)
         elif timeIntegratorType == 'LF2':
             self.timeIntegrator = LF2(self.sp, self.fields)
+            self.dt *= 2.0
         elif timeIntegratorType == 'LF2V':
             self.timeIntegrator = LF2V(self.sp, self.fields)
         elif timeIntegratorType == 'IBE':

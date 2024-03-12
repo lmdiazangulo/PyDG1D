@@ -10,7 +10,7 @@ def test_fdtd1d_ctor():
     m = Mesh1D(0, 1, K)
     sp = FDTD1D(m)
 
-    assert len(sp.xE) == K + 1
+    assert len(sp.x) == K + 1
     assert len(sp.xH) == K
 
     assert len(sp.xH) == m.number_of_elements()
