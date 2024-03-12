@@ -24,29 +24,20 @@ class FDTD1D(SpatialDiscretization):
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def fieldsOnBoundaryConditions(self, E, H):
-        #raise ValueError("Not implemented")
-        bcType = self.mesh.boundary_label
-        if bcType == "PEC":
-            Ebc = - E.transpose().take(self.vmap_b)
-            Hbc = H.transpose().take(self.vmap_b)
-        elif bcType == "PMC":
-            Hbc = - H.transpose().take(self.vmap_b)
-            Ebc = E.transpose().take(self.vmap_b)
-        elif bcType == "SMA":
-            Hbc = H.transpose().take(self.vmap_b) * 0.0
-            Ebc = E.transpose().take(self.vmap_b) * 0.0
-        elif bcType == "Periodic":
-            Ebc = E.transpose().take(self.vmap_b[::-1])
-            Hbc = H.transpose().take(self.vmap_b[::-1])
-        else:
-            raise ValueError("Invalid boundary label.")
-        return Ebc, Hbc
-
     def computeRHSE(self, fields):
         H = fields['H']
         rhsE = np.zeros(fields['E'].shape)
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.mesh.boundary_label == "PEC":
+            rhsE[0] = 0.0
+            rhsE[-1] = 0.0
+        elif self.mesh.boundary_label  == "Periodic":
+            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])           
+            rhsE[-1] = rhsE[0]
+        else:
+            raise ValueError("Invalid boundary label.")
+        
         return rhsE
 
     def computeRHSH(self, fields):
