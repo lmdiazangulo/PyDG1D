@@ -1,6 +1,5 @@
 import numpy as np
-import sys
-sys.path.append("..")
+
 
 from dgtd.spatialDiscretization import *
 from dgtd.mesh1d import Mesh1D
@@ -53,7 +52,7 @@ class FDTD1D(SpatialDiscretization):
         return {'E': rhsE, 'H': rhsH}
     
     def isStaggered(self):
-        return False
+        return True
 
     def buildEvolutionOperator(self):
         NE = len(self.x) 

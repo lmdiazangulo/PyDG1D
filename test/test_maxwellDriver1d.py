@@ -22,10 +22,9 @@ def test_spatial_discretization_lift():
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
-
 def test_fdtd_pec():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -75,7 +74,7 @@ def test_fdtd_periodic():
 
 def test_fdtd_periodic_lserk():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
-    driver = MaxwellDriver(sp, CFL=3.0)
+    driver = MaxwellDriver(sp, CFL=1.5)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -202,7 +201,7 @@ def test_pec_centered_lserk134():
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134', CFL=3)
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134', CFL=2)
 
     final_time = 1.999
     s0 = 0.25
@@ -264,7 +263,7 @@ def test_pec_centered_lf2():
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.8)
 
     final_time = 1.999
     s0 = 0.25
@@ -482,7 +481,7 @@ def test_energy_evolution_centered_lf2():
         fluxType="Centered"
     )
 
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.95)
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.7)
     driver['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
 
     Nsteps = 1500
