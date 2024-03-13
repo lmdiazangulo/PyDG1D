@@ -57,7 +57,10 @@ class FDTD1D(SpatialDiscretization):
     def buildEvolutionOperator(self):
         NE = len(self.x) 
         N = NE + len(self.xH)
-        A = np.zeros((N, N))
+        if self.mesh.boundary_label == 'Periodic':
+            A = np.zeros((N-1, N))
+        else:
+            A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
             if i < NE:
@@ -65,8 +68,12 @@ class FDTD1D(SpatialDiscretization):
             else:
                 fields['H'][i - NE] = 1.0
             fieldsRHS = self.computeRHS(fields)
+            if self.mesh.boundary_label == 'Periodic':
+                fieldsRHS['E'] = np.delete(fieldsRHS['E'], len(fieldsRHS['E'])-1)
             q0 = np.concatenate([ fieldsRHS['E'], fieldsRHS['H'] ])
             A[:, i] = q0[:]
+        if self.mesh.boundary_label == 'Periodic':
+            A = np.delete(A, NE-1, 1)
         return A
 
     def getEnergy(self, field):

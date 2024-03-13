@@ -34,6 +34,16 @@ def test_buildEvolutionOperator():
         A = sp.buildEvolutionOperator()
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
-    
+
     # plt.spy(A)
     # plt.show()
+
+
+def test_buildEvolutionOperator_periodic():
+    K = 5
+    sp = FDTD1D(Mesh1D(0, 5, K, boundary_label='Periodic'))
+
+    try:
+        A = sp.buildEvolutionOperator()
+    except ValueError:
+        assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
