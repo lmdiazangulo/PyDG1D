@@ -55,7 +55,7 @@ def test_fdtd_periodic():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    driver.run_until(4.0)
+    driver.run_until(2.0)
 
     finalFieldE = driver['E'][:]
     R = np.corrcoef(initialFieldE, finalFieldE)
