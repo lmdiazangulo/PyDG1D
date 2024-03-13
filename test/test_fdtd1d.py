@@ -5,7 +5,7 @@ from dgtd.mesh1d import *
 import matplotlib.pyplot as plt
 
 
-def test_fdtd1d_ctor():
+def test_ctor():
     K = 10
     m = Mesh1D(0, 1, K)
     sp = FDTD1D(m)
@@ -16,7 +16,7 @@ def test_fdtd1d_ctor():
     assert len(sp.xH) == m.number_of_elements()
 
 
-def test_fdtd1d_buildFields():
+def test_buildFields():
     K = 20
     sp = FDTD1D(Mesh1D(0, 5, K))
 
@@ -24,3 +24,16 @@ def test_fdtd1d_buildFields():
 
     assert len(fields['E']) == K + 1
     assert len(fields['H']) == K
+
+
+def test_buildEvolutionOperator():
+    K = 5
+    sp = FDTD1D(Mesh1D(0, 5, K))
+
+    try:
+        A = sp.buildEvolutionOperator()
+    except ValueError:
+        assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
+    
+    # plt.spy(A)
+    # plt.show()

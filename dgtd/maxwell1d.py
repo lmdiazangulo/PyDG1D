@@ -183,7 +183,7 @@ class Maxwell1D(SpatialDiscretization):
         fields['E'][:, :] = vec[:(vec.size//2)].reshape(Np, K, order='F')
         fields['H'][:, :] = vec[(vec.size//2):].reshape(Np, K, order='F')
 
-    def buildEvolutionOperator(self, sorting='EH'):
+    def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         N = 2 * Np * K
