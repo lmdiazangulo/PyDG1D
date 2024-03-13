@@ -11,8 +11,12 @@ class FDTD1D(SpatialDiscretization):
 
         self.x = mesh.vx
         self.xH = (self.x[:-1] + self.x[1:]) / 2.0
+        
         self.dx = self.x[1:] - self.x[:-1]
         self.dxH = self.xH[1:] - self.xH[:-1]
+
+        if self.mesh.boundary_label == 'Periodic':
+            self.x = mesh.vx[:-1]
 
         K = self.mesh.number_of_elements()
 
@@ -27,15 +31,15 @@ class FDTD1D(SpatialDiscretization):
 
     def computeRHSE(self, fields):
         H = fields['H']
-        rhsE = np.zeros(fields['E'].shape)
-        rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+        rhsE = np.zeros(fields['E'].shape)       
 
         if self.mesh.boundary_label == "PEC":
+            rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
             rhsE[0] = 0.0
             rhsE[-1] = 0.0
         elif self.mesh.boundary_label  == "Periodic":
-            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])           
-            rhsE[-1] = rhsE[0]
+            rhsE[1:] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])            
         else:
             raise ValueError("Invalid boundary label.")
         
@@ -43,7 +47,16 @@ class FDTD1D(SpatialDiscretization):
 
     def computeRHSH(self, fields):
         E = fields['E']
-        return - (1.0/self.dx) * (E[1:] - E[:-1])
+        rhsH = np.zeros(fields['E'].shape)       
+        if self.mesh.boundary_label == "PEC":
+            rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
+        elif self.mesh.boundary_label  == "Periodic":
+            rhsH[:-1] = - (1.0/self.dx[:-1]) * (E[1:] - E[:-1])
+            rhsH[-1]  = - (1.0/self.dx[0]) * (E[0] - E[-1])
+        else:
+            raise ValueError("Invalid boundary label.")
+        
+        return rhsH
 
     def computeRHS(self, fields):
         rhsE = self.computeRHSE(fields)
@@ -57,10 +70,7 @@ class FDTD1D(SpatialDiscretization):
     def buildEvolutionOperator(self):
         NE = len(self.x) 
         N = NE + len(self.xH)
-        if self.mesh.boundary_label == 'Periodic':
-            A = np.zeros((N-1, N))
-        else:
-            A = np.zeros((N, N))
+        A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
             if i < NE:
@@ -68,12 +78,8 @@ class FDTD1D(SpatialDiscretization):
             else:
                 fields['H'][i - NE] = 1.0
             fieldsRHS = self.computeRHS(fields)
-            if self.mesh.boundary_label == 'Periodic':
-                fieldsRHS['E'] = np.delete(fieldsRHS['E'], len(fieldsRHS['E'])-1)
             q0 = np.concatenate([ fieldsRHS['E'], fieldsRHS['H'] ])
             A[:, i] = q0[:]
-        if self.mesh.boundary_label == 'Periodic':
-            A = np.delete(A, NE-1, 1)
         return A
 
     def getEnergy(self, field):

@@ -61,15 +61,15 @@ def test_fdtd_periodic():
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.xH, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.title(driver.timeIntegrator.time)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
 
 
 def test_fdtd_periodic_lserk():

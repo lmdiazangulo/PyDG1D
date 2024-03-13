@@ -47,3 +47,6 @@ def test_buildEvolutionOperator_periodic():
         A = sp.buildEvolutionOperator()
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
+
+    # plt.spy(A)
+    # plt.show()
