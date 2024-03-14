@@ -35,7 +35,7 @@ class FDTD1D(SpatialDiscretization):
         elif self.mesh.boundary_label  == "Periodic":
             rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
             rhsE[-1] = rhsE[0]    
-        elif self.mesh.boundary_label == "PML":          
+        elif self.mesh.boundary_label == "PML": #[WIP]       
             boundary_low = [0, 0]
             boundary_high = [0, 0]
 
@@ -47,7 +47,7 @@ class FDTD1D(SpatialDiscretization):
         
         return rhsE
 
-    def computeRHSH(self, fields):
+    def computeRHSH(self, fields): #[WIP] for PMC conditions
         E = fields['E']
         #rhsH = np.zeros(fields['H'].shape)
         #rhsH[1:-1] = - (1.0/self.dx) * (E[1:] - E[:-1])
