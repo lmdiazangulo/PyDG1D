@@ -50,3 +50,20 @@ def test_buildEvolutionOperator_periodic():
 
     # plt.spy(A)
     # plt.show()
+
+
+
+def test_buildEvolutionOperator_sorting():
+    m = Mesh1D(0, 1, 3)
+    sp = FDTD1D(m)
+
+    A = sp.buildEvolutionOperator()
+    eigA, _ = np.linalg.eig(A)
+
+    A_by_elem = sp.reorder_array(A, 'byElements')
+    eigA_by_elem, _ = np.linalg.eig(A_by_elem)
+
+    assert A.shape == A_by_elem.shape
+    assert np.allclose(np.real(eigA_by_elem), 0)
+    assert np.allclose(np.sort(np.imag(eigA)),
+                       np.sort(np.imag(eigA_by_elem)))
