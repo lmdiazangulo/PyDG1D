@@ -1,14 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import pytest
+import time
+
 
 from dgtd.maxwellDriver import *
 from dgtd.mesh1d import *
 from dgtd.maxwell1d import *
 from fdtd.fdtd1d import *
 
-import pytest
-import time
 
 from nodepy import runge_kutta_method as rk
 
@@ -22,10 +23,9 @@ def test_spatial_discretization_lift():
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
-
 def test_fdtd_pec():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -100,7 +100,32 @@ def test_fdtd_pml(): #[WIP]
     #     plt.grid(which='both')
     #     plt.pause(0.01)
     #     plt.cla()
-    
+
+
+def test_fdtd_periodic_lserk():
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    driver = MaxwellDriver(sp, CFL=1.5)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    driver.run_until(2.0)
+    finalFieldE = driver['E'][:]
+    R = np.corrcoef(initialFieldE, finalFieldE)
+    assert R[0, 1] > 0.9999
+
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.xH, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.title(driver.timeIntegrator.time)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
+
 def test_pec():
     sp = Maxwell1D(
         n_order=5,
@@ -206,7 +231,7 @@ def test_pec_centered_lserk134():
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134', CFL=3)
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134', CFL=2)
 
     final_time = 1.999
     s0 = 0.25
@@ -268,7 +293,7 @@ def test_pec_centered_lf2():
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
     )
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.8)
 
     final_time = 1.999
     s0 = 0.25
@@ -486,7 +511,7 @@ def test_energy_evolution_centered_lf2():
         fluxType="Centered"
     )
 
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.95)
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.7)
     driver['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
 
     Nsteps = 1500
