@@ -95,6 +95,8 @@ class FDTD1D(SpatialDiscretization):
         N = A.shape[0]
         NE = len(self.x)
         NH = len(self.xH)
+        if NE != NH:
+            raise ValueError("Unable to order by elements with different size fields.")
         N = NE + NH
         new_order = np.zeros(N, dtype=int) - 1
         if ordering == 'byElements':

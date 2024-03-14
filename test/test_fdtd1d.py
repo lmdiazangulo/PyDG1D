@@ -54,7 +54,7 @@ def test_buildEvolutionOperator_periodic():
 
 
 def test_buildEvolutionOperator_sorting():
-    m = Mesh1D(0, 1, 3)
+    m = Mesh1D(0, 1, 3, 'Periodic')
     sp = FDTD1D(m)
 
     A = sp.buildEvolutionOperator()
