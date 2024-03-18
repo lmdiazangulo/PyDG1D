@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 
 from dgtd.mesh2d import *
 from dgtd.maxwell2d import *
 from dgtd.maxwellDriver import *
+from fdtd.fdtd2d import *
 
 TEST_DATA_FOLDER = 'testData/'
 
@@ -39,15 +41,17 @@ def test_pec():
     R = np.corrcoef(ez_expected, driver['Ez'])
     assert R[0,1] > 0.9
 
+@pytest.mark.skip(reason="Nothing is being tested.")
 def test_fdtd2d_pec():
-    #necesito una discretizacion
+    sp = FDTD2D()
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
-    #necesito generar un driver
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
 
-    #necesito generar un pulso gaussiano y ver como es al principio
+    driver.run_until(2.0)
 
-    #necesito evolucionar el driver
-
-    #necesito grabar el estado final
-
-    #necesito un assert
+    finalFieldE = driver['E'][:]
+    R = np.corrcoef(initialFieldE, finalFieldE)
+    assert R[0, 1] > 0.9999
