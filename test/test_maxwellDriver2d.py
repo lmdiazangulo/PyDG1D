@@ -39,4 +39,15 @@ def test_pec():
     R = np.corrcoef(ez_expected, driver['Ez'])
     assert R[0,1] > 0.9
 
-    
+def test_fdtd2d_pec():
+    #necesito una discretizacion
+
+    #necesito generar un driver
+
+    #necesito generar un pulso gaussiano y ver como es al principio
+
+    #necesito evolucionar el driver
+
+    #necesito grabar el estado final
+
+    #necesito un assert

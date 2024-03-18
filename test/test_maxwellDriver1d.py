@@ -62,7 +62,6 @@ def test_fdtd_periodic():
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
 
-@pytest.mark.skip(reason="[WIP]")
 def test_fdtd_pmc(): #[WIP]
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
@@ -72,7 +71,7 @@ def test_fdtd_pmc(): #[WIP]
     driver['H'][:] = initialFieldH[:]
 
     driver.run_until(2.0)
-
+    
     finalFieldH = driver['H'][:]
     R = np.corrcoef(initialFieldH, finalFieldH)
     assert R[0, 1] > 0.9999
