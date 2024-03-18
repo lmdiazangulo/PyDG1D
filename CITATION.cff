@@ -6,8 +6,10 @@ authors:
     orcid: https://orcid.org/0000-0002-1690-7892
   - family-names: Amador
     given-names: Farah M.
+    orcid: https://orcid.org/0009-0009-4591-9313
   - family-names: Manterola
     given-names: Alejandro M.
+    orcid: https://orcid.org/0000-0002-2406-8128
 url: "https://github.com/lmdiazangulo/PyDG1D"
 title: "PyDG1D"
 date-released: 2024-01-01
