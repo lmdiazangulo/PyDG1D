@@ -7,6 +7,7 @@ from .AM2 import *
 from .LSERK74 import * 
 from .LSERK134 import * 
 from .LF2 import *
+from .LF2_2D import *
 from .LF2V import *
 from .EULER import *
 from .spatialDiscretization import *
@@ -44,6 +45,8 @@ class MaxwellDriver:
             self.timeIntegrator = LSERK134(self.sp, self.fields)
         elif timeIntegratorType == 'LF2':
             self.timeIntegrator = LF2(self.sp, self.fields)
+        elif timeIntegratorType == 'LF2_2D':
+            self.timeIntegrator = LF2_2D(self.sp, self.fields)
         elif timeIntegratorType == 'LF2V':
             self.timeIntegrator = LF2V(self.sp, self.fields)
         elif timeIntegratorType == 'IBE':
