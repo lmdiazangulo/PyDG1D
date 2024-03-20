@@ -19,7 +19,6 @@ class FDTD2D(SpatialDiscretization):
         self.xEx = (self.x[:-1] + self.x[1:]) / 2.0
         self.xEy = (self.x[:-1] + self.x[1:]) / 2.0
 
-        self.dx= np.diff(self.x)
         self.dxEx = self.xHx[1:] - self.xHx[:-1]
         self.dxEy = self.xHy[1:] - self.xHy[:-1]
 
@@ -75,4 +74,6 @@ class FDTD2D(SpatialDiscretization):
         return {'E': rhsE, 'H': rhsH}
     
 
-#class FDTD2D_TM
+class FDTD2D_TM(FDTD2D):
+    def __init__(self):
+        FDTD2D.__init__(self, x_min, x_max, k_elem, boundary_label="PEC")
