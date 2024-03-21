@@ -41,10 +41,10 @@ def test_pec():
     R = np.corrcoef(ez_expected, driver['Ez'])
     assert R[0,1] > 0.9
 
-@pytest.mark.skip(reason="[WIP]")
-def test_fdtd2d_pec():
-    sp = FDTD2D()
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2_2D', CFL=1.0)
+@pytest.mark.skip(reason="[WIP] Working on mesh")
+def test_fdtd2d_te_pec():
+    sp = FDTD2D(x_min=-1.0, x_max=1.0, k_elem=100, boundary_label="PEC")
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
