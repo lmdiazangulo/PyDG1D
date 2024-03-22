@@ -9,9 +9,9 @@ else:
     from dgtd.mesh2d import Mesh2D
 
 
-class FDTD2D(SpatialDiscretization): #TE mode
+class FDTD2D(): #TE mode
     def __init__(self, x_min, x_max, k_elem, boundary_label="PEC"):
-        SpatialDiscretization.__init__(self, mesh)
+        #SpatialDiscretization.__init__(self, mesh)
         
         self.boundary_label= boundary_label
 
@@ -26,10 +26,10 @@ class FDTD2D(SpatialDiscretization): #TE mode
 
     def buildFields(self):
 
-        H = np.zeros(self.x.shape, self.x.shape)
+        H = np.zeros([self.x.shape[0], self.x.shape[0]])
 
-        Ex = np.zeros(self.xEx.shape, self.xEy.shape)
-        Ey = np.zeros(self.xEx.shape, self.xEy.shape)
+        Ex = np.zeros([self.xEx.shape[0], self.xEy.shape[0]])
+        Ey = np.zeros([self.xEx.shape[0], self.xEy.shape[0]])
 
         E = np.array([Ex,Ey])
 
@@ -80,3 +80,9 @@ class FDTD2D(SpatialDiscretization): #TE mode
 
         return {'E': rhsE, 'H': rhsH}
     
+
+#     r_min = sp.get_minimum_node_distance()
+# >       if (sp.isStaggered()):
+# E       AttributeError: 'FDTD2D' object has no attribute 'isStaggered'
+
+# dgtd\maxwellDriver.py:26: AttributeError
