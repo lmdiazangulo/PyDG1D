@@ -44,14 +44,24 @@ def test_pec():
 def test_fdtd2d_te_pec():
     sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_label="PEC")
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-
     s0 = 0.25
-    xy = np.meshgrid(sp.x, sp.y)
-    initialFieldE = np.exp(-(xy)**2/(2*s0**2))
-    driver['E'][:,:] = initialFieldE[:]
+    final_time = 2.0
 
-    driver.run_until(2.0)
+    xH, yH = np.meshgrid(sp.xH, sp.yH)
+    initialFieldH = np.exp(-xH**2/(2*s0**2))
+    driver['H'][:,:] = initialFieldH[:,:]
 
-    finalFieldE = driver['E']
-    R = np.corrcoef(initialFieldE, -finalFieldE)
+    driver.run_until(final_time)
+
+    finalFieldH = driver['H']
+    R = np.corrcoef(initialFieldH.ravel(), finalFieldH.ravel())
     assert R[0, 1] > 0.9999
+
+    # while driver.timeIntegrator.time < final_time:
+    #     # plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
+    #     # # plt.plot(sp.xH, driver['H'][4,:])
+    #     # plt.ylim(-1, 1)
+    #     # plt.grid(which='both')
+    #     # plt.pause(0.01)
+    #     # plt.cla()
+    #     driver.step()
