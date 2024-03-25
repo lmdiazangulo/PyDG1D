@@ -47,12 +47,12 @@ class FDTD2D(): #TE mode
 
         rhsEx = np.zeros(fields['E'][0].shape)
         rhsEy = np.zeros(fields['E'][1].shape)
+
+        rhsEx[1:-1, :] = - (1.0/self.dxEy) * (H[1:, :] - H[:-1, :])
+        rhsEy[:, 1:-1] = - (1.0/self.dxEx) * (H[:, 1:] - H[:, :-1])
         
         if self.boundary_label == "PEC":
           
-            rhsEx[1:-1, :] = - (1.0/self.dxEy) * (H[1:, :] - H[:-1, :])
-            rhsEy[:, 1:-1] = - (1.0/self.dxEx) * (H[:, 1:] - H[:, :-1])
-            
             rhsEx[0,:] = 0.0
             rhsEx[-1,:] = 0.0
 
@@ -70,8 +70,8 @@ class FDTD2D(): #TE mode
 
         rhsH = np.zeros(fields['H'].shape)
 
-        if self.mesh.boundary_label == "PEC":
-            rhsH = - 1.0 * ((Ex[:, 1:] - Ex[:, :-1]) / self.dxEy - (Ey[1:, :] - Ey[:-1, :]) / self.dxEx)
+        rhsH = - 1.0 * ((Ex[:, 1:] - Ex[:, :-1]) / self.dxEy - (Ey[1:, :] - Ey[:-1, :]) / self.dxEx)
+        
         return rhsH
 
     def computeRHS(self, fields):
