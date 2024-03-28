@@ -24,7 +24,7 @@ class MaxwellDriver:
         # Compute time step size
         r_min = sp.get_minimum_node_distance()
         if (sp.isStaggered()):
-            self.dt = CFL * r_min
+            self.dt = CFL * r_min / np.sqrt(sp.dimension())
         else:
             if (sp.get_mesh().dimension == 1):
                 self.dt = CFL * r_min * 2.0 / 3.0

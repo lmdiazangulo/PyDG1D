@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 
 from dgtd.mesh2d import *
 from dgtd.maxwell2d import *
 from dgtd.maxwellDriver import *
+from fdtd.fdtd2d import *
 
 TEST_DATA_FOLDER = 'testData/'
 
@@ -39,4 +41,27 @@ def test_pec():
     R = np.corrcoef(ez_expected, driver['Ez'])
     assert R[0,1] > 0.9
 
-    
+def test_fdtd2d_te_pec():
+    sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_label="PEC")
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    s0 = 0.25
+    final_time = 2.0
+
+    xH, yH = np.meshgrid(sp.xH, sp.yH)
+    initialFieldH = np.exp(-xH**2/(2*s0**2))
+    driver['H'][:,:] = initialFieldH[:,:]
+
+    driver.run_until(final_time)
+
+    finalFieldH = driver['H']
+    R = np.corrcoef(initialFieldH.ravel(), finalFieldH.ravel())
+    assert R[0, 1] > 0.9999
+
+    # while driver.timeIntegrator.time < final_time:
+    #     # plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
+    #     # # plt.plot(sp.xH, driver['H'][4,:])
+    #     # plt.ylim(-1, 1)
+    #     # plt.grid(which='both')
+    #     # plt.pause(0.01)
+    #     # plt.cla()
+    #     driver.step()

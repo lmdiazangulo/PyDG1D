@@ -14,3 +14,6 @@ class SpatialDiscretization():
     
     def isStaggered(self):
         return False
+    
+    def dimension(self):
+        return 1
