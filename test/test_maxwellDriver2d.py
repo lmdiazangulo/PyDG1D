@@ -48,7 +48,7 @@ def test_fdtd2d_te_pec():
     final_time = 2.0
 
     xH, yH = np.meshgrid(sp.xH, sp.yH)
-    initialFieldH = np.exp(-xH**2/(2*s0**2))
+    initialFieldH = np.exp(-xH**2/(2*s0**2)) #no seria test PMC esto??
     driver['H'][:,:] = initialFieldH[:,:]
 
     driver.run_until(final_time)
@@ -75,6 +75,8 @@ def test_fdtd2d_te_pec():
 #     xH, yH = np.meshgrid(sp.xH, sp.yH)
 #     initialFieldH = np.exp(-xH**2/(2*s0**2))
 #     driver['H'][:,:] = initialFieldH[:,:]
+    
+    #Problema TypeError: unhashable type: 'slice'
 
 #     driver.run_until(final_time)
 

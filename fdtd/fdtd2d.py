@@ -70,11 +70,15 @@ class FDTD2D(SpatialDiscretization):  # TE mode
         rhsH = - self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
                + self.cEx*(Ey[:, 1:] - Ey[:, :-1])
 
-        if self.boundary_label == "PMC":
+        if self.boundary_label == "PMC": #[WIP]
             rhsH[0, :] = 0.0
             rhsH[-1, :] = 0.0
             rhsH[:,  0] = 0.0
             rhsH[:, -1] = 0.0
+
+            #Para ello, hacemos que los campos magnéticos promediados sean cero 
+            # en las posiciones enteras suponiendo que H es opuesto en las semi-enteras
+            # próximas a la frotnera PMC
 
         return rhsH
 
