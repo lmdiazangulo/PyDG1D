@@ -52,7 +52,6 @@ class FDTD1D(SpatialDiscretization):
 
         elif self.mesh.boundary_label =="PMC": #[WIP]
             rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
-            #no se si necesito otra condicion en los extremos
 
         elif self.mesh.boundary_label == "PML": #[WIP]       
             boundary_low = [0, 0]

@@ -42,7 +42,7 @@ class FDTD2D(SpatialDiscretization):  # TE mode
         }
 
     def get_minimum_node_distance(self):
-        return min(np.min(self.dx). np.min(self.dy))
+        return np.min(self.dx)
 
     def computeRHSE(self, fields):
         H = fields['H']
