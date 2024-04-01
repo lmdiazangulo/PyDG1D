@@ -70,6 +70,12 @@ class FDTD2D(SpatialDiscretization):  # TE mode
         rhsH = - self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
                + self.cEx*(Ey[:, 1:] - Ey[:, :-1])
 
+        if self.boundary_label == "PMC":
+            rhsH[0, :] = 0.0
+            rhsH[-1, :] = 0.0
+            rhsH[:,  0] = 0.0
+            rhsH[:, -1] = 0.0
+
         return rhsH
 
     def computeRHS(self, fields):

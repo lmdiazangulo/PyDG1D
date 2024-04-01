@@ -37,15 +37,16 @@ def test_fdtd_pec():
     R = np.corrcoef(initialFieldE, -finalFieldE)
     assert R[0, 1] > 0.9999
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(100):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.xH, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.title(driver.timeIntegrator.time)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
 
 
 def test_fdtd_periodic():
@@ -1057,3 +1058,50 @@ def test_buildDrivedEvolutionOperator():
     plt.spy(A_drived, markersize=4)
     # plt.spy(A, markersize=4)
     plt.show()
+
+def test_check_initial_conditions_GW_right():
+
+    x_min = -4.0
+    x_max = 4.0
+    k_elements = 400
+
+    sp = FDTD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+
+    x_center = int(k_elements / 2)
+    one_time_unit_elements = int(k_elements / (x_max - x_min))
+
+    E_gaussian_center_start = driver['E'][x_center]
+    H_gaussian_center_start = driver['H'][x_center-1]    
+
+    driver.run_until(1.0)
+
+    E_gaussian_center_end = driver['E'][x_center+one_time_unit_elements]
+    H_gaussian_center_end = driver['H'][x_center+one_time_unit_elements-1]
+
+    tolerance = 1e-2
+    assert abs(E_gaussian_center_end - E_gaussian_center_start) <= tolerance
+    assert abs(H_gaussian_center_end - H_gaussian_center_start) <= tolerance
+
+
+
+    # driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    # driver['E'][:] = initialFieldE[:]
+    # driver['H'][:] = initialFieldH[:]
+
+    # for _ in range(100):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.xH, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.title(driver.timeIntegrator.time)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
