@@ -78,7 +78,7 @@ class FDTD2D(SpatialDiscretization):  # TE mode
 
             #Para ello, hacemos que los campos magnéticos promediados sean cero 
             # en las posiciones enteras suponiendo que H es opuesto en las semi-enteras
-            # próximas a la frotnera PMC
+            # próximas a la frontera PMC
 
         return rhsH
 

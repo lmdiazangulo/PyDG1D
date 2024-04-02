@@ -1073,7 +1073,7 @@ def test_check_initial_conditions_GW_right():
     initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
 
     d = np.diff(sp.x)[0]
-    print(d)
+    n_sigmas=3
     
     driver['E'][:] = initialFieldE[:]
     driver['H'][:] = initialFieldH[:]
@@ -1081,27 +1081,28 @@ def test_check_initial_conditions_GW_right():
     x_center = k_elements / 2
     one_time_unit_elements = k_elements / (x_max - x_min)
 
-    E_gaussian_start = driver['E'][int(x_center - 3*s0 / d)\
-                                          :int(x_center + 3*s0 / d)]
+    E_gaussian_start = driver['E'][int(x_center - n_sigmas*s0 / d)\
+                                          :int(x_center + n_sigmas*s0 / d)]
     
-    H_gaussian_start = driver['H'][int(x_center-1 - 3*s0 / d)\
-                                          :int(x_center-1 + 3*s0 / d)]
+    H_gaussian_start = driver['H'][int(x_center-1 - n_sigmas*s0 / d)\
+                                          :int(x_center-1 + n_sigmas*s0 / d)]
+
     driver.run_until(1.0)
 
-    E_gaussian_end = driver['E'][int(x_center+one_time_unit_elements - 3*s0 / d)\
-                                          :int(x_center+one_time_unit_elements + 3*s0 / d)]
+    E_gaussian_end = driver['E'][int(x_center+one_time_unit_elements - n_sigmas*s0 / d)\
+                                          :int(x_center+one_time_unit_elements + n_sigmas*s0 / d)]
     
-    H_gaussian_end = driver['H'][int(x_center+one_time_unit_elements-1 - 3*s0 / d)\
-                                          :int(x_center+one_time_unit_elements-1 + 3*s0 / d)]
+    H_gaussian_end = driver['H'][int(x_center+one_time_unit_elements-1 - n_sigmas*s0 / d)\
+                                          :int(x_center+one_time_unit_elements-1 + n_sigmas*s0 / d)]
 
-    mask= int(x_center+one_time_unit_elements + 3*s0 / d) - int(x_center+one_time_unit_elements - 3*s0 / d)
-    tolerance = 1e-5
+    mask= int(2*n_sigmas*s0 / d)
+    tolerance = 0.5
 
-    MSE_E= (1/mask) * sum((E_gaussian_start.ravel()-E_gaussian_end.ravel())**2)
-    MSE_H= (1/mask) * sum((H_gaussian_start.ravel()-H_gaussian_end.ravel())**2)
+    MSE_E= (1/mask) * sum((E_gaussian_end-E_gaussian_start)**2)
+    MSE_H= (1/mask) * sum((H_gaussian_end-H_gaussian_start)**2)
 
-    # assert abs(MSE_E) <= tolerance
-    # assert abs(MSE_H) <= tolerance
+    assert MSE_E <= tolerance
+    assert MSE_H <= tolerance
 
     #··············································································
 
@@ -1112,7 +1113,7 @@ def test_check_initial_conditions_GW_right():
     # for _ in range(1000):
     #     driver.step()
     #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
+    #     #plt.plot(sp.xH, driver['H'],'r')
     #     plt.ylim(-1, 1)
     #     plt.title(driver.timeIntegrator.time)
     #     plt.grid(which='both')
