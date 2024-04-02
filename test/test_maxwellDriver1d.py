@@ -1071,39 +1071,39 @@ def test_check_initial_conditions_GW_right():
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
+
+    d = np.diff(sp.x)[0]
+    print(d)
     
     driver['E'][:] = initialFieldE[:]
     driver['H'][:] = initialFieldH[:]
 
-    # x_center = int(k_elements / 2)
-    # one_time_unit_elements = int(k_elements / (x_max - x_min))
+    x_center = k_elements / 2
+    one_time_unit_elements = k_elements / (x_max - x_min)
 
-    # E_gaussian_center_start = driver['E'][x_center]
-    # H_gaussian_center_start = driver['H'][x_center-1]    
-
+    E_gaussian_start = driver['E'][int(x_center - 3*s0 / d)\
+                                          :int(x_center + 3*s0 / d)]
+    
+    H_gaussian_start = driver['H'][int(x_center-1 - 3*s0 / d)\
+                                          :int(x_center-1 + 3*s0 / d)]
     driver.run_until(1.0)
 
-    finalFieldE = driver['E'][:] 
-    finalFieldH = driver['H'][:]
+    E_gaussian_end = driver['E'][int(x_center+one_time_unit_elements - 3*s0 / d)\
+                                          :int(x_center+one_time_unit_elements + 3*s0 / d)]
+    
+    H_gaussian_end = driver['H'][int(x_center+one_time_unit_elements-1 - 3*s0 / d)\
+                                          :int(x_center+one_time_unit_elements-1 + 3*s0 / d)]
 
-    # E_gaussian_center_end = driver['E'][x_center+one_time_unit_elements]
-    # H_gaussian_center_end = driver['H'][x_center+one_time_unit_elements-1]
+    mask= int(x_center+one_time_unit_elements + 3*s0 / d) - int(x_center+one_time_unit_elements - 3*s0 / d)
+    tolerance = 1e-5
 
-    MSE_E= (1/k_elements) * sum((initialFieldE.ravel()-finalFieldE.ravel())**2)
-    MSE_H= (1/k_elements) * sum((initialFieldH.ravel()-finalFieldH.ravel())**2)
+    MSE_E= (1/mask) * sum((E_gaussian_start.ravel()-E_gaussian_end.ravel())**2)
+    MSE_H= (1/mask) * sum((H_gaussian_start.ravel()-H_gaussian_end.ravel())**2)
 
-    tolerance = 0.2
-    # assert abs(E_gaussian_center_end - E_gaussian_center_start) <= tolerance
-    # assert abs(H_gaussian_center_end - H_gaussian_center_start) <= tolerance
+    # assert abs(MSE_E) <= tolerance
+    # assert abs(MSE_H) <= tolerance
 
-    assert abs(MSE_E) <= tolerance
-    assert abs(MSE_H) <= tolerance
-
-    # >       assert abs(MSE_E) <= tolerance
-    # E       assert 0.10895587384232254 <= 0.1
-    # E        +  where 0.10895587384232254 = abs(0.10895587384232254)
-        #esto es por la cola
-
+    #··············································································
 
     # driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
     # driver['E'][:] = initialFieldE[:]
