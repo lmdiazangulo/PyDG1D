@@ -78,7 +78,7 @@ def test_fdtd2d_te_pmc():
     initialFieldH = np.exp(-xH**2/(2*s0**2))
     driver['H'][:,:] = initialFieldH[:,:]
     
-    Problema TypeError: unhashable type: 'slice'
+    #Problema TypeError: unhashable type: 'slice'.
 
     driver.run_until(final_time)
 
