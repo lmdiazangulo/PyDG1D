@@ -82,34 +82,24 @@ def test_fdtd_check_initial_conditions_GW_right():
     x_min = -4.0
     x_max = 4.0
     k_elements = 400
+    t_final = 1.0
 
     sp = FDTD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    c0 = 1.0
 
     s0 = 0.25
-    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
-    initialFieldH = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
-    
-    driver['E'][:] = initialFieldE[:]
-    driver['H'][:] = initialFieldH[:]
+    driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
-    driver.run_until(1.0)
+    driver.run_until(t_final)
 
-    finalFieldE = driver['E'][:]
-    finalFieldH = driver['H'][:]
+    evolvedE = driver['E'][:]
 
-    R1 = np.corrcoef(initialFieldE, finalFieldE)
-    R2 = np.corrcoef(initialFieldH, finalFieldH)
-    #assert R1[0, 1] > 0.9999
-    #assert R2[0, 1] > 0.9999
+    expectedE = np.exp(-(sp.x - c0*t_final)**2/(2*s0**2))
 
-    # tolerance = 1e-5
-
-    # MSE_E= (1/k_elements) * sum((finalFieldE-initialFieldE)**2)
-    # MSE_H= (1/k_elements) * sum((finalFieldH-initialFieldH)**2)
-
-    # assert MSE_E <= tolerance
-    # assert MSE_H <= tolerance
+    R1 = np.corrcoef(expectedE, evolvedE)
+    assert R1[0, 1] > 0.995   
 
     #··············································································
 
@@ -117,15 +107,15 @@ def test_fdtd_check_initial_conditions_GW_right():
     driver['E'][:] = initialFieldE[:]
     driver['H'][:] = initialFieldH[:]
 
-    for _ in range(1000):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.xH, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.title(driver.timeIntegrator.time)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.xH, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.title(driver.timeIntegrator.time)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
 @pytest.mark.skip(reason="[WIP] On standby for now.")
 def test_fdtd_pml(): #[WIP]
