@@ -11,7 +11,7 @@ class Mesh1D:
         self.EToV = EToV
         self.boundary_label = boundary_label
 
-        if self.boundary_label not in ["PEC", "PMC", "SMA", "Periodic", "PML"]:
+        if self.boundary_label not in ["PEC", "PMC", "SMA", "Periodic", "PML", "Mur"]:
             raise ValueError("Invalid boundary label.")
 
     def number_of_vertices(self):

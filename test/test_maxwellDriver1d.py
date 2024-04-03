@@ -77,6 +77,59 @@ def test_fdtd_pmc():
     #     plt.pause(0.01)
     #     plt.cla()
 
+def test_fdtd_pmc_cfl_equals_half():
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1)
+
+    s0 = 0.25
+    initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
+    driver['H'][:] = initialFieldH[:]
+
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.xH, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.title(driver.timeIntegrator.time)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
+
+    driver.run_until(2.0)
+    
+    finalFieldH = driver['H'][:]
+
+    R = np.corrcoef(initialFieldH, -finalFieldH)
+    assert R[0, 1] > 0.9999
+
+@pytest.mark.skip(reason="WIP")
+def test_fdtd_mur():
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    # for _ in range(2000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.xH, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.title(driver.timeIntegrator.time)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
+    driver.run_until(2.0)
+    
+    finalFieldE = driver['E'][:]
+    R = np.corrcoef(np.zeros(len(sp.x)), finalFieldE)
+    #assert R[0, 1] > 0.9999
+
+    #La idea es comprobar que E es nulo pasado un tiempo.
+
+
 def test_fdtd_check_initial_conditions_GW_right():
 
     x_min = -4.0

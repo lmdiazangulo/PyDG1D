@@ -22,10 +22,14 @@ class FDTD1D(SpatialDiscretization):
         self.dx = self.x[1:] - self.x[:-1]
         self.dxH = self.xH[1:] - self.xH[:-1]
 
+        self.dt = 1.0 * self.dx
+
         if self.mesh.boundary_label == 'Periodic':
             self.x = mesh.vx[:-1]
 
         K = self.mesh.number_of_elements()
+
+        
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
@@ -55,6 +59,14 @@ class FDTD1D(SpatialDiscretization):
             rhsE[0] = rhsE[0] - (1.0/self.dxH[0]) * (2 * H[0])
             rhsE[-1] = rhsE[-1] - (1.0/self.dxH[0]) * (-2 * H[-1])
 
+        elif self.mesh.boundary_label =="Mur":
+            c0 = 1.0
+
+            rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+            rhsE[-1] = rhsE[-2] + ((c0*self.dt[0]-self.dx[0])/(c0*self.dt[0]+self.dx[0])) * (rhsE[-2]-rhsE[-1])
+            rhsE[0] = rhsE[1] + ((c0*self.dt[0]-self.dx[0])/(c0*self.dt[0]+self.dx[0])) * (rhsE[1]-rhsE[0])
+
+
         elif self.mesh.boundary_label == "PML": #[WIP]       
             boundary_low = [0, 0]
             boundary_high = [0, 0]
@@ -78,6 +90,9 @@ class FDTD1D(SpatialDiscretization):
             rhsH[-1] = - (1.0/self.dx[0]) * (E[0] - E[-1])
             
         elif self.mesh.boundary_label == "PMC":
+            rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
+
+        elif self.mesh.boundary_label =="Mur":
             rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         return rhsH
