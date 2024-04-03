@@ -79,21 +79,21 @@ def test_fdtd_pmc():
 
 def test_fdtd_pmc_cfl_equals_half():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1)
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.5)
 
     s0 = 0.25
     initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
     driver['H'][:] = initialFieldH[:]
 
-    for _ in range(1000):
-        driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.xH, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.title(driver.timeIntegrator.time)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
+    # for _ in range(1000):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.xH, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.title(driver.timeIntegrator.time)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
 
     driver.run_until(2.0)
     
