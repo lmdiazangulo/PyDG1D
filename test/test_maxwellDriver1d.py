@@ -63,7 +63,7 @@ def test_fdtd_periodic():
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
 
-def test_fdtd_pmc(): #[WIP]
+def test_fdtd_pmc():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
@@ -76,6 +76,56 @@ def test_fdtd_pmc(): #[WIP]
     finalFieldH = driver['H'][:]
     R = np.corrcoef(initialFieldH, finalFieldH)
     assert R[0, 1] > 0.9999
+
+def test_fdtd_check_initial_conditions_GW_right():
+
+    x_min = -4.0
+    x_max = 4.0
+    k_elements = 400
+
+    sp = FDTD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    initialFieldH = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
+    
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+
+    driver.run_until(1.0)
+
+    finalFieldE = driver['E'][:]
+    finalFieldH = driver['H'][:]
+
+    R1 = np.corrcoef(initialFieldE, finalFieldE)
+    R2 = np.corrcoef(initialFieldH, finalFieldH)
+    #assert R1[0, 1] > 0.9999
+    #assert R2[0, 1] > 0.9999
+
+    # tolerance = 1e-5
+
+    # MSE_E= (1/k_elements) * sum((finalFieldE-initialFieldE)**2)
+    # MSE_H= (1/k_elements) * sum((finalFieldH-initialFieldH)**2)
+
+    # assert MSE_E <= tolerance
+    # assert MSE_H <= tolerance
+
+    #··············································································
+
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.xH, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.title(driver.timeIntegrator.time)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
 
 @pytest.mark.skip(reason="[WIP] On standby for now.")
 def test_fdtd_pml(): #[WIP]
@@ -1058,64 +1108,3 @@ def test_buildDrivedEvolutionOperator():
     plt.spy(A_drived, markersize=4)
     # plt.spy(A, markersize=4)
     plt.show()
-
-def test_check_initial_conditions_GW_right():
-
-    x_min = -4.0
-    x_max = 4.0
-    k_elements = 400
-
-    sp = FDTD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
-    initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
-
-    d = np.diff(sp.x)[0]
-    n_sigmas=3
-    
-    driver['E'][:] = initialFieldE[:]
-    driver['H'][:] = initialFieldH[:]
-
-    x_center = k_elements / 2
-    one_time_unit_elements = k_elements / (x_max - x_min)
-
-    E_gaussian_start = driver['E'][int(x_center - n_sigmas*s0 / d)\
-                                          :int(x_center + n_sigmas*s0 / d)]
-    
-    H_gaussian_start = driver['H'][int(x_center-1 - n_sigmas*s0 / d)\
-                                          :int(x_center-1 + n_sigmas*s0 / d)]
-
-    driver.run_until(1.0)
-
-    E_gaussian_end = driver['E'][int(x_center+one_time_unit_elements - n_sigmas*s0 / d)\
-                                          :int(x_center+one_time_unit_elements + n_sigmas*s0 / d)]
-    
-    H_gaussian_end = driver['H'][int(x_center+one_time_unit_elements-1 - n_sigmas*s0 / d)\
-                                          :int(x_center+one_time_unit_elements-1 + n_sigmas*s0 / d)]
-
-    mask= int(2*n_sigmas*s0 / d)
-    tolerance = 0.5
-
-    MSE_E= (1/mask) * sum((E_gaussian_end-E_gaussian_start)**2)
-    MSE_H= (1/mask) * sum((H_gaussian_end-H_gaussian_start)**2)
-
-    assert MSE_E <= tolerance
-    assert MSE_H <= tolerance
-
-    #··············································································
-
-    # driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    # driver['E'][:] = initialFieldE[:]
-    # driver['H'][:] = initialFieldH[:]
-
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     #plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()

@@ -76,10 +76,6 @@ class FDTD1D(SpatialDiscretization):
         elif self.mesh.boundary_label == "Periodic":
             rhsH[:-1] = - (1.0/self.dx[:-1]) * (E[1:] - E[:-1])
             rhsH[-1] = - (1.0/self.dx[0]) * (E[0] - E[-1])
-
-        elif self.mesh.boundary_label == "PMC": #[WIP]
-             rhsH[0] = 0.0
-             rhsH[-1] = 0.0
             
         #elif self.mesh.boundary_label == "PML": #[WIP]
 
