@@ -58,13 +58,24 @@ class FDTD1D(SpatialDiscretization):
             rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
             rhsE[0] = rhsE[0] - (1.0/self.dxH[0]) * (2 * H[0])
             rhsE[-1] = rhsE[-1] - (1.0/self.dxH[0]) * (-2 * H[-1])
+            # rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
+            # rhsE[-1] = - (1.0/self.dxH[0]) * (-2 * H[-1])
+
 
         elif self.mesh.boundary_label =="Mur":
             c0 = 1.0
 
             rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
-            rhsE[-1] = rhsE[-2] + ((c0*self.dt[0]-self.dx[0])/(c0*self.dt[0]+self.dx[0])) * (rhsE[-2]-rhsE[-1])
-            rhsE[0] = rhsE[1] + ((c0*self.dt[0]-self.dx[0])/(c0*self.dt[0]+self.dx[0])) * (rhsE[1]-rhsE[0])
+
+            rhsE[-1] = rhsE[-2]/self.dt[0] \
+                + ((c0-self.dx[0]/self.dt[0])/(c0*self.dt[0]+self.dx[0])) \
+                * (rhsE[-2]-rhsE[-1])  #Estoy diviendiendo convenientemente por self.dt[0]
+                                       #para que en el step al multiplicar por dt se cancelen
+                                       #y quede como en las diapositivas de MCFNL
+            
+            rhsE[0] = rhsE[1]/self.dt[0] \
+                + ((c0-self.dx[0]/self.dt[0])/(c0*self.dt[0]+self.dx[0])) \
+                * (rhsE[1]-rhsE[0])
 
 
         elif self.mesh.boundary_label == "PML": #[WIP]       
