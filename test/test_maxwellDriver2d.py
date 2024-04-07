@@ -51,14 +51,14 @@ def test_fdtd2d_te_pec():
     initialFieldH = np.exp(-xH**2/(2*s0**2)) #no seria test PMC esto??
     driver['H'][:,:] = initialFieldH[:,:]
 
-    while driver.timeIntegrator.time < final_time:
-        plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
-        plt.plot(sp.xH, driver['H'][4,:])
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.01)
-        plt.cla()
-        driver.step()
+    # while driver.timeIntegrator.time < final_time:
+    #     plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
+    #     plt.plot(sp.xH, driver['H'][4,:])
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+    #     driver.step()
 
     driver.run_until(final_time)
 
