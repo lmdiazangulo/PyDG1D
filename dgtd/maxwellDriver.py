@@ -1,15 +1,17 @@
-from .LSERK4 import * 
-from .DIRK2 import * 
-from .IGLRK4 import *
-from .IBE import * 
-from .CN import * 
-from .AM2 import * 
-from .LSERK74 import * 
-from .LSERK134 import * 
-from .LF2 import *
-from .LF2V import *
-from .EULER import *
 from .spatialDiscretization import *
+
+from dgtd.integrators.LSERK4 import * 
+from dgtd.integrators.DIRK2 import * 
+from dgtd.integrators.IGLRK4 import *
+from dgtd.integrators.IBE import * 
+from dgtd.integrators.CN import * 
+from dgtd.integrators.AM2 import * 
+from dgtd.integrators.LSERK74 import * 
+from dgtd.integrators.LSERK134 import * 
+from dgtd.integrators.LF2 import *
+from dgtd.integrators.LF2V import *
+from dgtd.integrators.EULER import *
+
 
 class MaxwellDriver:
     def __init__(self, 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from .spatialDiscretization import *
+from dgtd.spatialDiscretization import *
 
 class EULER:
 

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import fsolve
 
-from .spatialDiscretization import *
+from dgtd.spatialDiscretization import *
 #Backward Euler method
 class IBE:
     def __init__(self, sp: SpatialDiscretization, fields):
