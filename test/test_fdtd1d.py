@@ -35,9 +35,6 @@ def test_buildEvolutionOperator():
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
 
-    # plt.spy(A)
-    # plt.show()
-
 
 def test_buildEvolutionOperator_periodic():
     K = 5
@@ -48,13 +45,12 @@ def test_buildEvolutionOperator_periodic():
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
 
-    # plt.spy(A)
+    # plt.matshow(A)
     # plt.show()
 
 
-
 def test_buildEvolutionOperator_sorting():
-    m = Mesh1D(0, 1, 3, 'Periodic')
+    m = Mesh1D(0, 1, 5, 'Periodic')
     sp = FDTD1D(m)
 
     A = sp.buildEvolutionOperator()
@@ -62,6 +58,13 @@ def test_buildEvolutionOperator_sorting():
 
     A_by_elem = sp.reorder_array(A, 'byElements')
     eigA_by_elem, _ = np.linalg.eig(A_by_elem)
+
+    # plt.plot(np.real(eigA), np.imag(eigA), '.')
+    # plt.plot(np.real(eigA_by_elem), np.imag(eigA_by_elem), '.')
+    # # plt.xlim(-1, 1)
+
+    # plt.matshow(A_by_elem)
+    # plt.show()
 
     assert A.shape == A_by_elem.shape
     assert np.allclose(np.real(eigA_by_elem), 0)

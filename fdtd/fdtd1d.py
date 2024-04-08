@@ -34,7 +34,7 @@ class FDTD1D(SpatialDiscretization):
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
-    
+
     def computeRHSE(self, fields):
         H = fields['H']
         E = fields['E']
@@ -47,22 +47,23 @@ class FDTD1D(SpatialDiscretization):
             rhsE[-1] = 0.0
 
         elif self.mesh.boundary_label == "Periodic":
-            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
+            rhsE[0]  = - (1.0/self.dxH[0]) * (H[0] - H[-1])
+            rhsE[-1] = rhsE[0]
 
         elif self.mesh.boundary_label == "PMC":
             rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
-            rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
+            rhsE[-1] = - (1.0/self.dxH[0]) * (-2 * H[-1])
 
         elif self.mesh.boundary_label == "Mur":
-            
+
             rhsE[0] = E[1] + \
                 (self.c0 * self.dt - self.dx[0]) / \
                 (self.c0 * self.dt + self.dx[0]) * \
                 (rhsE[1] - E[0])
-                
+
             rhsE[0] -= E[0]
-            rhsE[0] /= self.dt            
-            
+            rhsE[0] /= self.dt
+
             rhsE[-1] = 0.0
 
         elif self.mesh.boundary_label == "PML":  # [WIP]
@@ -78,7 +79,7 @@ class FDTD1D(SpatialDiscretization):
         return rhsE
 
     def computeRHSH(self, fields):
-        E = fields['E']      
+        E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         return rhsH
@@ -93,6 +94,7 @@ class FDTD1D(SpatialDiscretization):
         return True
 
     def buildEvolutionOperator(self):
+
         NE = len(self.x)
         N = NE + len(self.xH)
         A = np.zeros((N, N))
@@ -105,6 +107,11 @@ class FDTD1D(SpatialDiscretization):
             fieldsRHS = self.computeRHS(fields)
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
+
+        if self.mesh.boundary_label == 'Periodic':
+            A = np.delete(A, NE-1, 0)
+            A[:,0] += A[:,NE-1]
+            A = np.delete(A, NE-1, 1)
         return A
 
     def reorder_array(self, A, ordering):
@@ -113,6 +120,8 @@ class FDTD1D(SpatialDiscretization):
         N = A.shape[0]
         NE = len(self.x)
         NH = len(self.xH)
+        if self.mesh.boundary_label == 'Periodic':
+            NE -= 1
         if NE != NH:
             raise ValueError(
                 "Unable to order by elements with different size fields.")

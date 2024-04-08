@@ -73,6 +73,8 @@ def test_fdtd_periodic():
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
 
+    assert np.allclose(driver['H'][:], 0.0, atol=5e-2)
+
 
 def test_fdtd_pmc():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
@@ -202,7 +204,7 @@ def test_fdtd_periodic_lserk():
     finalFieldE = driver['E'][:]
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
-
+    assert np.allclose(driver['H'][:], 0.0, atol=5e-2)
     # for _ in range(1000):
     #     driver.step()
     #     plt.plot(sp.x, driver['E'],'b')
