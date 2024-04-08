@@ -63,11 +63,11 @@ class FDTD2D(SpatialDiscretization):  # TE mode
         
         if self.boundary_label == "PMC":
         
-            rhsEx[0, :] = rhsEx[0,:] - (2*H[0,:])
-            rhsEx[-1, :] = rhsEx[-1,:] - (-2*H[-1,:])
+            rhsEx[0, :] =  - self.cEy * (2*H[0,:])
+            rhsEx[-1, :] =  - self.cEy * (-2*H[-1,:])
 
-            rhsEy[:, 0] = rhsEy[:,0] - (2*H[:,0])
-            rhsEy[:, -1] = rhsEy[:,-1] - (-2*H[:,-1])
+            rhsEy[:, 0] =  - self.cEx * (2*H[:,0])
+            rhsEy[:, -1] =  - self.cEx * (-2*H[:,-1])
 
         return {'x': rhsEx, 'y': rhsEy}
 
