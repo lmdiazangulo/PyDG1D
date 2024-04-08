@@ -12,9 +12,19 @@ class LF2:
         E = fields['E']
         H = fields['H'] 
         
-        self.time += dt/2
-        E += dt*self.sp.computeRHSE(fields)
-        self.time += dt/2
-        H += dt*self.sp.computeRHSH(fields)
+        if self.sp.dimension() == 1:
+            self.time += dt/2
+            E += dt * self.sp.computeRHSE(fields)
+            self.time += dt/2
+            H += dt * self.sp.computeRHSH(fields)
+        elif self.sp.dimension() == 2:
+            self.time += dt/2
+            rhsE = self.sp.computeRHSE(fields)
+            E['x'][:,:] += dt * rhsE['x'][:,:]
+            E['y'][:,:] += dt * rhsE['y'][:,:]
+            self.time += dt/2
+            H += dt * self.sp.computeRHSH(fields)
+        else:
+            raise ValueError("Invalid dimension")        
         
         

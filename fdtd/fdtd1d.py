@@ -22,10 +22,9 @@ class FDTD1D(SpatialDiscretization):
         self.dx = self.x[1:] - self.x[:-1]
         self.dxH = self.xH[1:] - self.xH[:-1]
 
-        if self.mesh.boundary_label == 'Periodic':
-            self.x = mesh.vx[:-1]
-
         K = self.mesh.number_of_elements()
+
+        self.c0 = 1.0
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
@@ -35,33 +34,52 @@ class FDTD1D(SpatialDiscretization):
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
-
+    
     def computeRHSE(self, fields):
         H = fields['H']
+        E = fields['E']
         rhsE = np.zeros(fields['E'].shape)
 
+        rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
         if self.mesh.boundary_label == "PEC":
-            rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
             rhsE[0] = 0.0
             rhsE[-1] = 0.0
+
         elif self.mesh.boundary_label == "Periodic":
-            rhsE[1:] = - (1.0/self.dxH) * (H[1:] - H[:-1])
             rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
-        else:
-            raise ValueError("Invalid boundary label.")
+
+        elif self.mesh.boundary_label == "PMC":
+            rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
+            rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
+
+        elif self.mesh.boundary_label == "Mur":
+            
+            rhsE[0] = E[1] + \
+                (self.c0 * self.dt - self.dx[0]) / \
+                (self.c0 * self.dt + self.dx[0]) * \
+                (rhsE[1] - E[0])
+                
+            rhsE[0] -= E[0]
+            rhsE[0] /= self.dt            
+            
+            rhsE[-1] = 0.0
+
+        elif self.mesh.boundary_label == "PML":  # [WIP]
+            boundary_low = [0, 0]
+            boundary_high = [0, 0]
+
+            rhsE[0] = boundary_low.pop(0)
+            boundary_low.append(rhsE[1])
+
+            rhsE[-1] = boundary_high.pop(0)
+            boundary_high.append(rhsE[-2])
 
         return rhsE
 
     def computeRHSH(self, fields):
-        E = fields['E']
-        rhsH = np.zeros(fields['E'].shape)
-        if self.mesh.boundary_label == "PEC":
-            rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
-        elif self.mesh.boundary_label == "Periodic":
-            rhsH[:-1] = - (1.0/self.dx[:-1]) * (E[1:] - E[:-1])
-            rhsH[-1] = - (1.0/self.dx[0]) * (E[0] - E[-1])
-        else:
-            raise ValueError("Invalid boundary label.")
+        E = fields['E']      
+        rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         return rhsH
 
@@ -96,7 +114,8 @@ class FDTD1D(SpatialDiscretization):
         NE = len(self.x)
         NH = len(self.xH)
         if NE != NH:
-            raise ValueError("Unable to order by elements with different size fields.")
+            raise ValueError(
+                "Unable to order by elements with different size fields.")
         N = NE + NH
         new_order = np.zeros(N, dtype=int) - 1
         if ordering == 'byElements':
