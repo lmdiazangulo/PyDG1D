@@ -42,38 +42,58 @@ class FDTD1D(SpatialDiscretization):
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
 
-        if self.mesh.boundary_label == "PEC":
-            rhsE[0] = 0.0
-            rhsE[-1] = 0.0
-
-        elif self.mesh.boundary_label == "Periodic":
-            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
-
-        elif self.mesh.boundary_label == "PMC":
-            rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
-            rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
-
-        elif self.mesh.boundary_label == "Mur":
+        for bdr, label in self.mesh.boundary_label.items():
             
-            rhsE[0] = E[1] + \
-                (self.c0 * self.dt - self.dx[0]) / \
-                (self.c0 * self.dt + self.dx[0]) * \
-                (rhsE[1] - E[0])
+            if bdr == "LEFT":
+                if label == "PEC":
+                    rhsE[0] = 0.0
+
+                if label == "PMC":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
                 
-            rhsE[0] -= E[0]
-            rhsE[0] /= self.dt            
-            
-            rhsE[-1] = 0.0
+                if label == "Periodic":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
 
-        elif self.mesh.boundary_label == "PML":  # [WIP]
-            boundary_low = [0, 0]
-            boundary_high = [0, 0]
+                if label == "Mur":
 
-            rhsE[0] = boundary_low.pop(0)
-            boundary_low.append(rhsE[1])
+                    rhsE[0] = E[1] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsE[1] - E[0])
+                    
+                    rhsE[0] -= E[0]
+                    rhsE[0] /= self.dt   
 
-            rhsE[-1] = boundary_high.pop(0)
-            boundary_high.append(rhsE[-2])
+            if bdr == "RIGHT":
+                if label == "PEC":
+                    rhsE[-1] = 0.0
+
+                if label == "PMC":
+                    rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
+                
+                if label == "Periodic":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
+                
+                if label == "Mur":
+
+                    rhsE[-1] = E[-2] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsE[-2] - E[-1])
+                    
+                    rhsE[-1] -= E[-1]
+                    rhsE[-1] /= self.dt   
+                              
+
+        # elif self.mesh.boundary_label == "PML":  # [WIP]
+        #     boundary_low = [0, 0]
+        #     boundary_high = [0, 0]
+
+        #     rhsE[0] = boundary_low.pop(0)
+        #     boundary_low.append(rhsE[1])
+
+        #     rhsE[-1] = boundary_high.pop(0)
+        #     boundary_high.append(rhsE[-2])
 
         return rhsE
 

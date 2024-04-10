@@ -11,6 +11,7 @@ else:
 
 class FDTD2D(SpatialDiscretization):  # TE mode
     def __init__(self, x_min, x_max, kx_elem, y_min=0.0, y_max=0.0, ky_elem=0, boundary_labels="PEC"):
+        
         if type(boundary_labels) == str:
             self.boundary_labels = dict()
             self.boundary_labels["XL"] = boundary_labels

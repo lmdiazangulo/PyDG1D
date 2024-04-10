@@ -65,6 +65,7 @@ def test_fdtd_periodic():
 
 
 def test_fdtd_pmc():
+
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
@@ -115,7 +116,7 @@ def test_fdtd_pmc_cfl_equals_half():
     assert R[0, 1] > 0.9999
 
 
-def test_fdtd_mur_left():
+def test_fdtd_mur():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
@@ -138,20 +139,17 @@ def test_fdtd_mur_left():
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
 
-@pytest.mark.skip(reason="[WIP]")
+
 def test_fdtd_mur_right_only():
+
     t_final = 8.0
 
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    c0 = 1.0
 
     s0 = 0.25
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
-
-    driver.run_until(t_final)
-
 
     # for _ in range(2000):
     #     driver.step()
@@ -163,12 +161,11 @@ def test_fdtd_mur_right_only():
     #     plt.pause(0.01)
     #     plt.cla()
 
-    driver.run_until(8.0)
+    driver.run_until(t_final)
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
 
-@pytest.mark.skip(reason="[WIP]")
 def test_fdtd_mur_and_pec():
 
     bdrs = {
@@ -178,15 +175,14 @@ def test_fdtd_mur_and_pec():
 
     t_final = 8.0
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="bdrs"))
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label = bdrs))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    c0 = 1.0
 
     s0 = 0.25
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    initialFieldE =  driver['E'][:]
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
-    driver.run_until(2)
     # for _ in range(2000):
     #     driver.step()
     #     plt.plot(sp.x, driver['E'], 'b')
@@ -196,11 +192,7 @@ def test_fdtd_mur_and_pec():
     #     plt.grid(which='both')
     #     plt.pause(0.01)
     #     plt.cla()
-
-    interFieldE = driver['E'][:]
-    R = np.corrcoef(interFieldE, -finalFieldE)
-    assert R[0, 1] > 0.9999
-
+        
     driver.run_until(8.0)
 
     finalFieldE = driver['E'][:]
@@ -221,6 +213,7 @@ def test_fdtd_check_initial_conditions_GW_right():
     s0 = 0.25
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
+    
 
     driver.run_until(t_final)
 

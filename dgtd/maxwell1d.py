@@ -80,21 +80,24 @@ class Maxwell1D(SpatialDiscretization):
 
     def fieldsOnBoundaryConditions(self, E, H):
         bcType = self.mesh.boundary_label
-        if bcType == "PEC":
-            Ebc = - E.transpose().take(self.vmap_b)
-            Hbc = H.transpose().take(self.vmap_b)
-        elif bcType == "PMC":
-            Hbc = - H.transpose().take(self.vmap_b)
-            Ebc = E.transpose().take(self.vmap_b)
-        elif bcType == "SMA":
-            Hbc = H.transpose().take(self.vmap_b) * 0.0
-            Ebc = E.transpose().take(self.vmap_b) * 0.0
-        elif bcType == "Periodic":
-            Ebc = E.transpose().take(self.vmap_b[::-1])
-            Hbc = H.transpose().take(self.vmap_b[::-1])
-        else:
-            raise ValueError("Invalid boundary label.")
-        return Ebc, Hbc
+
+        for bdr, label in self.mesh.boundary_label.items():
+            if bdr == "LEFT" or bdr == "RIGHT":
+                if label == "PEC":
+                    Ebc = - E.transpose().take(self.vmap_b)
+                    Hbc = H.transpose().take(self.vmap_b)
+                elif label == "PMC":
+                    Hbc = - H.transpose().take(self.vmap_b)
+                    Ebc = E.transpose().take(self.vmap_b)
+                elif label == "SMA":
+                    Hbc = H.transpose().take(self.vmap_b) * 0.0
+                    Ebc = E.transpose().take(self.vmap_b) * 0.0
+                elif label == "Periodic":
+                    Ebc = E.transpose().take(self.vmap_b[::-1])
+                    Hbc = H.transpose().take(self.vmap_b[::-1])
+                else:
+                    raise ValueError("Invalid boundary label.")
+                return Ebc, Hbc
 
     def computeFluxE(self, E, H):
         dE, dH = self.computeJumps(E, H)
