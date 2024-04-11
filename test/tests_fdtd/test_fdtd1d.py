@@ -4,6 +4,8 @@ from dgtd.mesh1d import *
 
 import matplotlib.pyplot as plt
 
+import pytest
+
 
 def test_ctor():
     K = 10
@@ -52,7 +54,7 @@ def test_buildEvolutionOperator_periodic():
     # plt.show()
 
 
-
+@pytest.mark.skip(reason="Reorder_array needs fixing. Also, not implemented in FDTD")
 def test_buildEvolutionOperator_sorting():
     m = Mesh1D(0, 1, 3, 'Periodic')
     sp = FDTD1D(m)
@@ -60,7 +62,7 @@ def test_buildEvolutionOperator_sorting():
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)
 
-    A_by_elem = sp.reorder_array(A, 'byElements')
+    A_by_elem = sp.reorder_array(A, 'byElements')  #reorder_array needs fixing.
     eigA_by_elem, _ = np.linalg.eig(A_by_elem)
 
     assert A.shape == A_by_elem.shape

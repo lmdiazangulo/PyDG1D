@@ -58,7 +58,6 @@ def test_fdtd2d_te_pec_y():
     R = np.corrcoef(initialFieldH.ravel(), finalFieldH.ravel())
     assert R[0, 1] > 0.9999
 
-
 def test_fdtd2d_te_pmc_x():
     bdrs = {
         "XL": "PMC",

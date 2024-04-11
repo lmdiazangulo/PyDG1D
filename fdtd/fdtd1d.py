@@ -129,7 +129,7 @@ class FDTD1D(SpatialDiscretization):
             A[:, i] = q0[:]
         return A
 
-    def reorder_array(self, A, ordering):
+    def reorder_array(self, A, ordering):  #NEEDS FIXING!
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{NE-1}, H_0, ..., H_{NH-1} ]
         N = A.shape[0]
