@@ -7,6 +7,21 @@ from dgtd.maxwell2d import *
 from dgtd.maxwellDriver import *
 from fdtd.fdtd2d import *
 
+#······················································
+
+def plot(sp, driver, final_time , xH, yH):
+    while driver.timeIntegrator.time < final_time:
+        plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
+        plt.plot(sp.x, driver['E']['y'][4,:], 'b')
+        plt.plot(sp.xH, driver['H'][4,:], 'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
+        driver.step()
+#······················································
+
+
 def test_fdtd2d_te_pec_x():
     sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels="PEC")
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
@@ -17,15 +32,7 @@ def test_fdtd2d_te_pec_x():
     initialFieldH = np.exp(-xH**2/(2*s0**2))
     driver['H'][:,:] = initialFieldH[:,:]
 
-    # while driver.timeIntegrator.time < final_time:
-    #     plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
-    #     plt.plot(sp.x, driver['E']['y'][4,:])
-    #     plt.plot(sp.xH, driver['H'][4,:])
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
-    #     driver.step()
+    #plot(sp, driver, final_time , xH, yH)
 
     driver.run_until(final_time)
 
@@ -43,15 +50,7 @@ def test_fdtd2d_te_pec_y():
     initialFieldH = np.exp(-yH**2/(2*s0**2))
     driver['H'][:,:] = initialFieldH[:,:]
 
-    # while driver.timeIntegrator.time < final_time:
-    #     plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
-    #     plt.plot(sp.x, driver['E']['y'][4,:])
-    #     plt.plot(sp.xH, driver['H'][4,:])
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
-    #     driver.step()
+    #plot(sp, driver, final_time , xH, yH)
 
     driver.run_until(final_time)
 
@@ -77,17 +76,10 @@ def test_fdtd2d_te_pmc_x():
     initialFieldH = np.exp(-xH**2/(2*s0**2))
     driver['H'][:,:] = initialFieldH[:,:]
 
-    # while driver.timeIntegrator.time < final_time:
-    #     plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
-    #     plt.plot(sp.x, driver['E']['y'][4,:])
-    #     plt.plot(sp.xH, driver['H'][4,:])
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
-    #     driver.step()
+    #plot(sp, driver, final_time , xH, yH)
 
     driver.run_until(final_time)
+    
 
     finalFieldH = driver['H']
     R = np.corrcoef(initialFieldH.ravel(), -finalFieldH.ravel())
@@ -111,13 +103,7 @@ def test_fdtd2d_te_pmc_y():
     initialFieldH = np.exp(-yH**2/(2*s0**2))
     driver['H'][:,:] = initialFieldH[:,:]
 
-    # while driver.timeIntegrator.time < final_time:
-    #     plt.contourf(xH, yH, driver['H'], vmin=-1.0, vmax=1.0)
-    #     plt.ylim(-1, 1)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
-    #     driver.step()
+    #plot(sp, driver, final_time , xH, yH)
 
     driver.run_until(final_time)
 
