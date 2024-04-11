@@ -13,6 +13,21 @@ from fdtd.fdtd1d import *
 
 from nodepy import runge_kutta_method as rk
 
+#······················································
+
+def plot(sp, driver):
+    for _ in range(1000):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.xH, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.title(driver.timeIntegrator.time)
+        plt.grid(which='both')
+        plt.pause(0.01)
+        plt.cla()
+        
+#······················································
+
 
 def test_fdtd_pec():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
@@ -22,15 +37,7 @@ def test_fdtd_pec():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
     driver.run_until(2.0)
 
@@ -47,17 +54,9 @@ def test_fdtd_periodic():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
-    driver.run_until(2.0)
+    driver.run_until(6.0)
 
     finalFieldE = driver['E'][:]
     R = np.corrcoef(initialFieldE, finalFieldE)
@@ -73,15 +72,7 @@ def test_fdtd_pmc():
     initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
     driver['H'][:] = initialFieldH[:]
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
     driver.run_until(2.0)
 
@@ -98,15 +89,7 @@ def test_fdtd_pmc_cfl_equals_half():
     initialFieldH = np.exp(-(sp.xH)**2/(2*s0**2))
     driver['H'][:] = initialFieldH[:]
 
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
     driver.run_until(2.0)
 
@@ -124,15 +107,7 @@ def test_fdtd_mur():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    # for _ in range(2000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'], 'b')
-    #     plt.plot(sp.xH, driver['H'], 'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
     driver.run_until(8.0)
 
@@ -151,22 +126,15 @@ def test_fdtd_mur_right_only():
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
-    # for _ in range(2000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'], 'b')
-    #     plt.plot(sp.xH, driver['H'], 'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
 
     driver.run_until(t_final)
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
 
-def test_fdtd_mur_and_pec():
+
+def test_fdtd_right_only_mur_and_pec():
 
     bdrs = {
         "LEFT": "Mur",
@@ -183,15 +151,7 @@ def test_fdtd_mur_and_pec():
     initialFieldE =  driver['E'][:]
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
-    # for _ in range(2000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'], 'b')
-    #     plt.plot(sp.xH, driver['H'], 'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
+    #plot(sp, driver)
         
     driver.run_until(8.0)
 
@@ -214,6 +174,7 @@ def test_fdtd_check_initial_conditions_GW_right():
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
     
+    #plot(sp, driver)
 
     driver.run_until(t_final)
 
@@ -224,22 +185,6 @@ def test_fdtd_check_initial_conditions_GW_right():
     R1 = np.corrcoef(expectedE, evolvedE)
     assert R1[0, 1] > 0.995
 
-    # ··············································································
-
-    # driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    # driver['E'][:] = initialFieldE[:]
-    # driver['H'][:] = initialFieldH[:]
-
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
-
 
 def test_fdtd_periodic_lserk():
     sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
@@ -249,17 +194,10 @@ def test_fdtd_periodic_lserk():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
+    #plot(sp, driver)
+
     driver.run_until(2.0)
+
     finalFieldE = driver['E'][:]
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
-
-    # for _ in range(1000):
-    #     driver.step()
-    #     plt.plot(sp.x, driver['E'],'b')
-    #     plt.plot(sp.xH, driver['H'],'r')
-    #     plt.ylim(-1, 1)
-    #     plt.title(driver.timeIntegrator.time)
-    #     plt.grid(which='both')
-    #     plt.pause(0.01)
-    #     plt.cla()
