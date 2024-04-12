@@ -1,2 +1,4 @@
 .vscode/*
 */__pycache__/*
+dgtd/integrators/__pycache__/*
+test/tests_fdtd/__pycache__/*

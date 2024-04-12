@@ -1,7 +1,7 @@
 import numpy as np
 
 class Mesh1D:
-    def __init__(self, xmin, xmax, k_elem, boundary_label="PEC"):
+    def __init__(self, xmin, xmax, k_elem, boundary_label = "PEC"):
         
         assert k_elem > 0
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
@@ -11,8 +11,15 @@ class Mesh1D:
         self.EToV = EToV
         self.boundary_label = boundary_label
 
-        if self.boundary_label not in ["PEC", "PMC", "SMA", "Periodic", "PML", "Mur"]:
-            raise ValueError("Invalid boundary label.")
+        if type(self.boundary_label) == str:
+            self.boundary_label = dict()
+            self.boundary_label["LEFT"] = boundary_label
+            self.boundary_label["RIGHT"] = boundary_label
+        else:
+            self.boundary_labels = boundary_label
+
+        # if self.boundary_label not in ["PEC", "PMC", "SMA", "Periodic", "PML", "Mur", self.mixed_boundaries]:
+        #     raise ValueError("Invalid boundary label.")
 
     def number_of_vertices(self):
         return self.vx.shape[0]

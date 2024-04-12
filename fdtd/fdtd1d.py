@@ -34,7 +34,7 @@ class FDTD1D(SpatialDiscretization):
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
-    
+
     def computeRHSE(self, fields):
         H = fields['H']
         E = fields['E']
@@ -42,43 +42,65 @@ class FDTD1D(SpatialDiscretization):
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
 
-        if self.mesh.boundary_label == "PEC":
-            rhsE[0] = 0.0
-            rhsE[-1] = 0.0
-
-        elif self.mesh.boundary_label == "Periodic":
-            rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
-
-        elif self.mesh.boundary_label == "PMC":
-            rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
-            rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
-
-        elif self.mesh.boundary_label == "Mur":
+        for bdr, label in self.mesh.boundary_label.items():
             
-            rhsE[0] = E[1] + \
-                (self.c0 * self.dt - self.dx[0]) / \
-                (self.c0 * self.dt + self.dx[0]) * \
-                (rhsE[1] - E[0])
+            if bdr == "LEFT":
+                if label == "PEC":
+                    rhsE[0] = 0.0
+
+                if label == "PMC":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
                 
-            rhsE[0] -= E[0]
-            rhsE[0] /= self.dt            
-            
-            rhsE[-1] = 0.0
+                if label == "Periodic":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
+                    rhsE[-1] = rhsE[0]
 
-        elif self.mesh.boundary_label == "PML":  # [WIP]
-            boundary_low = [0, 0]
-            boundary_high = [0, 0]
+                if label == "Mur":
 
-            rhsE[0] = boundary_low.pop(0)
-            boundary_low.append(rhsE[1])
+                    rhsE[0] = E[1] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsE[1] - E[0])
+                    
+                    rhsE[0] -= E[0]
+                    rhsE[0] /= self.dt   
 
-            rhsE[-1] = boundary_high.pop(0)
-            boundary_high.append(rhsE[-2])
+            if bdr == "RIGHT":
+                if label == "PEC":
+                    rhsE[-1] = 0.0
+
+                if label == "PMC":
+                    rhsE[-1] =  - (1.0/self.dxH[0]) * (-2 * H[-1])
+                
+                if label == "Periodic":
+                    rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
+                    rhsE[-1] = rhsE[0]
+                
+                if label == "Mur":
+
+                    rhsE[-1] = E[-2] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsE[-2] - E[-1])
+                    
+                    rhsE[-1] -= E[-1]
+                    rhsE[-1] /= self.dt   
+                              
+
+        # elif self.mesh.boundary_label == "PML":  # [WIP]
+        #     boundary_low = [0, 0]
+        #     boundary_high = [0, 0]
+
+        #     rhsE[0] = boundary_low.pop(0)
+        #     boundary_low.append(rhsE[1])
+
+        #     rhsE[-1] = boundary_high.pop(0)
+        #     boundary_high.append(rhsE[-2])
 
         return rhsE
 
     def computeRHSH(self, fields):
-        E = fields['E']      
+        E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         return rhsH
@@ -93,6 +115,7 @@ class FDTD1D(SpatialDiscretization):
         return True
 
     def buildEvolutionOperator(self):
+
         NE = len(self.x)
         N = NE + len(self.xH)
         A = np.zeros((N, N))
@@ -105,14 +128,27 @@ class FDTD1D(SpatialDiscretization):
             fieldsRHS = self.computeRHS(fields)
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
+
+        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
+            A = np.delete(A, NE-1, 0)
+            A[:,0] += A[:,NE-1]
+            A = np.delete(A, NE-1, 1)
+        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
+            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+            raise ValueError( "Periodic conditions must be ensured at both ends")
         return A
 
-    def reorder_array(self, A, ordering):
+    def reorder_array(self, A, ordering):  #NEEDS FIXING!
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{NE-1}, H_0, ..., H_{NH-1} ]
         N = A.shape[0]
         NE = len(self.x)
         NH = len(self.xH)
+        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
+            NE -= 1
+        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
+            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+            raise ValueError( "Periodic conditions must be ensured at both ends")
         if NE != NH:
             raise ValueError(
                 "Unable to order by elements with different size fields.")

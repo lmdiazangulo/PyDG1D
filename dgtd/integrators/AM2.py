@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import fsolve
 
-from .spatialDiscretization import *
+from dgtd.spatialDiscretization import *
 #Adams Moulton order 2 method
 
 class AM2:
