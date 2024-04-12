@@ -141,8 +141,11 @@ class FDTD1D(SpatialDiscretization):
         N = A.shape[0]
         NE = len(self.x)
         NH = len(self.xH)
-        if self.mesh.boundary_label == 'Periodic':
+        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
             NE -= 1
+        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
+            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+            raise ValueError( "Conditions must match at both boundaries")
         if NE != NH:
             raise ValueError(
                 "Unable to order by elements with different size fields.")
