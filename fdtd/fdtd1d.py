@@ -129,10 +129,13 @@ class FDTD1D(SpatialDiscretization):
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
 
-        if self.mesh.boundary_label == 'Periodic':
+        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
             A = np.delete(A, NE-1, 0)
             A[:,0] += A[:,NE-1]
             A = np.delete(A, NE-1, 1)
+        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
+            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+            raise ValueError( "Periodic conditions must be ensured at both ends")
         return A
 
     def reorder_array(self, A, ordering):  #NEEDS FIXING!
@@ -145,7 +148,7 @@ class FDTD1D(SpatialDiscretization):
             NE -= 1
         elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
             or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
-            raise ValueError( "Conditions must match at both boundaries")
+            raise ValueError( "Periodic conditions must be ensured at both ends")
         if NE != NH:
             raise ValueError(
                 "Unable to order by elements with different size fields.")
