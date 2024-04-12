@@ -54,8 +54,9 @@ def test_buildEvolutionOperator_periodic():
     # plt.show()
 
 
-@pytest.mark.skip(reason="Reorder_array needs fixing. Also, not implemented in FDTD")
+#@pytest.mark.skip(reason="Reorder_array needs fixing. Also, not implemented in FDTD")
 def test_buildEvolutionOperator_sorting():
+    
     m = Mesh1D(0, 1, 3, 'Periodic')
     sp = FDTD1D(m)
 
