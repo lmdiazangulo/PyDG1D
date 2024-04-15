@@ -26,6 +26,14 @@ class FDTD1D(SpatialDiscretization):
 
         self.c0 = 1.0
 
+        self.left_TF_limit = int(0.1*len(self.x))
+        self.right_TF_limit = int(0.9*len(self.x))
+    
+    def TFSF_conditions(self, tag='off'):
+        if tag == 'on': return True
+        if tag == 'off': return False
+        else: raise ValueError('only on/off states are available')
+
     def buildFields(self):
         E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
@@ -41,6 +49,14 @@ class FDTD1D(SpatialDiscretization):
         rhsE = np.zeros(fields['E'].shape)
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.TFSF_conditions()==True:
+
+            rhsE[self.left_TF_limit] = rhsE[self.left_TF_limit] \
+                + (0.5/self.dxH) * (H[self.left_TF_limit-1])
+            rhsE[self.right_TF_limit] = rhsE[self.right_TF_limit] \
+                - (0.5/self.dxH) * (H[self.right_TF_limit])
+
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -103,6 +119,13 @@ class FDTD1D(SpatialDiscretization):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
+        if self.TFSF_conditions()==True:
+
+            rhsH[self.left_TF_limit-1] = rhsH[self.left_TF_limit-1] \
+                + (0.5/self.dxH) * (E[self.left_TF_limit])
+            rhsH[self.right_TF_limit] = rhsH[self.right_TF_limit] \
+                - (0.5/self.dxH) * (E[self.right_TF_limit])
+
         return rhsH
 
     def computeRHS(self, fields):
@@ -113,7 +136,7 @@ class FDTD1D(SpatialDiscretization):
 
     def isStaggered(self):
         return True
-
+    
     def buildEvolutionOperator(self):
 
         NE = len(self.x)

@@ -28,13 +28,16 @@ def plot(sp, driver):
         
 #······················································
 
-
+#@pytest.mark.skip(reason="WIP")
 def test_tfsf_null_field():
 
+#La onda se genera en x=0 y nuestro limite de TF está en x=0.8
 
     t_final = 8.0
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 2.0, 300, boundary_label="Mur"))
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    sp.TFSF_conditions('on')
+
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -44,8 +47,6 @@ def test_tfsf_null_field():
     plot(sp, driver)
 
     driver.run_until(t_final)
-
-
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
