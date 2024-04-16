@@ -30,9 +30,11 @@ class FDTD1D(SpatialDiscretization):
         self.right_TF_limit = int(0.9*len(self.x))
     
     def TFSF_conditions(self, tag='off'):
-        if tag == 'on': return True
-        if tag == 'off': return False
-        else: raise ValueError('only on/off states are available')
+        if tag == 'on': 
+            self.tfsf =  True
+        elif tag == 'off': 
+            self.tfsf = False
+        else: raise ValueError('Only on or off states are available')
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
@@ -50,12 +52,10 @@ class FDTD1D(SpatialDiscretization):
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
 
-        if self.TFSF_conditions()==True:
+        if self.tfsf == True:
 
-            rhsE[self.left_TF_limit] = rhsE[self.left_TF_limit] \
-                + (0.5/self.dxH) * (H[self.left_TF_limit-1])
-            rhsE[self.right_TF_limit] = rhsE[self.right_TF_limit] \
-                - (0.5/self.dxH) * (H[self.right_TF_limit])
+            rhsE[self.left_TF_limit] = (1.0/self.dxH[0]) * (H[self.left_TF_limit-1])
+            rhsE[self.right_TF_limit] = - (1.0/self.dxH[0]) * (H[self.right_TF_limit])
 
 
         for bdr, label in self.mesh.boundary_label.items():
@@ -119,12 +119,10 @@ class FDTD1D(SpatialDiscretization):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
-        if self.TFSF_conditions()==True:
+        if self.tfsf == True:
 
-            rhsH[self.left_TF_limit-1] = rhsH[self.left_TF_limit-1] \
-                + (0.5/self.dxH) * (E[self.left_TF_limit])
-            rhsH[self.right_TF_limit] = rhsH[self.right_TF_limit] \
-                - (0.5/self.dxH) * (E[self.right_TF_limit])
+            rhsH[self.left_TF_limit] =  -(1.0/self.dxH[0]) * (E[self.left_TF_limit+1])
+            rhsH[self.right_TF_limit] =   (1.0/self.dxH[0]) * (E[self.right_TF_limit])
 
         return rhsH
 

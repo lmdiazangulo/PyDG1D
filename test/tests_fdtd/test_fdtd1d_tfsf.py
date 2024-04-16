@@ -41,8 +41,10 @@ def test_tfsf_null_field():
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
-    driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
-    driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
+    driver['E'][10] = 1
+    driver['H'][10] = 1
+    # driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    # driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
     plot(sp, driver)
 
