@@ -1,7 +1,7 @@
 from pytest import approx
 import numpy as np
 
-from maxwell.dg.dg2d import *
+from maxwell.dg.dg2d_tools import *
 from maxwell.dg.mesh2d import *
 
 TEST_DATA_FOLDER = 'testData/'

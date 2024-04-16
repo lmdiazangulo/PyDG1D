@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from maxwell.dg.mesh2d import *
-from maxwell.dg.maxwell2d import *
-from maxwell.maxwellDriver import *
+from maxwell.dg.dg2d import *
+from maxwell.driver import *
 from maxwell.fd.fd2d import *
 
 #······················································
@@ -22,7 +22,7 @@ def plot(sp, driver, final_time , xH, yH):
 
 
 def test_fdtd2d_te_pec_x():
-    sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels="PEC")
+    sp = FD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels="PEC")
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
     s0 = 0.25
     final_time = 2.0
@@ -40,7 +40,7 @@ def test_fdtd2d_te_pec_x():
     assert R[0, 1] > 0.9999
 
 def test_fdtd2d_te_pec_y():
-    sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels="PEC")
+    sp = FD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels="PEC")
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
     s0 = 0.25
     final_time = 2.0
@@ -64,7 +64,7 @@ def test_fdtd2d_te_pmc_x():
         "YL": "PEC",
         "YU": "PEC"
     }
-    sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels=bdrs)
+    sp = FD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels=bdrs)
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.00)
 
     s0 = 0.25
@@ -91,7 +91,7 @@ def test_fdtd2d_te_pmc_y():
         "YL": "PMC",
         "YU": "PMC"
     }
-    sp = FDTD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels=bdrs)
+    sp = FD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels=bdrs)
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25

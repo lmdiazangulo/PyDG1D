@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 import maxwell.dg.mesh2d as ms
-import maxwell.dg.dg2d as dg2d
+import maxwell.dg.dg2d_tools as dg2d_tools
 
 TEST_DATA_FOLDER = 'testData/'
 

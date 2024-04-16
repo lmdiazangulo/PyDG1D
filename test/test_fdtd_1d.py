@@ -5,9 +5,9 @@ import pytest
 import time
 
 
-from maxwell.maxwellDriver import *
+from maxwell.driver import *
 from maxwell.dg.mesh1d import *
-from maxwell.dg.maxwell1d import *
+from maxwell.dg.dg1d import *
 from maxwell.fd.fd1d import *
 
 
@@ -31,7 +31,7 @@ def plot(sp, driver):
 
 
 def test_fdtd_pec():
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -48,7 +48,7 @@ def test_fdtd_pec():
 
 
 def test_fdtd_periodic():
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
     s0 = 0.25
@@ -66,7 +66,7 @@ def test_fdtd_periodic():
 
 def test_fdtd_pmc():
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
     s0 = 0.25
@@ -83,7 +83,7 @@ def test_fdtd_pmc():
 
 
 def test_fdtd_pmc_cfl_equals_half():
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PMC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.5)
 
     s0 = 0.25
@@ -101,7 +101,7 @@ def test_fdtd_pmc_cfl_equals_half():
 
 
 def test_fdtd_mur():
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
     s0 = 0.25
@@ -120,7 +120,7 @@ def test_fdtd_mur_right_only():
 
     t_final = 8.0
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -144,7 +144,7 @@ def test_fdtd_right_only_mur_and_pec():
 
     t_final = 8.0
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label=bdrs))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label=bdrs))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -167,7 +167,7 @@ def test_fdtd_check_initial_conditions_GW_right():
     k_elements = 400
     t_final = 1.0
 
-    sp = FDTD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(x_min, x_max, k_elements, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
     c0 = 1.0
 
@@ -188,7 +188,7 @@ def test_fdtd_check_initial_conditions_GW_right():
 
 
 def test_fdtd_periodic_lserk():
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
     driver = MaxwellDriver(sp, CFL=1.5)
 
     s0 = 0.25

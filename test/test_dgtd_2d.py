@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import pytest
 
 from maxwell.dg.mesh2d import *
-from maxwell.dg.maxwell2d import *
-from maxwell.maxwellDriver import *
+from maxwell.dg.dg2d import *
+from maxwell.driver import *
 from maxwell.fd.fd2d import *
 
 TEST_DATA_FOLDER = 'testData/'

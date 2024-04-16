@@ -1,5 +1,5 @@
 
-from maxwell.dg.maxwell1d import *
+from maxwell.dg.dg1d import *
 from maxwell.dg.mesh1d import *
 
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 def test_get_energy_N1():
     m = Mesh1D(0, 1, 10)
-    sp = Maxwell1D(1, m)
+    sp = DG1D(1, m)
     fields = sp.buildFields()
 
     fields['E'].fill(0.0)
@@ -20,7 +20,7 @@ def test_get_energy_N1():
 
 def test_buildEvolutionOperator():
     m = Mesh1D(0, 1, 10)
-    sp = Maxwell1D(2, m, "Centered")
+    sp = DG1D(2, m, "Centered")
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)
 
@@ -30,7 +30,7 @@ def test_buildEvolutionOperator():
 
 def test_buildEvolutionOperator_sorting():
     m = Mesh1D(0, 1, 3)
-    sp = Maxwell1D(2, m, "Centered")
+    sp = DG1D(2, m, "Centered")
     Np = sp.number_of_nodes_per_element()
     K = m.number_of_elements()
 
@@ -47,7 +47,7 @@ def test_buildEvolutionOperator_sorting():
 
 
 def test_build_global_mass_matrix():
-    sp = Maxwell1D(2, Mesh1D(0, 1, 3))
+    sp = DG1D(2, Mesh1D(0, 1, 3))
     M = sp.buildGlobalMassMatrix()
 
     # plt.spy(M)

@@ -5,9 +5,9 @@ import pytest
 import time
 
 
-from maxwell.maxwellDriver import *
+from maxwell.driver import *
 from maxwell.dg.mesh1d import *
-from maxwell.dg.maxwell1d import *
+from maxwell.dg.dg1d import *
 from maxwell.fd.fd1d import *
 
 
@@ -19,12 +19,12 @@ def sinusoidal_wave_function(x, t):
 
 
 def test_spatial_discretization_lift():
-    sp = Maxwell1D(1, Mesh1D(0.0, 1.0, 1))
+    sp = DG1D(1, Mesh1D(0.0, 1.0, 1))
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
 def test_pec():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=5,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC")
     )
@@ -55,7 +55,7 @@ def test_pec():
 
 
 def test_pec_centered():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=5,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -87,7 +87,7 @@ def test_pec_centered():
 
 
 def test_pec_centered_lserk74():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=5,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -123,7 +123,7 @@ def test_pec_centered_lserk74():
 
 
 def test_pec_centered_lserk134():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -154,7 +154,7 @@ def test_pec_centered_lserk134():
 
 
 def test_pec_centered_euler():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Upwind"
@@ -185,7 +185,7 @@ def test_pec_centered_euler():
 
 
 def test_pec_centered_lf2():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -217,7 +217,7 @@ def test_pec_centered_lf2():
 
 @pytest.mark.skip(reason="Doesn't work. Deactivated to pass automated tests.")
 def test_pec_centered_lf2v():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -248,7 +248,7 @@ def test_pec_centered_lf2v():
 
 
 def test_pec_centered_ibe():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -280,7 +280,7 @@ def test_pec_centered_ibe():
 
 
 def test_pec_centered_cn():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -312,7 +312,7 @@ def test_pec_centered_cn():
 
 
 def test_periodic_centered_dirk2():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=5,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
         fluxType="Upwind"
@@ -375,7 +375,7 @@ def test_energy_evolution_centered():
     Checks energy evolution. With Centered flux, energy should only 
     dissipate because of the LSERK4 time integration.
     '''
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=5,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -402,7 +402,7 @@ def test_energy_evolution_centered():
 
 
 def test_energy_evolution_centered_lf2():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=2,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -437,7 +437,7 @@ def test_energy_evolution_centered_lf2():
 
 @pytest.mark.skip(reason="Doesn't work. Deactivated to pass automated tests.")
 def test_energy_evolution_centered_lf2v():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=2,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
         fluxType="Centered"
@@ -471,7 +471,7 @@ def test_energy_evolution_centered_lf2v():
 
 
 def test_periodic_tested():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Upwind"
@@ -514,7 +514,7 @@ def test_periodic_tested():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_LSERK_errors():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"
@@ -571,7 +571,7 @@ def test_periodic_LSERK_errors():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_implicit_errors():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Upwind"
@@ -613,7 +613,7 @@ def test_periodic_implicit_errors():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_periodic_euler_errors():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"
@@ -667,7 +667,7 @@ def test_periodic_euler_errors():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_computational_cost():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"
@@ -719,7 +719,7 @@ def test_computational_cost():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_errors():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"
@@ -819,7 +819,7 @@ def test_errors():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_max_time_step():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=3,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"
@@ -888,7 +888,7 @@ def test_max_time_step():
 
 
 def test_periodic_same_initial_conditions():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=2,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
         fluxType="Upwind"
@@ -913,7 +913,7 @@ def test_periodic_same_initial_conditions():
 
 
 def test_sma():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=2,
         mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="SMA"),
         fluxType="Upwind"
@@ -933,7 +933,7 @@ def test_sma():
 
 @pytest.mark.skip(reason="Nothing is being tested.")
 def test_buildDrivedEvolutionOperator():
-    sp = Maxwell1D(
+    sp = DG1D(
         n_order=2,
         mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
         fluxType="Centered"

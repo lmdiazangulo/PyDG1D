@@ -7,7 +7,7 @@ from ..spatialDiscretization import *
 from ..dg.mesh1d import Mesh1D
 
 
-class FDTD1D(SpatialDiscretization):
+class FD1D(SpatialDiscretization):
     def __init__(self, mesh: Mesh1D):
         SpatialDiscretization.__init__(self, mesh)
 

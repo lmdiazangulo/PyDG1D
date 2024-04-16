@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def test_ctor():
     K = 10
     m = Mesh1D(0, 1, K)
-    sp = FDTD1D(m)
+    sp = FD1D(m)
 
     assert len(sp.x) == K + 1
     assert len(sp.xH) == K
@@ -17,7 +17,7 @@ def test_ctor():
 
 def test_buildFields():
     K = 20
-    sp = FDTD1D(Mesh1D(0, 5, K))
+    sp = FD1D(Mesh1D(0, 5, K))
 
     fields = sp.buildFields()
 
@@ -27,7 +27,7 @@ def test_buildFields():
 
 def test_buildEvolutionOperator():
     K = 5
-    sp = FDTD1D(Mesh1D(0, 5, K))
+    sp = FD1D(Mesh1D(0, 5, K))
 
     try:
         A = sp.buildEvolutionOperator()
@@ -40,7 +40,7 @@ def test_buildEvolutionOperator():
 
 def test_buildEvolutionOperator_periodic():
     K = 5
-    sp = FDTD1D(Mesh1D(0, 5, K, boundary_label='Periodic'))
+    sp = FD1D(Mesh1D(0, 5, K, boundary_label='Periodic'))
 
     try:
         A = sp.buildEvolutionOperator()
@@ -55,7 +55,7 @@ def test_buildEvolutionOperator_periodic():
 def test_buildEvolutionOperator_sorting():
     
     m = Mesh1D(0, 1, 3, 'Periodic')
-    sp = FDTD1D(m)
+    sp = FD1D(m)
 
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)

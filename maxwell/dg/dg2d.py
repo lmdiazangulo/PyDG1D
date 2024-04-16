@@ -1,382 +1,508 @@
 import numpy as np
-import scipy
+import matplotlib.pyplot as plt
 
-import maxwell.dg.dg1d as dg1d
-import maxwell.dg.mesh2d as mesh
-
-N_FACES = 3
-
-alpopt = np.array([0.0000, 0.0000, 1.4152, 0.1001, 0.2751, 0.9800, 1.0999,
-        1.2832, 1.3648, 1.4773, 1.4959, 1.5743, 1.5770, 1.6223, 1.6258])
-
-NODETOL = 1e-12
-
-def warpFactor(N, rout):
-    '''
-        Purpose: Compute scaled warp function at order N based on rout interpolation nodes
-    '''
-    # Compute LGL and equidistant node distribution
-    LGLr = dg1d.jacobiGL(0,0,N)
-    req  = np.linspace(-1, 1, N+1)
-
-    # Compute V based on req
-    Veq = dg1d.vandermonde(N,req)
-
-    # Evaluate Lagrange polynomial at rout
-    Nr = len(rout)
-    Pmat = np.zeros((N+1,Nr))
-    for i in range(N+1):
-        Pmat[i] = np.transpose(dg1d.jacobi_polynomial(rout, 0, 0, i))
-    Lmat = np.linalg.solve(Veq.transpose(), Pmat)
-
-    # Compute warp factor
-    warp = Lmat.transpose().dot(LGLr - req)
-
-    # Scale factor
-    zerof = np.abs(rout) < 1.0 - 1.0e-10
-    sf = 1.0 - (zerof*rout)**2
-
-    warp = warp / sf + warp * (zerof-1)
-    return warp
+from .dg2d_tools import *
+from .mesh2d import Mesh2D
+from ..integrators.LSERK4 import *
+from ..spatialDiscretization import *
 
 
-def set_nodes_in_equilateral_triangle(N):
-    '''
-        x, y = set_nodes(N)
-        Purpose  : Compute (x,y) nodes in equilateral triangle for polynomial of order N
-    '''
-    Np = int((N+1)*(N+2)/2)
+class Maxwell2D(SpatialDiscretization):
+    def __init__(self, n_order: int, mesh: Mesh2D, fluxType="Upwind"):
+        assert n_order > 0
+        assert mesh.number_of_elements() > 0
 
-    L1 = np.zeros(Np)
-    L2 = np.zeros(Np)
-    L3 = np.zeros(Np)
-    sk = 0
-    for n in range(1,N+2):
-        for m in range(1,N+3-n):
-            L1[sk] = (n-1) / N 
-            L3[sk] = (m-1) / N
-            sk += 1
-    L2 = 1.0 - L1 - L3
+        self.n_order = n_order
+        self.n_fp = n_order + 1
+        self.n_faces = 3
+        
+        self.mesh = mesh
+        self.fluxType = fluxType
 
-    x = -L2+L3
-    y = (-L2-L3+2*L1)/np.sqrt(3.0)
+        self.epsilon = np.ones(mesh.number_of_elements())
+        self.mu = np.ones(mesh.number_of_elements())
 
-    # Compute blending function at each node for each edge
-    blend1 = 4.0 * L2 * L3
-    blend2 = 4.0 * L1 * L3
-    blend3 = 4.0 * L1 * L2
+        r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(n_order))
+        self.Dr, self.Ds = derivateMatrix(n_order, r, s)
+        self.x, self.y = nodes_coordinates(n_order, mesh)
 
-    # Amount of warp for each node, for each edge
-    warpf1 = warpFactor(N,L3-L2)
-    warpf2 = warpFactor(N,L1-L3)
-    warpf3 = warpFactor(N,L2-L1)
+        self.lift = lift(n_order)
 
-    if N<16:
-        alpha = alpopt[N]
-    else:
-        alpha = 5/3
+        eToE, eToF = mesh.connectivityMatrices()
+        va = self.mesh.EToV[:, 0]
+        vb = self.mesh.EToV[:, 1]
+        vc = self.mesh.EToV[:, 2]
+        self.rx, self.sx, self.ry, self.sy, self.jacobian = geometricFactors(
+            self.x, self.y, self.Dr, self.Ds)
+        
+        fmask, _, _, _ = buildFMask(n_order)
 
-    # Combine blend and warp
-    warp1 = blend1 * warpf1 * (1 + (alpha*L1)**2)
-    warp2 = blend2 * warpf2 * (1 + (alpha*L2)**2)
-    warp3 = blend3 * warpf3 * (1 + (alpha*L3)**2)
+        self.nx, self.ny, sJ = normals(
+            self.x, self.y,
+            self.Dr, self.Ds,
+            n_order
+        )
+        self.f_scale = sJ/self.jacobian[fmask.ravel('F')]
 
-    # Accumulate deformations associated with each edge
-    x = x + 1.0 * warp1 + np.cos(2*np.pi/3)*warp2 + np.cos(4.0*np.pi/3)*warp3
-    y = y + 0.0 * warp1 + np.sin(2*np.pi/3)*warp2 + np.sin(4.0*np.pi/3)*warp3
+        self.buildMaps()
 
-    return x, y
+    def buildMaps(self):
+        '''
+        function [mapM, mapP, vmapM, vmapP, vmapB, mapB] = BuildMaps2D
+        Purpose: Connectivity and boundary tables in the K # of Np elements        
+        '''
+        N = self.n_order
+        msh = self.mesh
+        k_elem = self.mesh.number_of_elements()
+        n_p = self.number_of_nodes_per_element()
+        n_faces = 3
+        n_fp = N+1
 
+        # mask defined in globals
+        Fmask, _, _, _ = buildFMask(N)
 
-def xy_to_rs(x,y):
+        # number volume nodes consecutively
+        node_ids = np.reshape(np.arange(k_elem*n_p), [n_p, k_elem], 'F')
+        vmapM = np.full([n_fp, n_faces, k_elem], 0)
+        vmapP = np.full([n_fp, n_faces, k_elem], 0)
+        mapM = np.arange(k_elem*n_fp*n_faces)
+        mapP = np.reshape(mapM, (n_fp, n_faces, k_elem))
 
-    L1 = (np.sqrt(3.0)*y+1.0)/3.0
-    L2 = (-3.0*x - np.sqrt(3.0)*y + 2.0)/6.0
-    L3 = ( 3.0*x - np.sqrt(3.0)*y + 2.0)/6.0
+        # find index of face nodes with respect to volume node ordering
+        for k1 in range(k_elem):
+            for f1 in range(n_faces):
+                vmapM[:, f1, k1] = node_ids[Fmask[:, f1], k1]
 
-    r = -L2 + L3 - L1
-    s = -L2 - L3 + L1
+        one = np.ones(n_fp)
+        EToE, EToF = msh.connectivityMatrices()
+        for k1 in range(k_elem):
+            for f1 in range(n_faces):
+                # find neighbor
+                k2 = EToE[k1, f1]
+                f2 = EToF[k1, f1]
 
-    return r, s
+                # reference length of edge
+                v1 = msh.EToV[k1, f1]
+                v2 = msh.EToV[k1, np.mod(f1+1, n_faces)]
+                refd = np.sqrt(
+                    (msh.vx[v1]-msh.vx[v2])**2 + (msh.vy[v1]-msh.vy[v2])**2
+                )
 
+                # find find volume node numbers of left and right nodes
+                vidM = vmapM[:, f1, k1]
+                vidP = vmapM[:, f2, k2]
+                x1 = np.outer(self.x.ravel('F')[vidM], one)
+                y1 = np.outer(self.y.ravel('F')[vidM], one)
+                x2 = np.outer(self.x.ravel('F')[vidP], one)
+                y2 = np.outer(self.y.ravel('F')[vidP], one)
 
-def simplex_polynomial(a, b, i: int, j: int):
-    '''
-        % function [P] = Simplex2DP(a,b,i,j);
-        % Purpose : Evaluate 2D orthonormal polynomial
-        %           on simplex at (a,b) of order (i,j).
-    '''
-    h1 = dg1d.jacobi_polynomial(a,     0, 0, i)
-    h2 = dg1d.jacobi_polynomial(b, 2*i+1, 0, j)
+                # Compute distance matrix
+                distance = np.sqrt(
+                    np.abs((x1 - x2.transpose())**2 + (y1-y2.transpose())**2))
+                idM, idP = np.where(distance <= NODETOL*refd)
+                vmapP[idM, f1, k1] = vidP[idP]
+                mapP[idM, f1, k1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
+
+        vmapM = vmapM.ravel('F')
+        vmapP = vmapP.ravel('F')
+        vmapB = vmapM[vmapP == vmapM]
+        mapB = np.where(vmapP == vmapM)[0]
+
+        self.vmapM = vmapM
+        self.vmapP = vmapP
+        self.vmapB = vmapB
+        self.mapB = mapB
+
+    def get_minimum_node_distance(self):
+        points, _ = jacobi_gauss(0, 0, self.n_order)
+        return abs(points[0]-points[1])
     
-    P = np.sqrt(2.0) * h1.transpose() * h2.transpose() * (1-b)**i
-    return P
+    def get_dt_scale(self):
 
-def rs_to_ab(r, s):
-    '''
-        % function [a,b] = rstoab(r,s)
-        % Purpose : Transfer from (r,s) -> (a,b) coordinates in triangle
-    '''
-    Np = len(r)
-    a = np.zeros(Np)
+        r, s = xy_to_rs(*set_nodes_in_equilateral_triangle(self.n_order))
+        vmask1 = np.where(np.abs(s+r+2) < NODETOL)[0]
+        vmask2 = np.where(np.abs(r-1) < NODETOL)[0]
+        vmask3 = np.where(np.abs(s-1) < NODETOL)[0]
+        vmask  = np.array([vmask1, vmask2, vmask3]).transpose()
 
-    for n in range(Np):
-        if not np.isclose(s[n], 1.0):
-            a[n] = 2.0 * (1.0+r[n]) / (1.0-s[n]) - 1.0
+        vx = self.x[np.squeeze(vmask.reshape(-1, 1)), :]
+        vy = self.y[np.squeeze(vmask.reshape(-1, 1)), :]
+
+        len1 = np.sqrt((vx[0,:]-vx[1,:])**2+(vy[0,:]-vy[1,:])**2)
+        len2 = np.sqrt((vx[1,:]-vx[2,:])**2+(vy[1,:]-vy[2,:])**2)
+        len3 = np.sqrt((vx[2,:]-vx[0,:])**2+(vy[2,:]-vy[0,:])**2)
+        sper = (len1 + len2 + len3)/2.0
+        area = np.sqrt(sper*(sper-len1)*(sper-len2)*(sper-len3))
+
+        dtscale = area/sper
+
+        return dtscale
+
+    def get_mesh(self):
+        return self.mesh
+
+    def number_of_nodes_per_element(self):
+        return int((self.n_order + 1) * (self.n_order + 2) / 2)
+    
+    def buildEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node, elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node, elem] = 1.0
+            else:
+                fields['Hy'][node, elem] = 1.0
+            fieldsRHS = self.computeRHS(fields)
+            q0 = np.vstack([
+                fieldsRHS['Ez'].reshape(Np*K,1, order='F'), 
+                fieldsRHS['Hx'].reshape(Np*K,1, order='F'),
+                fieldsRHS['Hy'].reshape(Np*K,1, order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+
+    def buildStiffnessEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsStiffness = self.computeRHSStiffness(fields)
+            q0 = np.vstack([
+                fieldsStiffness['Ez'].reshape(Np*K,1,order='F'),
+                fieldsStiffness['Hx'].reshape(Np*K,1,order='F'),
+                fieldsStiffness['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+
+    def buildZeroNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsZeroNormal = self.computeRHSZeroNormal(fields)
+            q0 = np.vstack([
+                fieldsZeroNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsZeroNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsZeroNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+    
+    def buildOneNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsOneNormal = self.computeRHSOneNormal(fields)
+            q0 = np.vstack([
+                fieldsOneNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsOneNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsOneNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+    
+    def buildTwoNormalEvolutionOperator(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = 3 * Np * K
+        A = np.zeros((N,N))
+        for i in range(N):
+            fields = self.buildFields()
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/3:
+                fields['Ez'][node,elem] = 1.0
+            elif i >= N/3 and i < 2*N/3:
+                fields['Hx'][node,elem] = 1.0
+            else:
+                fields['Hy'][node,elem] = 1.0
+            fieldsTwoNormal = self.computeRHSTwoNormal(fields)
+            q0 = np.vstack([
+                fieldsTwoNormal['Ez'].reshape(Np*K,1,order='F'),
+                fieldsTwoNormal['Hx'].reshape(Np*K,1,order='F'),
+                fieldsTwoNormal['Hy'].reshape(Np*K,1,order='F')
+            ])
+            A[:,i] = q0[:,0]
+
+        return A
+
+    def buildFields(self):
+        Hx = np.zeros([self.number_of_nodes_per_element(),
+                       self.mesh.number_of_elements()])
+        Hy = np.zeros(Hx.shape)
+        Ez = np.zeros(Hx.shape)
+
+        return {'Hx': Hx, 'Hy': Hy, 'Ez': Ez}
+    
+    def computeZeroNormalFlux(self, dEz):
+
+        flux_Hx_Zero_Normal = 0
+        flux_Hy_Zero_Normal = 0
+        flux_Ez_Zero_Normal = 0
+
+        if self.fluxType == "Upwind":
+            flux_Ez_Zero_Normal -= dEz
+        elif self.fluxType == "Centered":
+            pass
         else:
-            a[n] = -1.0
-    b = s
-
-    return a, b
-
-def vandermonde(N: int, r, s):
-    '''
-        % function [V2D] = Vandermonde2D(N, r, s);
-        % Purpose : Initialize the 2D Vandermonde Matrix,  V_{ij} = phi_j(r_i, s_i);
-    '''
-    Np = int ((N+1) * (N+2) / 2)
-    V = np.zeros((len(r), Np))
-
-    a, b = rs_to_ab(r, s)
-    sk = 0
-    for i in range(N+1):
-        for j in range(N-i+1):
-            pol = simplex_polynomial(a, b, i, j)
-            V[:, sk] = pol
-            sk += 1
-
-    return V
-
-def derivateMatrix(N: int, r, s):
-    V = vandermonde(N, r, s)
-    Vr, Vs = gradVandermonde(N, r, s)
-    Dr = np.matmul(Vr,np.linalg.inv(V))
-    Ds = np.matmul(Vs,np.linalg.inv(V))
-    return Dr, Ds
-
-def gradVandermonde(N: int, r, s):
-    Vr = np.zeros((len(r),int((N+1)*(N+2)/2)))
-    Vs = np.zeros((len(r),int((N+1)*(N+2)/2)))
-    a, b = rs_to_ab(r,s)
-
-    sk = 0
-    for i in range(0, N+1, 1):
-        for j in range(0, N-i+1, 1):
-            Vr[:,sk], Vs[:,sk] = gradSimplexP(a, b, i, j)
-            sk += 1
-    return Vr, Vs
-
-def gradSimplexP(a, b, i: int, j: int):
-
-    fa  = dg1d.jacobi_polynomial     (a, 0, 0, i)
-    dfa = dg1d.jacobi_polynomial_grad(a, 0, 0, i)
-    gb  = dg1d.jacobi_polynomial     (b, 2.0*i+1.0, 0, j)
-    dgb = dg1d.jacobi_polynomial_grad(b, 2.0*i+1.0, 0, j)
-
-    dmodedr = dfa*gb
-    bcoeff = (0.5*(1.0-b))**(i-1.0)
-
-    if (i>0):
-        dmodedr = dmodedr*bcoeff
+            raise ValueError("Invalid flux type.")
+        
+        return flux_Hx_Zero_Normal, flux_Hy_Zero_Normal, flux_Ez_Zero_Normal
     
-    dmodeds = dfa*(gb*(0.5*(1.0+a)))
+    def computeOneNormalFlux(self, dHx, dHy, dEz):
 
-    if (i>0):
-        dmodeds = dmodeds*bcoeff
+        flux_Hx_One_Normal =  self.ny * dEz
+        flux_Hy_One_Normal = -self.nx * dEz
+        flux_Ez_One_Normal = -self.nx * dHy + self.ny * dHx
 
-    tmp = dgb*(0.5*(1.0-b))**(i)
-
-    if (i>0):
-        gbcoeff = 0.5*i*gb
-        tmp -= gbcoeff*bcoeff
-
-    dmodeds += fa*tmp
-
-    dmodedr *= 2.0**(i+0.5)
-    dmodeds *= 2.0**(i+0.5)
-
-    return dmodedr, dmodeds
-
-def nodes_coordinates(N, msh: mesh.Mesh2D):
-    """
-    Builds coordinates for all elements in mesh.
-    """
-
-    va = msh.EToV[:,0].transpose()
-    vb = msh.EToV[:,1].transpose()
-    vc = msh.EToV[:,2].transpose()
-
-    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
-
-    x = 0.5*(- np.outer(r+s, msh.vx[va]) + np.outer(1+r, msh.vx[vb]) + np.outer(1+s, msh.vx[vc]))
-    y = 0.5*(- np.outer(r+s, msh.vy[va]) + np.outer(1+r, msh.vy[vb]) + np.outer(1+s, msh.vy[vc]))
-
-    return x, y
-
-def buildFMask(N):
-    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
-    fmask1 = np.where(np.abs(s+1) < NODETOL)[0]
-    fmask2 = np.where(np.abs(r+s) < NODETOL)[0]
-    fmask3 = np.where(np.abs(r+1) < NODETOL)[0]
-    Fmask  = np.array([fmask1, fmask2, fmask3]).transpose()
-
-    return Fmask, fmask1, fmask2, fmask3
-
-def lift(N):
+        return flux_Hx_One_Normal, flux_Hy_One_Normal, flux_Ez_One_Normal
     
-    Nfp = int(N + 1)
-    Np = int((N+1) * (N+2) / 2)
-    Emat = np.zeros((Np, N_FACES*Nfp))
+    def computeTwoNormalFlux(self, dHx, dHy):
 
-    r, s  = xy_to_rs(*set_nodes_in_equilateral_triangle(N))
-    Fmask, _, _, _ = buildFMask(N)
+        flux_Hx_Two_Normal = 0
+        flux_Hy_Two_Normal = 0
+        flux_Ez_Two_Normal = 0
+
+        if self.fluxType == "Upwind":
+            ndotdH = self.nx * dHx + self.ny * dHy
+            flux_Hx_Two_Normal += ndotdH * self.nx
+            flux_Hy_Two_Normal += ndotdH * self.ny
+        elif self.fluxType == "Centered":
+            pass
+        else:
+            raise ValueError("Invalid flux type.")
+        
+        return flux_Hx_Two_Normal, flux_Hy_Two_Normal, flux_Ez_Two_Normal
+
+    def computeFlux(self, Hx, Hy, Ez):
+
+        dHx, dHy, dEz = self.computeJumps(Hx, Hy, Ez)
+        f_Hx_zero, f_Hy_zero, f_Ez_zero = self.computeZeroNormalFlux(dEz)
+        f_Hx_one,   f_Hy_one,  f_Ez_one = self.computeOneNormalFlux(dHx, dHy, dEz)
+        f_Hx_two,   f_Hy_two,  f_Ez_two = self.computeTwoNormalFlux(dHx, dHy)
+        flux_Hx =  f_Hx_zero + f_Hx_one + f_Hx_two
+        flux_Hy =  f_Hy_zero + f_Hy_one + f_Hy_two
+        flux_Ez =  f_Ez_zero + f_Ez_one + f_Ez_two
+
+        return flux_Hx, flux_Hy, flux_Ez
+
+    def fieldsOnBoundaryConditions(self, Hx, Hy, Ez):
+
+        bcType = self.mesh.boundary_label
+        if bcType == "PEC":
+            Hbcx = Hx.transpose().take(self.vmapB)
+            Hbcy = Hy.transpose().take(self.vmapB)
+            Ebcz = - Ez.transpose().take(self.vmapB)
+        elif bcType == "PMC":
+            Hbcx = - Hx.transpose().take(self.vmapB)
+            Hbcy = - Hy.transpose().take(self.vmapB)
+            Ebcz = Ez.transpose().take(self.vmapB)
+        elif bcType == "SMA":
+            Hbcx = Hx.transpose().take(self.vmapB) * 0.0
+            Hbcy = Hx.transpose().take(self.vmapB) * 0.0
+            Ebcz = Ez.transpose().take(self.vmapB) * 0.0
+        elif bcType == "Periodic":
+            Hbcx = Hx.transpose().take(self.vmapB[::-1])
+            Hbcy = Hy.transpose().take(self.vmapB[::-1])
+            Ebcz = Ez.transpose().take(self.vmapB[::-1])
+        else:
+            raise ValueError("Invalid boundary label.")
+        return Hbcx, Hbcy, Ebcz
+
+    def computeJumps(self, Hx, Hy, Ez):
+        Hbcx, Hbcy, Ebcz = self.fieldsOnBoundaryConditions(Hx, Hy, Ez)
+        dHx = Hx.transpose().take(self.vmapM) - Hx.transpose().take(self.vmapP)
+        dHy = Hy.transpose().take(self.vmapM) - Hy.transpose().take(self.vmapP)
+        dEz = Ez.transpose().take(self.vmapM) - Ez.transpose().take(self.vmapP)
+
+        dHx[self.mapB] = Hx.transpose().take(self.vmapB) - Hbcx
+        dHy[self.mapB] = Hy.transpose().take(self.vmapB) - Hbcy
+        dEz[self.mapB] = Ez.transpose().take(self.vmapB) - Ebcz
+
+        dHx = dHx.reshape(self.n_fp*self.n_faces,
+                          self.mesh.number_of_elements(), order='F')
+        dHy = dHy.reshape(self.n_fp*self.n_faces,
+                          self.mesh.number_of_elements(), order='F')
+        dEz = dEz.reshape(self.n_fp*self.n_faces,
+                          self.mesh.number_of_elements(), order='F')
+
+        return dHx, dHy, dEz
+
+    def computeRHS(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
+
+        flux_Hx, flux_Hy, flux_Ez = self.computeFlux(Hx, Hy, Ez)
+
+        rhs_Ezx, rhs_Ezy = grad(
+            self.Dr, self.Ds, Ez, self.rx, self.sx, self.ry, self.sy
+        )
+        rhs_CuHz = curl(
+            self.Dr, self.Ds, Hx, Hy, self.rx, self.sx, self.ry, self.sy
+        )
+
+        # missing material epsilon/mu
+        rhs_Hx = -rhs_Ezy  + np.matmul(self.lift, self.f_scale * flux_Hx)/2.0
+        rhs_Hy =  rhs_Ezx  + np.matmul(self.lift, self.f_scale * flux_Hy)/2.0
+        rhs_Ez =  rhs_CuHz + np.matmul(self.lift, self.f_scale * flux_Ez)/2.0
+
+        return {'Hx': rhs_Hx, 'Hy': rhs_Hy, 'Ez': rhs_Ez}
     
-    # face 0
-    faceR = r[Fmask[:,0]]
-    V1D = dg1d.vandermonde(N, faceR)
-    massEdge1 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,0], :Nfp] = massEdge1
+    def computeRHSStiffness(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
 
-    # face 1
-    faceR = r[Fmask[:,1]]
-    V1D = dg1d.vandermonde(N, faceR)
-    massEdge2 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,1], Nfp:(2*Nfp)] = massEdge2
+        rhs_Ezx, rhs_Ezy = grad(
+            self.Dr, self.Ds, Ez, self.rx, self.sx, self.ry, self.sy
+        )
+        rhs_CuHz = curl(
+            self.Dr, self.Ds, Hx, Hy, self.rx, self.sx, self.ry, self.sy
+        )
 
-    # face 2
-    faceS = s[Fmask[:,2]]
-    V1D = dg1d.vandermonde(N, faceS)
-    massEdge3 = np.linalg.inv(V1D.dot(V1D.transpose()))
-    Emat[Fmask[:,2], (2*Nfp):] = massEdge3
+        rhs_Hx_stiffness = -rhs_Ezy
+        rhs_Hy_stiffness =  rhs_Ezx
+        rhs_Ez_stiffness =  rhs_CuHz
 
-    # inv(mass matrix)*\I_n (L_i,L_j)_{edge_n}
-    V = vandermonde(N, r, s)
-    lift = V.dot(V.transpose().dot(Emat))
-    return lift
+        return {'Hx': rhs_Hx_stiffness, 'Hy': rhs_Hy_stiffness, 'Ez': rhs_Ez_stiffness}
 
-def geometricFactors(x, y, Dr, Ds):
-    xr = np.matmul(Dr,x)
-    xs = np.matmul(Ds,x)
-    yr = np.matmul(Dr,y)
-    ys = np.matmul(Ds,y)
-    J = -xs*yr + xr*ys
     
-    rx =  ys/J
-    sx = -yr/J
-    ry = -xs/J
-    sy =  xr/J
-    return rx, sx, ry, sy, J
+    def computeRHSZeroNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
 
-def normals(x, y, Dr, Ds, N):
+        _ , _ , dEz = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_zero_normal, flux_Hy_zero_normal, flux_Ez_zero_normal = self.computeZeroNormalFlux(dEz)
 
-    xr = np.matmul(Dr,x)
-    xs = np.matmul(Ds,x)
-    yr = np.matmul(Dr,y)
-    ys = np.matmul(Ds,y)
+        rhs_Hx_zero_normal = np.matmul(self.lift, self.f_scale * flux_Hx_zero_normal)/2.0
+        rhs_Hy_zero_normal = np.matmul(self.lift, self.f_scale * flux_Hy_zero_normal)/2.0
+        rhs_Ez_zero_normal = np.matmul(self.lift, self.f_scale * flux_Ez_zero_normal)/2.0
 
-    _, fmask1, fmask2, fmask3 = buildFMask(N)
+        return {'Hx': rhs_Hx_zero_normal, 'Hy': rhs_Hy_zero_normal, 'Ez': rhs_Ez_zero_normal}
+    
+    def computeRHSOneNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
 
-    fxr = np.concatenate((xr[fmask1], xr[fmask2], xr[fmask3]))
-    fxs = np.concatenate((xs[fmask1], xs[fmask2], xs[fmask3]))
-    fyr = np.concatenate((yr[fmask1], yr[fmask2], yr[fmask3]))
-    fys = np.concatenate((ys[fmask1], ys[fmask2], ys[fmask3]))
+        dHx , dHy , dEz = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_one_normal, flux_Hy_one_normal, flux_Ez_one_normal = self.computeOneNormalFlux(dHx , dHy , dEz)
 
-    Nfp = int(N+1)
+        rhs_Hx_one_normal = np.matmul(self.lift, self.f_scale * flux_Hx_one_normal)/2.0
+        rhs_Hy_one_normal = np.matmul(self.lift, self.f_scale * flux_Hy_one_normal)/2.0
+        rhs_Ez_one_normal = np.matmul(self.lift, self.f_scale * flux_Ez_one_normal)/2.0
 
-    K = x.shape[1]
-    nx = np.zeros((3*Nfp, K))
-    ny = np.zeros((3*Nfp, K))
+        return {'Hx': rhs_Hx_one_normal, 'Hy': rhs_Hy_one_normal, 'Ez': rhs_Ez_one_normal}
+    
+    def computeRHSTwoNormal(self, fields):
+        Hx = fields['Hx']
+        Hy = fields['Hy']
+        Ez = fields['Ez']
 
-    fid1 = np.linspace(0,        Nfp-1, Nfp, True, False, int).transpose()
-    fid2 = np.linspace(Nfp,  2*Nfp-1, Nfp, True, False, int).transpose()
-    fid3 = np.linspace(2*Nfp,3*Nfp-1, Nfp, True, False, int).transpose()
+        dHx , dHy , _ = self.computeJumps(Hx, Hy, Ez)
+        flux_Hx_two_normal, flux_Hy_two_normal, flux_Ez_two_normal = self.computeTwoNormalFlux(dHx, dHy)
 
-    # face 1
-    nx[fid1] =  fyr[fid1]
-    ny[fid1] = -fxr[fid1]
+        rhs_Hx_two_normal = np.matmul(self.lift, self.f_scale * flux_Hx_two_normal)/2.0
+        rhs_Hy_two_normal = np.matmul(self.lift, self.f_scale * flux_Hy_two_normal)/2.0
+        rhs_Ez_two_normal = np.matmul(self.lift, self.f_scale * flux_Ez_two_normal)/2.0
 
-    # face 2
-    nx[fid2] =  fys[fid2]-fyr[fid2] 
-    ny[fid2] = -fxs[fid2]+fxr[fid2]
-
-    # face 3
-    nx[fid3] = -fys[fid3] 
-    ny[fid3] =  fxs[fid3]
-
-    # normalise
-    sJ = np.sqrt(nx*nx+ny*ny)
-    nx = nx/sJ 
-    ny = ny/sJ
-    return nx, ny, sJ
-
-def jacobi_gauss(alpha, beta, n_order):
-    """
-    Compute the order n_order Gauss quadrature points, x, 
-    and weights, w, associated with the Jacobi 
-    polynomial, of type (alpha,beta) > -1 ( <> -0.5).
-    >>> s1 = jacobi_gauss(2,1,0)
-    >>> s2 = [-0.2,  2]
-    >>> np.allclose(s1,s2)
-    True
-    >>> s1 = jacobi_gauss(2,1,1)
-    >>> s2 = [([-0.54691816,  0.26120387]), ([0.76094757, 0.57238576])]
-    >>> np.allclose(s1,s2)
-    True
-    >>> s1 = jacobi_gauss(2,1,2)
-    >>> s2 = [([-0.70882014, -0.13230082,  0.50778763]), ([0.39524241,  0.72312171,  0.21496922])]
-    >>> np.allclose(s1,s2)
-    True
-    """
-    points = np.zeros(n_order)
-    weight = np.zeros(n_order)
-    if n_order == 0:
-        points = -(alpha-beta)/(alpha+beta+2)
-        weight = 2
-        return [points, weight]
-
-    # Form symmetric matrix from recurrence.
-    j_matrix = np.zeros([n_order+1, n_order+1])
-    h1 = np.zeros(n_order+1)
-    aux = np.zeros(n_order)
-
-    for i in range(n_order):
-        aux[i] = 1+i
-
-    for i in range(n_order+1):
-        h1[i] = 2*i+alpha+beta
-
-    j_matrix = np.diag(-0.5*(alpha**2-beta**2)/(h1+2)/h1) \
-        + np.diag(2/(h1[0:n_order]+2)
-                  * np.sqrt(aux*(aux+alpha+beta)*(aux+alpha)
-                            * (aux+beta)/(h1[0:n_order]+1)/(h1[0:n_order]+3)), 1)
-
-    eps = np.finfo(float).eps
-
-    if (alpha+beta < 10*eps):
-        j_matrix[0, 0] = 0.0
-
-    j_matrix += np.transpose(j_matrix)
-
-    [e_val, e_vec] = np.linalg.eig(j_matrix)
-
-    points = e_val
-
-    weight = e_vec[0, :]**2*2**(alpha+beta+1)/(alpha+beta+1)*scipy.special.gamma(alpha+1) \
-        * scipy.special.gamma(beta+1)/scipy.special.gamma(alpha+beta+1)
-
-    return [points, weight]
-
-def grad(Dr, Ds, Fz, rx, sx, ry, sy):
-
-    GradX = rx*np.matmul(Dr,Fz) + sx*np.matmul(Ds,Fz)
-    GradY = ry*np.matmul(Dr,Fz) + sy*np.matmul(Ds,Fz)
-
-    return GradX, GradY
-
-def curl(Dr, Ds, Fx, Fy, rx, sx, ry, sy):
-    CuZ =   rx*np.matmul(Dr,Fy) + sx*np.matmul(Ds,Fy) \
-            - ry*np.matmul(Dr,Fx) - sy*np.matmul(Ds,Fx)
-
-    return CuZ
+        return {'Hx': rhs_Hx_two_normal, 'Hy': rhs_Hy_two_normal, 'Ez': rhs_Ez_two_normal}
 
 
+
+    def plot_field(self, Nout, field):
+        # Build equally spaced grid on reference triangle
+        Npout = int((Nout+1)*(Nout+2)/2)
+        rout = np.zeros((Npout))
+        sout = np.zeros((Npout))
+        counter = np.zeros((Nout+1, Nout+1))
+        sk = 0
+        for n in range (Nout+1):
+            for m in range (Nout+1-n):
+                rout[sk] = -1 + 2*m/Nout
+                sout[sk] = -1 + 2*n/Nout
+                counter[n,m] = sk
+                sk += 1
+                
+        # Build matrix to interpolate field data to equally spaced nodes
+        Vout = vandermonde(Nout, rout, sout)
+        interp = Vout.dot(np.linalg.inv(Vout))
+
+        # Build triangulation of equally spaced nodes on reference triangle
+        tri = np.array([], dtype=int).reshape(0,3)
+        for n in range (Nout+1):
+            for m in range (Nout-n):
+                v1 = counter[n,m]
+                v2 = counter[n,m+1]
+                v3 = counter[n+1,m]
+                v4 = counter[n+1,m+1]
+                if v4:
+                    tri = np.vstack((tri, [v1, v2, v3],[v2, v4, v3]))
+                else:
+                    tri = np.vstack((tri, [[v1, v2, v3]]))
+
+        # Build triangulation for all equally spaced nodes on all elements
+        TRI = np.array([], dtype=int).reshape(0,3)
+        for k in range(self.mesh.number_of_elements()):
+            TRI = np.vstack((TRI, tri+(k)*Npout))
+
+        # Interpolate node coordinates and field to equally spaced nodes
+        xout = interp.dot(self.x) 
+        yout = interp.dot(self.y) 
+        uout = interp.dot(field)
+
+        levels = np.linspace(-1, 1, 200)
+        # Render and format solution field
+        plt.tricontourf(
+            xout.ravel('F'), 
+            yout.ravel('F'), 
+            uout.ravel('F'), 
+            triangles=TRI, 
+            cmap='viridis',
+            levels=levels
+        )

@@ -1,7 +1,7 @@
 from pytest import approx
 import numpy as np
 
-import maxwell.dg.dg1d as dg
+import maxwell.dg.dg1d_tools as dg
 import maxwell.dg.mesh1d as ms
 
     
