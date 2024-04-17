@@ -27,8 +27,8 @@ class FDTD1D(SpatialDiscretization):
         self.c0 = 1.0
         self.source = source
 
-        self.left_TF_limit = int(0.1*len(self.x))
-        self.right_TF_limit = int(0.9*len(self.x))
+        self.left_TF_limit = int(0.2*len(self.x))
+        self.right_TF_limit = int(0.8*len(self.x))
 
     def TFSF_conditions(self, tag='off'):
         if tag == 'on': 
@@ -43,10 +43,15 @@ class FDTD1D(SpatialDiscretization):
 
         if (self.source != None and self.tfsf):
 
-            Einc = np.zeros(self.x.shape, dtype=object)
-            Einc[:] = lambda t :self.source(self.x[:],t)
+            Einc = np.ndarray(self.x.shape, dtype=object)
+            for i in range(len(self.x)):
+                Einc[i] = lambda t :self.source(self.x[i],t)
+
+            Hinc = np.ndarray(self.xH.shape, dtype=object)
+            for i in range(len(self.xH)):
+                Hinc[i] = lambda t :self.source(self.xH[i],t + 0.5)
             
-            return {"E": E, "H": H, "Einc" : Einc}
+            return {"E": E, "H": H, "Einc" : Einc, "Hinc": Hinc}
         else:
             return {"E": E, "H": H}
 
@@ -62,13 +67,9 @@ class FDTD1D(SpatialDiscretization):
 
         if self.tfsf == True:
 
-            Einc = fields['Einc']
-            Einc[:](time)
-
-            rhsE[self.left_TF_limit] = (1.0/self.dxH[0]) * (H[self.left_TF_limit-1])
-            rhsE[self.right_TF_limit] = - (1.0/self.dxH[0]) * (H[self.right_TF_limit])
-
-
+            Hinc = fields['Hinc']
+            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * Hinc[self.left_TF_limit - 1](time)
+            rhsE[self.right_TF_limit] -= (1.0/self.dxH[0]) * Hinc[self.right_TF_limit ](time)
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -133,11 +134,9 @@ class FDTD1D(SpatialDiscretization):
 
         if self.tfsf == True:
 
-            Hinc = fields['Hinc']
-            Hinc[:](time)
-
-            rhsH[self.left_TF_limit] =  -(1.0/self.dxH[0]) * (E[self.left_TF_limit+1])
-            rhsH[self.right_TF_limit] =   (1.0/self.dxH[0]) * (E[self.right_TF_limit])
+            Einc = fields['Einc']
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dxH[0]) * Einc[self.left_TF_limit](time)
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dxH[0]) * Einc[self.right_TF_limit](time)
 
         return rhsH
 
