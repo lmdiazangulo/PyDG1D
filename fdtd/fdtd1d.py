@@ -13,7 +13,7 @@ else:
 
 
 class FDTD1D(SpatialDiscretization):
-    def __init__(self, mesh: Mesh1D):
+    def __init__(self, mesh: Mesh1D, source):
         SpatialDiscretization.__init__(self, mesh)
 
         self.x = mesh.vx
@@ -25,10 +25,11 @@ class FDTD1D(SpatialDiscretization):
         K = self.mesh.number_of_elements()
 
         self.c0 = 1.0
+        self.source = source
 
         self.left_TF_limit = int(0.1*len(self.x))
         self.right_TF_limit = int(0.9*len(self.x))
-    
+
     def TFSF_conditions(self, tag='off'):
         if tag == 'on': 
             self.tfsf =  True
@@ -40,12 +41,19 @@ class FDTD1D(SpatialDiscretization):
         E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
 
-        return {"E": E, "H": H}
+        if (self.source != None and self.tfsf):
+
+            Einc = np.zeros(self.x.shape, dtype=object)
+            Einc[:] = lambda t :self.source(self.x[:],t)
+            
+            return {"E": E, "H": H, "Einc" : Einc}
+        else:
+            return {"E": E, "H": H}
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def computeRHSE(self, fields):
+    def computeRHSE(self, fields, time):
         H = fields['H']
         E = fields['E']
         rhsE = np.zeros(fields['E'].shape)
@@ -54,8 +62,12 @@ class FDTD1D(SpatialDiscretization):
 
         if self.tfsf == True:
 
+            Einc = fields['Einc']
+            Einc[:](time)
+
             rhsE[self.left_TF_limit] = (1.0/self.dxH[0]) * (H[self.left_TF_limit-1])
             rhsE[self.right_TF_limit] = - (1.0/self.dxH[0]) * (H[self.right_TF_limit])
+
 
 
         for bdr, label in self.mesh.boundary_label.items():
@@ -115,11 +127,14 @@ class FDTD1D(SpatialDiscretization):
 
         return rhsE
 
-    def computeRHSH(self, fields):
+    def computeRHSH(self, fields, time):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         if self.tfsf == True:
+
+            Hinc = fields['Hinc']
+            Hinc[:](time)
 
             rhsH[self.left_TF_limit] =  -(1.0/self.dxH[0]) * (E[self.left_TF_limit+1])
             rhsH[self.right_TF_limit] =   (1.0/self.dxH[0]) * (E[self.right_TF_limit])
@@ -131,6 +146,10 @@ class FDTD1D(SpatialDiscretization):
         rhsH = self.computeRHSH(fields)
 
         return {'E': rhsE, 'H': rhsH}
+    
+
+#······················································
+
 
     def isStaggered(self):
         return True

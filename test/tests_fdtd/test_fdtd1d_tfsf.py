@@ -13,6 +13,9 @@ from fdtd.fdtd1d import *
 
 from nodepy import runge_kutta_method as rk
 
+def gaussian(s):
+    return lambda x,t : np.exp(-(x-t)**2/(2*s**2))
+
 #······················································
 
 def plot(sp, driver):
@@ -34,15 +37,15 @@ def test_tfsf_null_field():
 #La onda se genera en x=0 y nuestro limite de TF está en x=0.8
 
     t_final = 8.0
+    s0 = 0.25
 
-    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    sp = FDTD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"), source = gaussian(s0))
     sp.TFSF_conditions('on')
 
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
-    s0 = 0.25
-    driver['E'][10] = 1
-    driver['H'][10] = 1
+    # driver['E'][10] = 1
+    # driver['H'][10] = 1
     # driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     # driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
