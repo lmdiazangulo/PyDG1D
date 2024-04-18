@@ -27,6 +27,7 @@ class FDTD1D(SpatialDiscretization):
         self.c0 = 1.0
         self.tfsf = False
         self.source = None
+        
     def TFSF_conditions(self, setup):
 
         self.tfsf =  True
@@ -39,8 +40,20 @@ class FDTD1D(SpatialDiscretization):
     def buildFields(self):
         E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
+    
+        if (self.source != None and self.tfsf):
 
-        return {"E": E, "H": H}
+            Einc = np.ndarray(self.x.shape, dtype=object)
+            for i in range(len(self.x)):
+                Einc[i] = lambda t :self.source(self.x[i],t)
+
+            Hinc = np.ndarray(self.xH.shape, dtype=object)
+            for i in range(len(self.xH)):
+                Hinc[i] = lambda t :self.source(self.xH[i],t + 0.5*self.dt)
+            
+            return {"E": E, "H": H, "Einc" : Einc, "Hinc": Hinc}
+        else:
+            return {"E": E, "H": H}
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
@@ -55,8 +68,8 @@ class FDTD1D(SpatialDiscretization):
         if self.tfsf == True:
 
             Hinc = fields['Hinc']
-            # rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time)
-            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time)
+            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time - 0.5*self.dt)
+            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time - 0.5*self.dt)
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -122,8 +135,8 @@ class FDTD1D(SpatialDiscretization):
         if self.tfsf == True:
 
             Einc = fields['Einc']
-            # rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time)
-            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time)
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time  - 0.5*self.dt)
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time- 0.5*self.dt)
 
         return rhsH
 
