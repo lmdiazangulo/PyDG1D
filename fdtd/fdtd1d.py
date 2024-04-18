@@ -25,6 +25,16 @@ class FDTD1D(SpatialDiscretization):
         K = self.mesh.number_of_elements()
 
         self.c0 = 1.0
+        self.tfsf = False
+        self.source = None
+    def TFSF_conditions(self, setup):
+
+        self.tfsf =  True
+        self.source = setup["source"]
+        self.left_TF_limit = (np.absolute(self.x - setup["left"])).argmin()
+        self.right_TF_limit = (np.absolute(self.x - setup["right"])).argmin()
+        if not "source" in setup.keys() or not "left" in setup.keys() or not "right" in setup.keys():
+            raise ValueError('Missing TFSF setup variables')
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
@@ -35,12 +45,18 @@ class FDTD1D(SpatialDiscretization):
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def computeRHSE(self, fields):
+    def computeRHSE(self, fields, time = 0.0):
         H = fields['H']
         E = fields['E']
         rhsE = np.zeros(fields['E'].shape)
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.tfsf == True:
+
+            Hinc = fields['Hinc']
+            # rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time)
+            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time)
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -99,9 +115,15 @@ class FDTD1D(SpatialDiscretization):
 
         return rhsE
 
-    def computeRHSH(self, fields):
+    def computeRHSH(self, fields, time = 0.0):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
+
+        if self.tfsf == True:
+
+            Einc = fields['Einc']
+            # rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time)
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time)
 
         return rhsH
 
