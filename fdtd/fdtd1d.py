@@ -13,7 +13,7 @@ else:
 
 
 class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notation.
-    def __init__(self, mesh: Mesh1D, source):
+    def __init__(self, mesh: Mesh1D):
         SpatialDiscretization.__init__(self, mesh)
 
         self.x = mesh.vx
@@ -33,7 +33,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
         self.tfsf =  True
         self.source = setup["source"]
         self.left_TF_limit = (np.absolute(self.x - setup["left"])).argmin()
-        self.right_TF_limit = (np.absolute(self.x - setup["right"])).argmin()
+        self.right_TF_limit = (np.absolute(self.x - setup["right"])).argmin()        
         if not "source" in setup.keys() or not "left" in setup.keys() or not "right" in setup.keys():
             raise ValueError('Missing TFSF setup variables')
 
@@ -68,7 +68,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
         if self.tfsf == True:
 
             Hinc = fields['Hinc']
-            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time - 0.5*self.dt)
+            #rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time - 0.5*self.dt)
             rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time - 0.5*self.dt)
 
         for bdr, label in self.mesh.boundary_label.items():
@@ -135,7 +135,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
         if self.tfsf == True:
 
             Einc = fields['Einc']
-            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time  - 0.5*self.dt)
+            #rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time  - 0.5*self.dt)
             rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time- 0.5*self.dt)
 
         return rhsH
@@ -177,7 +177,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
             raise ValueError( "Periodic conditions must be ensured at both ends")
         return A
 
-    def reorder_array(self, A, ordering):  #NEEDS FIXING!
+    def reorder_array(self, A, ordering):
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{NE-1}, H_0, ..., H_{NH-1} ]
         N = A.shape[0]
