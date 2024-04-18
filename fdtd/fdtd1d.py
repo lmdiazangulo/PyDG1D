@@ -12,7 +12,7 @@ else:
     from dgtd.mesh1d import Mesh1D
 
 
-class FDTD1D(SpatialDiscretization):
+class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notation.
     def __init__(self, mesh: Mesh1D, source):
         SpatialDiscretization.__init__(self, mesh)
 
@@ -68,7 +68,7 @@ class FDTD1D(SpatialDiscretization):
         if self.tfsf == True:
 
             Hinc = fields['Hinc']
-            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * Hinc[self.left_TF_limit - 1](time)
+            #rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * Hinc[self.left_TF_limit - 1](time)
             rhsE[self.right_TF_limit] -= (1.0/self.dxH[0]) * Hinc[self.right_TF_limit ](time)
 
         for bdr, label in self.mesh.boundary_label.items():
@@ -135,7 +135,7 @@ class FDTD1D(SpatialDiscretization):
         if self.tfsf == True:
 
             Einc = fields['Einc']
-            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dxH[0]) * Einc[self.left_TF_limit](time)
+            #rhsH[self.left_TF_limit - 1] +=  (1.0/self.dxH[0]) * Einc[self.left_TF_limit](time)
             rhsH[self.right_TF_limit]    -=  (1.0/self.dxH[0]) * Einc[self.right_TF_limit](time)
 
         return rhsH
