@@ -25,22 +25,22 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
         K = self.mesh.number_of_elements()
 
         self.c0 = 1.0
-        self.source = source
+        self.tfsf = False
+        self.source = None
+        
+    def TFSF_conditions(self, setup):
 
-        self.left_TF_limit = int(0.2*len(self.x))
-        self.right_TF_limit = int(0.8*len(self.x))
-
-    def TFSF_conditions(self, tag='off'):
-        if tag == 'on': 
-            self.tfsf =  True
-        elif tag == 'off': 
-            self.tfsf = False
-        else: raise ValueError('Only on or off states are available')
+        self.tfsf =  True
+        self.source = setup["source"]
+        self.left_TF_limit = (np.absolute(self.x - setup["left"])).argmin()
+        self.right_TF_limit = (np.absolute(self.x - setup["right"])).argmin()
+        if not "source" in setup.keys() or not "left" in setup.keys() or not "right" in setup.keys():
+            raise ValueError('Missing TFSF setup variables')
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
-
+    
         if (self.source != None and self.tfsf):
 
             Einc = np.ndarray(self.x.shape, dtype=object)
@@ -49,7 +49,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
 
             Hinc = np.ndarray(self.xH.shape, dtype=object)
             for i in range(len(self.xH)):
-                Hinc[i] = lambda t :self.source(self.xH[i],t + 0.5)
+                Hinc[i] = lambda t :self.source(self.xH[i],t + 0.5*self.dt)
             
             return {"E": E, "H": H, "Einc" : Einc, "Hinc": Hinc}
         else:
@@ -58,7 +58,7 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def computeRHSE(self, fields, time):
+    def computeRHSE(self, fields, time = 0.0):
         H = fields['H']
         E = fields['E']
         rhsE = np.zeros(fields['E'].shape)
@@ -68,8 +68,8 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
         if self.tfsf == True:
 
             Hinc = fields['Hinc']
-            #rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * Hinc[self.left_TF_limit - 1](time)
-            rhsE[self.right_TF_limit] -= (1.0/self.dxH[0]) * Hinc[self.right_TF_limit ](time)
+            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time - 0.5*self.dt)
+            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time - 0.5*self.dt)
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -128,15 +128,15 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
 
         return rhsE
 
-    def computeRHSH(self, fields, time):
+    def computeRHSH(self, fields, time = 0.0):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         if self.tfsf == True:
 
             Einc = fields['Einc']
-            #rhsH[self.left_TF_limit - 1] +=  (1.0/self.dxH[0]) * Einc[self.left_TF_limit](time)
-            rhsH[self.right_TF_limit]    -=  (1.0/self.dxH[0]) * Einc[self.right_TF_limit](time)
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time  - 0.5*self.dt)
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time- 0.5*self.dt)
 
         return rhsH
 
