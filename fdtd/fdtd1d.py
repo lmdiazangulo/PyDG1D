@@ -134,8 +134,6 @@ class FDTD1D(SpatialDiscretization): #Fields update following Sullivan's notatio
 
         return rhsE
 
-
-
     def computeRHSH(self, fields):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])

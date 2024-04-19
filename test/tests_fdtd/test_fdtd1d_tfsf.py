@@ -51,7 +51,7 @@ def test_tfsf_null_field():
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - 0.5*driver.dt)**2/(2*s0**2))
 
-    plot(sp, driver)
+    #plot(sp, driver)
 
     driver.run_until(t_final)
 
