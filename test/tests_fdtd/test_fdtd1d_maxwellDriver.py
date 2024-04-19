@@ -126,7 +126,7 @@ def test_fdtd_mur_right_only():
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
-    # plot(sp, driver)
+    #plot(sp, driver)
 
     driver.run_until(t_final)
 
