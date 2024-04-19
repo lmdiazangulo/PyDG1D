@@ -1,5 +1,27 @@
 import numpy as np
 
+
+DIR_X = 0
+DIR_Y = 1
+DIR_Z = 2
+
+TAG_X = "x"
+TAG_Y = "y"
+TAG_Z = "z"
+
+
+class General:
+    def __init__(self):
+        self.time_step = 0.0
+        self.number_of_steps = 0
+
+class Grid:
+    def __init__(self):
+        # self.number_of_cells = []
+        self.dx = np.array([])
+        self.dy = np.array([])
+        self.dz = np.array([])
+
 class element:
     def __init__(self, element_description : dict):
         

@@ -18,8 +18,8 @@ class MaxwellDriver:
                  sp: SpatialDiscretization, 
                  timeIntegratorType = 'LSERK4',
                  CFL = 1.0):
+
         self.sp = sp
-        self.fields = sp.buildFields()
         
         # Compute time step size
         r_min = sp.get_minimum_node_distance()
@@ -33,6 +33,8 @@ class MaxwellDriver:
                 self.dt = CFL * min(dtscale)*r_min*2.0/3.0
 
         self.sp.dt = self.dt       
+
+        self.fields = sp.buildFields()
             
         # Init time integrator
         if timeIntegratorType == 'EULER':

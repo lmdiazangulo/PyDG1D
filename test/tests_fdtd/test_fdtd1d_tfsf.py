@@ -14,7 +14,7 @@ from fdtd.fdtd1d import *
 from nodepy import runge_kutta_method as rk
 
 def gaussian(s):
-    return lambda x,t : np.exp(-(x-t)**2/(2*s**2))
+    return lambda x : np.exp(-(x)**2/(2*s**2))
 
 #······················································
 
@@ -48,8 +48,6 @@ def test_tfsf_null_field():
 
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
-    # driver['E'][10] = 1
-    # driver['H'][10] = 1
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     driver['H'][:] = np.exp(-(sp.xH - 0.5*driver.dt)**2/(2*s0**2))
 
