@@ -42,23 +42,26 @@ class FDTD1D(SpatialDiscretization):
         H = np.zeros(self.xH.shape)
     
         if (self.source != None and self.tfsf):
+            self.buildIncidentFields()
 
-            Einc = np.ndarray(self.x.shape, dtype=object)
-            for i in range(len(self.x)):
-                Einc[i] = lambda t :self.source(self.x[i],t)
+        return {"E": E, "H": H}
 
-            Hinc = np.ndarray(self.xH.shape, dtype=object)
-            for i in range(len(self.xH)):
-                Hinc[i] = lambda t :self.source(self.xH[i],t + 0.5*self.dt)
-            
-            return {"E": E, "H": H, "Einc" : Einc, "Hinc": Hinc}
-        else:
-            return {"E": E, "H": H}
+    def buildIncidentFields(self):
+        self.Einc = np.ndarray(self.x.shape)
+        self.Einc[:] = self.source(self.x[:])
+
+        self.Eprev = np.zeros(self.x.shape)
+        
+        self.Hinc = np.ndarray(self.xH.shape)
+        self.Hinc[:] = self.source(self.xH[:] - 0.5*self.dt)
+        
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
 
-    def computeRHSE(self, fields, time = 0.0):
+
+
+    def computeRHSE(self, fields):
         H = fields['H']
         E = fields['E']
         rhsE = np.zeros(fields['E'].shape)
@@ -67,9 +70,9 @@ class FDTD1D(SpatialDiscretization):
 
         if self.tfsf == True:
 
-            Hinc = fields['Hinc']
-            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[self.left_TF_limit-1]) * Hinc[self.left_TF_limit - 1](time - 0.5*self.dt)
-            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[self.right_TF_limit])  * Hinc[self.right_TF_limit ](time - 0.5*self.dt)
+            self.updateIncidentFieldE()
+            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.left_TF_limit-1]
+            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.right_TF_limit ]
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -94,6 +97,8 @@ class FDTD1D(SpatialDiscretization):
                     rhsE[0] -= E[0]
                     rhsE[0] /= self.dt   
 
+                    
+
             if bdr == "RIGHT":
                 if label == "PEC":
                     rhsE[-1] = 0.0
@@ -116,6 +121,7 @@ class FDTD1D(SpatialDiscretization):
                     rhsE[-1] /= self.dt   
                               
 
+
         # elif self.mesh.boundary_label == "PML":  # [WIP]
         #     boundary_low = [0, 0]
         #     boundary_high = [0, 0]
@@ -128,15 +134,16 @@ class FDTD1D(SpatialDiscretization):
 
         return rhsE
 
-    def computeRHSH(self, fields, time = 0.0):
+
+
+    def computeRHSH(self, fields):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
 
         if self.tfsf == True:
-
-            Einc = fields['Einc']
-            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[self.left_TF_limit]) * Einc[self.left_TF_limit](time  - 0.5*self.dt)
-            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[self.right_TF_limit]) * Einc[self.right_TF_limit](time- 0.5*self.dt)
+            self.updateIncidentFieldH()
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[0]) * self.Einc[self.left_TF_limit]
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[0]) * self.Einc[self.right_TF_limit]
 
         return rhsH
 
@@ -145,6 +152,27 @@ class FDTD1D(SpatialDiscretization):
         rhsH = self.computeRHSH(fields)
 
         return {'E': rhsE, 'H': rhsH}
+
+    def updateIncidentFieldE(self):
+        self.Einc[1:-1] = self.Einc[1:-1] - self.dt*(1.0/self.dxH) * (self.Hinc[1:] - self.Hinc[:-1])
+            
+        self.Einc[0] = \
+            self.Eprev[1] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[1] - self.Eprev[0])
+
+        self.Einc[-1] = \
+            self.Eprev[-2] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[-2] - self.Eprev[-1])
+
+        self.Eprev[:] = self.Einc[:]
+
+    def updateIncidentFieldH(self):
+        self.Hinc = self.Hinc - self.dt*(1.0/self.dx) * (self.Einc[1:] - self.Einc[:-1])
+
 
     def isStaggered(self):
         return True
