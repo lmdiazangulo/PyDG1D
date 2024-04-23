@@ -168,6 +168,7 @@ class FD1D(SpatialDiscretization):
     def updateIncidentFieldH(self):
         self.Hinc = self.Hinc - self.dt*(1.0/self.dx) * (self.Einc[1:] - self.Einc[:-1])
 
+#··································································································
 
     def isStaggered(self):
         return True
