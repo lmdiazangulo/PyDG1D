@@ -1,4 +1,4 @@
-from maxwell.spatialDiscretization import *
+from .spatialDiscretization import *
 
 from .integrators.LSERK4 import * 
 from .integrators.DIRK2 import * 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from maxwell.spatialDiscretization import *
+from ..spatialDiscretization import *
 
 class LSERK134:
     A = np.array([
