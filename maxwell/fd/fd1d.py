@@ -20,15 +20,41 @@ class FD1D(SpatialDiscretization):
         K = self.mesh.number_of_elements()
 
         self.c0 = 1.0
+        self.tfsf = False
+        self.source = None
+        
+    def TFSF_conditions(self, setup):
+
+        self.tfsf =  True
+        self.source = setup["source"]
+        self.left_TF_limit = (np.absolute(self.x - setup["left"])).argmin()
+        self.right_TF_limit = (np.absolute(self.x - setup["right"])).argmin()
+        if not "source" in setup.keys() or not "left" in setup.keys() or not "right" in setup.keys():
+            raise ValueError('Missing TFSF setup variables')
 
     def buildFields(self):
         E = np.zeros(self.x.shape)
         H = np.zeros(self.xH.shape)
+    
+        if (self.source != None and self.tfsf):
+            self.buildIncidentFields()
 
         return {"E": E, "H": H}
 
+    def buildIncidentFields(self):
+        self.Einc = np.ndarray(self.x.shape)
+        self.Einc[:] = self.source(self.x[:])
+
+        self.Eprev = np.zeros(self.x.shape)
+        
+        self.Hinc = np.ndarray(self.xH.shape)
+        self.Hinc[:] = self.source(self.xH[:] - 0.5*self.dt)
+        
+
     def get_minimum_node_distance(self):
         return np.min(self.dx)
+
+
 
     def computeRHSE(self, fields):
         H = fields['H']
@@ -36,6 +62,12 @@ class FD1D(SpatialDiscretization):
         rhsE = np.zeros(fields['E'].shape)
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.tfsf == True:
+
+            self.updateIncidentFieldE()
+            rhsE[self.left_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.left_TF_limit-1]
+            rhsE[self.right_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.right_TF_limit ]
 
         for bdr, label in self.mesh.boundary_label.items():
             
@@ -60,6 +92,8 @@ class FD1D(SpatialDiscretization):
                     rhsE[0] -= E[0]
                     rhsE[0] /= self.dt   
 
+                    
+
             if bdr == "RIGHT":
                 if label == "PEC":
                     rhsE[-1] = 0.0
@@ -82,6 +116,7 @@ class FD1D(SpatialDiscretization):
                     rhsE[-1] /= self.dt   
                               
 
+
         # elif self.mesh.boundary_label == "PML":  # [WIP]
         #     boundary_low = [0, 0]
         #     boundary_high = [0, 0]
@@ -94,9 +129,16 @@ class FD1D(SpatialDiscretization):
 
         return rhsE
 
+
+
     def computeRHSH(self, fields):
         E = fields['E']
         rhsH = - (1.0/self.dx) * (E[1:] - E[:-1])
+
+        if self.tfsf == True:
+            self.updateIncidentFieldH()
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[0]) * self.Einc[self.left_TF_limit]
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[0]) * self.Einc[self.right_TF_limit]
 
         return rhsH
 
@@ -105,6 +147,27 @@ class FD1D(SpatialDiscretization):
         rhsH = self.computeRHSH(fields)
 
         return {'E': rhsE, 'H': rhsH}
+
+    def updateIncidentFieldE(self):
+        self.Einc[1:-1] = self.Einc[1:-1] - self.dt*(1.0/self.dxH) * (self.Hinc[1:] - self.Hinc[:-1])
+            
+        self.Einc[0] = \
+            self.Eprev[1] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[1] - self.Eprev[0])
+
+        self.Einc[-1] = \
+            self.Eprev[-2] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[-2] - self.Eprev[-1])
+
+        self.Eprev[:] = self.Einc[:]
+
+    def updateIncidentFieldH(self):
+        self.Hinc = self.Hinc - self.dt*(1.0/self.dx) * (self.Einc[1:] - self.Einc[:-1])
+
 
     def isStaggered(self):
         return True
