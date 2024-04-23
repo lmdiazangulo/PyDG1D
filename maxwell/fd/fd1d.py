@@ -110,7 +110,6 @@ class FD1D(SpatialDiscretization):
         return True
 
     def buildEvolutionOperator(self):
-
         NE = len(self.x)
         N = NE + len(self.xH)
         A = np.zeros((N, N))
@@ -124,25 +123,25 @@ class FD1D(SpatialDiscretization):
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
 
-        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
+        if self.mesh.boundary_label['LEFT'] == 'Periodic'\
+            and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
             A = np.delete(A, NE-1, 0)
             A[:,0] += A[:,NE-1]
             A = np.delete(A, NE-1, 1)
-        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
-            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+        else:
             raise ValueError( "Periodic conditions must be ensured at both ends")
         return A
 
-    def reorder_array(self, A, ordering):  #NEEDS FIXING!
+    def reorder_array(self, A, ordering):
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{NE-1}, H_0, ..., H_{NH-1} ]
         N = A.shape[0]
         NE = len(self.x)
         NH = len(self.xH)
-        if self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic' :
+        if self.mesh.boundary_label['LEFT'] == 'Periodic' and \
+            self.mesh.boundary_label['RIGHT'] == 'Periodic':
             NE -= 1
-        elif ( (self.mesh.boundary_label['LEFT'] == 'Periodic' and self.mesh.boundary_label['RIGHT'] != 'Periodic')\
-            or (self.mesh.boundary_label['LEFT'] != 'Periodic' and self.mesh.boundary_label['RIGHT'] == 'Periodic')):
+        else:
             raise ValueError( "Periodic conditions must be ensured at both ends")
         if NE != NH:
             raise ValueError(

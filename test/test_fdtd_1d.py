@@ -28,6 +28,25 @@ def plot(sp, driver):
         plt.cla()
 
 # ······················································
+def test_buildDrivedEvolutionOperator():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    A = driver.buildDrivedEvolutionOperator()
+    
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    
+    q0 = np.concatenate([driver['E'], driver['H']])
+    
+    driver.step()
+    qExpected = np.concatenate([driver['E'], driver['H']])
+    
+    q = A.dot(q0)
+    
+    assert np.allclose(qExpected, q)
+    
 
 
 def test_fdtd_pec():
