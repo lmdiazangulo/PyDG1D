@@ -29,21 +29,53 @@ class FD2D(SpatialDiscretization):  # TE mode
         self.xH = (self.x[:-1] + self.x[1:]) / 2.0
         self.yH = (self.y[:-1] + self.y[1:]) / 2.0
 
+        self.dxH = self.xH[1:] - self.xH[:-1]
+
         self.cEy = 1.0 / self.dy[0]
         self.cEx = 1.0 / self.dx[0]
+
+        self.c0 = 1.0
+        self.tfsf = False
+        self.source = None
+
+    def TFSF_conditions(self, setup):
+
+        self.tfsf =  True
+        self.source = setup["source"]
+        self.XL_TF_limit = (np.absolute(self.x - setup["XL"])).argmin() #por que se pone naranja?
+        self.XU_TF_limit = (np.absolute(self.x - setup["XU"])).argmin()
+        self.YL_TF_limit = (np.absolute(self.y - setup["YL"])).argmin()
+        self.YU_TF_limit = (np.absolute(self.y - setup["YU"])).argmin()
+        if not "source" in setup.keys() or not "XL" in setup.keys() or not "XU" in setup.keys()\
+            or not "YL" in setup.keys() or not "YU" in setup.keys():
+            raise ValueError('Missing TFSF setup variables')
 
     def buildFields(self):
         H = np.zeros((len(self.dy), len(self.dx)))
         Ex = np.zeros((len(self.y),  len(self.dx)))
         Ey = np.zeros((len(self.dy), len(self.x)))
 
+        if (self.source != None and self.tfsf):
+            self.buildIncidentFields()
+
         return {
             "E": {"x": Ex, "y": Ey},
             "H": H
         }
+    
+    def buildIncidentFields(self):
+        self.Einc = np.ndarray(self.x.shape)
+        self.Einc[:] = self.source(self.x[:])
+
+        self.Eprev = np.zeros(self.x.shape)
+        
+        self.Hinc = np.ndarray(self.xH.shape)
+        self.Hinc[:] = self.source(self.xH[:] - 0.5*self.dt)
+        
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
+    
 
     def computeRHSE(self, fields):
         H = fields['H']
@@ -56,27 +88,76 @@ class FD2D(SpatialDiscretization):  # TE mode
         rhsEx[1:-1, :] =   self.cEy * ( H[1:, :] - H[:-1, :])
         rhsEy[:, 1:-1] = - self.cEx * ( H[:, 1:] - H[:, :-1])
 
+        if self.tfsf == True:
+
+            self.updateIncidentFieldE()
+            rhsEy[self.XL_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.XL_TF_limit-1]
+            rhsEy[self.XU_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.XU_TF_limit ]
+
+            rhsEx[self.YL_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.YL_TF_limit-1]
+            rhsEx[self.YU_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.YU_TF_limit]
+
+
+
         for bdr, label in self.boundary_labels.items():
             if bdr == "XL":
                 if label == "PEC":
                     rhsEy[:,  0] = 0.0
                 elif label == "PMC":
                     rhsEy[:, 0] =  - self.cEx * (2*H[:,0])
+                elif label == "Mur":  #Mur esta fallando
+
+                    rhsEy[:, 0] = Ey[:, 1] + \
+                    (self.c0 * self.dt - self.dy[0]) / \
+                    (self.c0 * self.dt + self.dy[0]) * \
+                    (rhsEy[:,1] - Ey[:,0])
+                    
+                    rhsEy[:, 0] -= Ey[:, 0]
+                    rhsEy[:, 0] /= self.dt  
+
             elif bdr == "XU":
                 if label == "PEC":
                     rhsEy[:, -1] = 0.0
                 elif label == "PMC":
                     rhsEy[:, -1] =  - self.cEx * (-2*H[:,-1])
+                elif label == "Mur":
+
+                    rhsEy[:, -1] = Ey[:, -2] + \
+                    (self.c0 * self.dt - self.dy[0]) / \
+                    (self.c0 * self.dt + self.dy[0]) * \
+                    (rhsEy[:,-2] - Ey[:,-1])
+                    
+                    rhsEy[:, -1] -= Ey[:, -1]
+                    rhsEy[:, -1] /= self.dt  
+                
             elif bdr == "YL":
                 if label == "PEC":
                     rhsEx[0, :] = 0.0
                 elif label == "PMC":
                     rhsEx[0, :] =  self.cEy * (2*H[0,:])
+                elif label == "Mur":
+
+                    rhsEx[0, :] = Ex[1, :] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsEx[1, :] - Ex[0, :])
+                    
+                    rhsEx[0, :] -= Ex[0, :]
+                    rhsEx[0, :] /= self.dt  
+
             elif bdr == "YU":
                 if label == "PEC":
                     rhsEx[-1, :] = 0.0
                 elif label == "PMC":
                     rhsEx[-1, :] =  self.cEy * (-2*H[-1,:])
+                elif label == "Mur":
+                    rhsEx[-1, :] = Ex[-2, :] + \
+                    (self.c0 * self.dt - self.dx[0]) / \
+                    (self.c0 * self.dt + self.dx[0]) * \
+                    (rhsEx[-2, :] - Ex[-1, :])
+                    
+                    rhsEx[-1, :] -= Ex[-1, :]
+                    rhsEx[-1, :] /= self.dt
             else:
                 raise ValueError("Invalid boundary tag.")       
 
@@ -88,6 +169,11 @@ class FD2D(SpatialDiscretization):  # TE mode
 
         rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
                - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
+        
+        if self.tfsf == True:  #esto como seria???
+            self.updateIncidentFieldH()
+            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[0]) * self.Einc[self.left_TF_limit]
+            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[0]) * self.Einc[self.right_TF_limit]
 
         return rhsH
 
@@ -96,6 +182,29 @@ class FD2D(SpatialDiscretization):  # TE mode
         rhsH = self.computeRHSH(fields)
 
         return {'E': rhsE, 'H': rhsH}
+    
+    def updateIncidentFieldE(self):
+        self.Einc[1:-1] = self.Einc[1:-1] - self.dt*(1.0/self.dxH) * (self.Hinc[1:] - self.Hinc[:-1])
+            
+        self.Einc[0] = \
+            self.Eprev[1] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[1] - self.Eprev[0])
+
+        self.Einc[-1] = \
+            self.Eprev[-2] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc[-2] - self.Eprev[-1])
+
+        self.Eprev[:] = self.Einc[:]
+
+    def updateIncidentFieldH(self):
+        self.Hinc = self.Hinc - self.dt*(1.0/self.dx) * (self.Einc[1:] - self.Einc[:-1])
+
+#··································································································
+       
 
     def isStaggered(self):
         return True
