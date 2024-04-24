@@ -11,9 +11,12 @@ class DG1D(SpatialDiscretization):
         
         assert n_order > 0
         self.n_order = n_order
+        
+        assert fluxType == "Upwind" or fluxType == "Centered"
+        self.fluxType = fluxType       
 
-        self.fluxType = fluxType
-
+        self.n_faces = 2
+        self.n_fp = 1   
 
         alpha = 0
         beta = 0
@@ -186,19 +189,24 @@ class DG1D(SpatialDiscretization):
         fields['E'][:, :] = vec[:(vec.size//2)].reshape(Np, K, order='F')
         fields['H'][:, :] = vec[(vec.size//2):].reshape(Np, K, order='F')
 
+    def setFieldWithIndex(self, fields, i, val):
+        Np = self.number_of_nodes_per_element()
+        node = i % Np
+        elem = int(np.floor(i / Np)) % self.mesh.number_of_elements()
+        if i < self.number_of_unknowns()/2:
+            fields['E'][node, elem] = val
+        else:
+            fields['H'][node, elem] = val
+        return fields
+
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
-        N = 2 * Np * K
+        N = self.number_of_unknowns()
         A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
-            node = i % Np
-            elem = int(np.floor(i / Np)) % K
-            if i < N/2:
-                fields['E'][node, elem] = 1.0
-            else:
-                fields['H'][node, elem] = 1.0
+            self.setFieldWithIndex(fields, i, 1.0)
             fieldsRHS = self.computeRHS(fields)
             q0 = np.vstack([
                 fieldsRHS['E'].reshape(Np*K, 1, order='F'),

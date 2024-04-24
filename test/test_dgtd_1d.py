@@ -931,7 +931,6 @@ def test_sma():
     assert np.allclose(0.0, finalFieldE, atol=1e-6)
 
 
-@pytest.mark.skip(reason="Nothing is being tested.")
 def test_buildDrivedEvolutionOperator():
     sp = DG1D(
         n_order=2,
@@ -939,17 +938,18 @@ def test_buildDrivedEvolutionOperator():
         fluxType="Centered"
     )
     driver = MaxwellDriver(sp)
+    
+    A = driver.buildDrivedEvolutionOperator()
+    
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    
+    q0 = sp.fieldsAsStateVector(driver.fields)
+    
+    driver.step()
+    qExpected = sp.fieldsAsStateVector(driver.fields)
+    
+    q = A.dot(q0)
 
-    Np = sp.number_of_nodes_per_element()
-    K = sp.mesh.number_of_elements()
-    sorting = 'byElements'
-
-    A = reorder_array(sp.buildEvolutionOperator(), Np, K, sorting)
-
-    driver.dt = 1.0
-    A_drived = reorder_array(
-        driver.buildDrivedEvolutionOperator(), Np, K, sorting)
-
-    plt.spy(A_drived, markersize=4)
-    # plt.spy(A, markersize=4)
-    plt.show()
+    assert np.allclose(qExpected, q)

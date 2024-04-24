@@ -18,14 +18,28 @@ def test_get_energy_N1():
     assert np.isclose(sp.getEnergy(fields['E']),         1.0, rtol=1e-9)
 
 
-def test_buildEvolutionOperator():
-    m = Mesh1D(0, 1, 10)
-    sp = DG1D(2, m, "Centered")
+def test_buildEvolutionOperator_PEC():
+    m = Mesh1D(0, 1, 5, boundary_label='PEC')
+    sp = DG1D(1, m, "Centered")
     A = sp.buildEvolutionOperator()
-    eigA, _ = np.linalg.eig(A)
+    A = sp.reorder_array(A, 'byElements')
+    M = sp.buildGlobalMassMatrix()
 
-    assert A.shape == (60, 60)
-    assert np.allclose(np.real(eigA), 0)
+    
+    assert np.allclose(A.T.dot(M) + (M).dot(A), 0.0)
+    assert A.shape == (20, 20)
+    assert np.allclose(np.real(np.linalg.eig(A)[0]), 0)
+
+
+def test_buildEvolutionOperator_Periodic():
+    m = Mesh1D(0, 1, 5, boundary_label='Periodic')
+    sp = DG1D(1, m, "Centered")
+    A = sp.buildEvolutionOperator()
+    M = sp.buildGlobalMassMatrix()
+
+    assert np.allclose(A.T.dot(M) + (M).dot(A), 0.0)
+    assert A.shape == (20, 20)
+    assert np.allclose(np.real(np.linalg.eig(A)[0]), 0)
 
 
 def test_buildEvolutionOperator_sorting():

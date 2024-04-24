@@ -109,16 +109,24 @@ class FD1D(SpatialDiscretization):
     def isStaggered(self):
         return True
 
+    def number_of_nodes_per_element(self):
+        return 1   
+    
+    def setFieldWithIndex(self, fields, i, val):
+        NE = fields['E'].size
+        if i < NE:
+            fields['E'][i] = val
+        else:
+            fields['H'][i - NE] = val
+        return fields
+
     def buildEvolutionOperator(self):
-        NE = len(self.x)
-        N = NE + len(self.xH)
+        NE = self.buildFields()['E'].size
+        N = self.number_of_unknowns()
         A = np.zeros((N, N))
         for i in range(N):
             fields = self.buildFields()
-            if i < NE:
-                fields['E'][i] = 1.0
-            else:
-                fields['H'][i - NE] = 1.0
+            self.setFieldWithIndex(fields, i, 1.0)
             fieldsRHS = self.computeRHS(fields)
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
@@ -128,6 +136,12 @@ class FD1D(SpatialDiscretization):
             A = np.delete(A, NE-1, 0)
             A[:,0] += A[:,NE-1]
             A = np.delete(A, NE-1, 1)
+        elif self.mesh.boundary_label['LEFT'] == 'PEC'\
+            and self.mesh.boundary_label['RIGHT'] == 'PEC':
+            A = np.delete(A, NE-1, 0)
+            A = np.delete(A, NE-1, 1)
+            A = np.delete(A, 0, 0)
+            A = np.delete(A, 0, 1)    
         else:
             raise ValueError( "Periodic conditions must be ensured at both ends")
         return A

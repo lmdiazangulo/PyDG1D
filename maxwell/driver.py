@@ -78,28 +78,15 @@ class MaxwellDriver:
         return self.fields[key]
     
     def buildDrivedEvolutionOperator(self):
-        if self.sp.mesh.dimension == 1:
-            fieldE_components = 1
-            fieldH_components = 1
-        else:
-            raise ValueError("Not implemented")
-        fields_size = fieldE_components + fieldH_components
-        Np = self.sp.number_of_nodes_per_element()
-        K = self.sp.mesh.number_of_elements()
-        N = fields_size * Np * K
+        N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
         for i in range(N):
             self.fields = self.sp.buildFields()
-            node = i % Np
-            elem = int(np.floor(i / Np)) % K
-            if i < N/2:
-                self.fields['E'][node, elem] = 1.0
-            else:
-                self.fields['H'][node, elem] = 1.0
+            self.sp.setFieldWithIndex(self.fields, i, 1.0)
             self.step()
-            q0 = np.vstack([
-                self.fields['E'].reshape(Np*K,1, order='F'), 
-                self.fields['H'].reshape(Np*K,1, order='F')
-            ])
-            A[:,i] = q0[:,0]
+            q = self.sp.fieldsAsStateVector(self.fields) 
+            A[:,i] = q[:]
+        
+        self.fields = self.sp.buildFields()
+        
         return A

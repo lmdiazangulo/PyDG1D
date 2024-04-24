@@ -25,16 +25,18 @@ def test_buildFields():
     assert len(fields['H']) == K
 
 
-def test_buildEvolutionOperator():
+def test_buildEvolutionOperator_pec():
     K = 5
-    sp = FD1D(Mesh1D(0, 5, K))
+    sp = FD1D(Mesh1D(0, 5, K, boundary_label='PEC'))
 
     try:
         A = sp.buildEvolutionOperator()
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
 
-    # plt.spy(A)
+    assert np.allclose(A + A.T, 0.0) # Check operator is anti-symmetric
+
+    # plt.matshow(A)
     # plt.show()
 
 
@@ -47,11 +49,12 @@ def test_buildEvolutionOperator_periodic():
     except ValueError:
         assert False, "buildEvolutionOperator() raised ValueError unexpectedly!"
 
-    # plt.spy(A)
+
+    assert np.allclose(A + A.T, 0.0) # Check operator is anti-symmetric
+    
+    # plt.matshow(A)
     # plt.show()
 
-
-#@pytest.mark.skip(reason="Reorder_array needs fixing. Also, not implemented in FDTD")
 def test_buildEvolutionOperator_sorting():
     
     m = Mesh1D(0, 1, 3, 'Periodic')
@@ -60,7 +63,7 @@ def test_buildEvolutionOperator_sorting():
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)
 
-    A_by_elem = sp.reorder_array(A, 'byElements')  #reorder_array needs fixing.
+    A_by_elem = sp.reorder_array(A, 'byElements') 
     eigA_by_elem, _ = np.linalg.eig(A_by_elem)
 
     assert A.shape == A_by_elem.shape
