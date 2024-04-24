@@ -1,17 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import pytest
-import time
-
 
 from maxwell.driver import *
 from maxwell.dg.mesh1d import *
 from maxwell.dg.dg1d import *
 from maxwell.fd.fd1d import *
-
-
-from nodepy import runge_kutta_method as rk
 
 # ······················································
 
@@ -28,25 +21,26 @@ def plot(sp, driver):
         plt.cla()
 
 # ······················································
+
+
 def test_buildDrivedEvolutionOperator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     A = driver.buildDrivedEvolutionOperator()
-    
+
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
-    
+
     q0 = np.concatenate([driver['E'], driver['H']])
-    
+
     driver.step()
     qExpected = np.concatenate([driver['E'], driver['H']])
-    
+
     q = A.dot(q0)
-    
+
     assert np.allclose(qExpected, q)
-    
 
 
 def test_fdtd_pec():
@@ -221,3 +215,31 @@ def test_fdtd_periodic_lserk():
     finalFieldE = driver['E'][:]
     R = np.corrcoef(initialFieldE, finalFieldE)
     assert R[0, 1] > 0.9999
+
+
+def test_tfsf_null_field():
+
+    def gaussian(s):
+        return lambda x : np.exp(-(x)**2/(2*s**2))
+    
+    t_final = 8.0
+    s0 = 0.1
+
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
+    TFSF_setup = {}
+    TFSF_setup["left"] = -0.8
+    TFSF_setup["right"] = 0.8
+    TFSF_setup["source"] = gaussian(s0)
+    sp.TFSF_conditions(TFSF_setup)
+
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['H'][:] = np.exp(-(sp.xH - 0.5*driver.dt)**2/(2*s0**2))
+
+    # plot(sp, driver)
+
+    driver.run_until(t_final)
+
+    finalFieldE = driver['E'][:]
+    assert np.allclose(finalFieldE, 0.0, atol=1e-3)
