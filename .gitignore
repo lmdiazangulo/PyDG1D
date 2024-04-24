@@ -2,3 +2,5 @@
 */__pycache__/*
 maxwell/*/__pycache__/*
 test/*/__pycache__/*
+integrators/__pycache__/*
+fdtd/__pycache__
