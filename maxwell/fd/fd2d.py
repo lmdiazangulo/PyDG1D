@@ -68,10 +68,14 @@ class FD2D(SpatialDiscretization):  # TE mode
         self.xH_inc, self.yH_inc = np.meshgrid(self.xH, self.yH)
         self.x_inc, self.y_inc = np.meshgrid(self.x, self.y)
 
-        self.Einc = np.ndarray(self.x_inc.shape)
-        self.Einc[:,:] = self.source(self.x_inc[:,:])
+        self.Einc_x = np.ndarray(self.x_inc.shape)
+        self.Einc_x[:,:] = self.source(self.x_inc[:,:])
 
-        self.Eprev = np.zeros(self.x_inc.shape)
+        self.Einc_y = np.ndarray(self.y_inc.shape)
+        self.Einc_y[:,:] = self.source(self.y_inc[:,:])
+
+        self.Eprev_x = np.zeros(self.x_inc.shape)
+        self.Eprev_y = np.zeros(self.y_inc.shape)
         
         self.Hinc = np.ndarray(self.xH_inc.shape)
         self.Hinc[:,:] = self.source(self.xH_inc[:,:] - 0.5*self.dt)
