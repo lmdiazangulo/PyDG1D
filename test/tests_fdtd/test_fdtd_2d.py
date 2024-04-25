@@ -112,8 +112,33 @@ def test_fdtd2d_te_pmc_y():
     assert R[0, 1] > 0.9999
 
 
+def test_fdtd2d_te_mur():
+    bdrs = {
+        "XL": "Mur",
+        "XU": "Mur",
+        "YL": "PEC",
+        "YU": "PEC"
+    }
+    sp = FD2D(x_min=-1.0, x_max=1.0, kx_elem=100, boundary_labels=bdrs)
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.00)
 
-def test_fd2d_check_initial_conditions_GW_right():
+    s0 = 0.25
+    final_time = 2.0
+
+    xH, yH = np.meshgrid(sp.xH, sp.yH)
+    initialFieldH = np.exp(-xH**2/(2*s0**2))
+    driver['H'][:,:] = initialFieldH[:,:]
+
+    #plot(sp, driver, final_time , xH, yH)
+
+    driver.run_until(final_time)
+    
+
+    finalFieldH = driver['H']
+    assert np.allclose(finalFieldH, 0.0, atol=1e-3)
+
+
+def test_fdtd2d_check_initial_conditions_GW_right():
 
     bdrs = {
         "XL": "Mur",
@@ -146,7 +171,7 @@ def test_fd2d_check_initial_conditions_GW_right():
 
 
 @pytest.mark.skip(reason="wip")
-def test_tfsf_null_field():
+def test_tfsf2d_null_field():
 
     def gaussian(s):
         return lambda x : np.exp(-(x)**2/(2*s**2))

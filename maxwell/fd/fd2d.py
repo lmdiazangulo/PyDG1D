@@ -64,13 +64,17 @@ class FD2D(SpatialDiscretization):  # TE mode
         }
     
     def buildIncidentFields(self):
-        self.Einc = np.ndarray(self.x.shape)
-        self.Einc[:] = self.source(self.x[:])
-
-        self.Eprev = np.zeros(self.x.shape)
         
-        self.Hinc = np.ndarray(self.xH.shape)
-        self.Hinc[:] = self.source(self.xH[:] - 0.5*self.dt)
+        self.xH_inc, self.yH_inc = np.meshgrid(self.xH, self.yH)
+        self.x_inc, self.y_inc = np.meshgrid(self.x, self.y)
+
+        self.Einc = np.ndarray(self.x_inc.shape)
+        self.Einc[:,:] = self.source(self.x_inc[:,:])
+
+        self.Eprev = np.zeros(self.x_inc.shape)
+        
+        self.Hinc = np.ndarray(self.xH_inc.shape)
+        self.Hinc[:,:] = self.source(self.xH_inc[:,:] - 0.5*self.dt)
         
 
     def get_minimum_node_distance(self):
@@ -172,8 +176,24 @@ class FD2D(SpatialDiscretization):  # TE mode
         
         if self.tfsf == True:  #esto como seria???
             self.updateIncidentFieldH()
+
+
             rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[0]) * self.Einc[self.left_TF_limit]
             rhsH[self.right_TF_limit]    -=  (1.0/self.dx[0]) * self.Einc[self.right_TF_limit]
+
+
+
+            rhsH = + self.cEy*(self.Einc[self.XL_TF_limit -1, :] - self.Einc[self.XL_TF_limit, :]) \
+               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
+            
+            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
+               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
+            
+            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
+               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
+            
+            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
+               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
 
         return rhsH
 
@@ -184,24 +204,24 @@ class FD2D(SpatialDiscretization):  # TE mode
         return {'E': rhsE, 'H': rhsH}
     
     def updateIncidentFieldE(self):
-        self.Einc[1:-1] = self.Einc[1:-1] - self.dt*(1.0/self.dxH) * (self.Hinc[1:] - self.Hinc[:-1])
+        self.Einc[1:-1,:] = self.Einc[1:-1,:] - self.dt*(1.0/self.dxH[0]) * (self.Hinc[1:,:] - self.Hinc[:-1,:])
             
-        self.Einc[0] = \
+        self.Einc[0,:] = \
             self.Eprev[1] - \
             (self.c0 * self.dt - self.dx[0]) / \
             (self.c0 * self.dt + self.dx[0]) * \
-            (self.Einc[1] - self.Eprev[0])
+            (self.Einc[1,:] - self.Eprev[0,:])
 
-        self.Einc[-1] = \
-            self.Eprev[-2] - \
+        self.Einc[-1,:] = \
+            self.Eprev[-2,:] - \
             (self.c0 * self.dt - self.dx[0]) / \
             (self.c0 * self.dt + self.dx[0]) * \
-            (self.Einc[-2] - self.Eprev[-1])
+            (self.Einc[-2,:] - self.Eprev[-1,:])
 
-        self.Eprev[:] = self.Einc[:]
+        self.Eprev[:,:] = self.Einc[:,:]
 
     def updateIncidentFieldH(self):
-        self.Hinc = self.Hinc - self.dt*(1.0/self.dx) * (self.Einc[1:] - self.Einc[:-1])
+        self.Hinc = self.Hinc - self.dt*(1.0/self.dx[0]) * (self.Einc[1:,:] - self.Einc[:-1,:])
 
 #··································································································
        
