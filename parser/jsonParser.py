@@ -24,8 +24,8 @@ class Parser:
     def readGeneral(self):
         
         try:
-            self.general.timeStep = self.json["General"]["timeStep"]
-            self.general.numberOfSteps = self.json["General"]["numberOfSteps"]
+            self.general.timeStep = self.json["general"]["timeStep"]
+            self.general.numberOfSteps = self.json["general"]["numberOfSteps"]
         except KeyError:
             logging.error('Problem reading section "General"  in json file')
                     
