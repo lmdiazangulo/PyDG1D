@@ -42,7 +42,7 @@ class FD2D(SpatialDiscretization):  # TE mode
 
         self.tfsf =  True
         self.source = setup["source"]
-        self.XL_TF_limit = (np.absolute(self.x - setup["XL"])).argmin() #por que se pone naranja?
+        self.XL_TF_limit = (np.absolute(self.x - setup["XL"])).argmin()
         self.XU_TF_limit = (np.absolute(self.x - setup["XU"])).argmin()
         self.YL_TF_limit = (np.absolute(self.y - setup["YL"])).argmin()
         self.YU_TF_limit = (np.absolute(self.y - setup["YU"])).argmin()
@@ -78,8 +78,7 @@ class FD2D(SpatialDiscretization):  # TE mode
         self.Eprev_y = np.zeros(self.y_inc.shape)
         
         self.Hinc = np.ndarray(self.xH_inc.shape)
-        self.Hinc[:,:] = self.source(self.xH_inc[:,:] - 0.5*self.dt)
-        
+        self.Hinc[:,:] = self.source(self.xH_inc[:,:] - 0.5*self.dt)    
 
     def get_minimum_node_distance(self):
         return np.min(self.dx)
@@ -98,12 +97,12 @@ class FD2D(SpatialDiscretization):  # TE mode
 
         if self.tfsf == True:
 
-            self.updateIncidentFieldE()
-            rhsEy[self.XL_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.XL_TF_limit-1]
-            rhsEy[self.XU_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.XU_TF_limit ]
+            self.updateIncidentFieldE() #check +-1
+            rhsEy[self.XL_TF_limit-1,:]  +=  (1.0/self.dxH[0]) * self.Hinc[self.XL_TF_limit,:] #outside left face (signos cambiados por sullivan)
+            rhsEy[self.XU_TF_limit+1,:]  -=  (1.0/self.dxH[0]) * self.Hinc[self.XU_TF_limit,:] #outside right face
 
-            rhsEx[self.YL_TF_limit]  +=  (1.0/self.dxH[0]) * self.Hinc[self.YL_TF_limit-1]
-            rhsEx[self.YU_TF_limit] -=  (1.0/self.dxH[0]) * self.Hinc[self.YU_TF_limit]
+            rhsEx[:,self.YL_TF_limit -1]  -=  (1.0/self.dxH[0]) * self.Hinc[:,self.YL_TF_limit] #outside front face
+            rhsEx[:,self.YU_TF_limit +1]  +=  (1.0/self.dxH[0]) * self.Hinc[:,self.YU_TF_limit] #outside back face
 
 
 
@@ -113,7 +112,7 @@ class FD2D(SpatialDiscretization):  # TE mode
                     rhsEy[:,  0] = 0.0
                 elif label == "PMC":
                     rhsEy[:, 0] =  - self.cEx * (2*H[:,0])
-                elif label == "Mur":  #Mur esta fallando
+                elif label == "Mur":  
 
                     rhsEy[:, 0] = Ey[:, 1] + \
                     (self.c0 * self.dt - self.dy[0]) / \
@@ -159,6 +158,7 @@ class FD2D(SpatialDiscretization):  # TE mode
                 elif label == "PMC":
                     rhsEx[-1, :] =  self.cEy * (-2*H[-1,:])
                 elif label == "Mur":
+
                     rhsEx[-1, :] = Ex[-2, :] + \
                     (self.c0 * self.dt - self.dx[0]) / \
                     (self.c0 * self.dt + self.dx[0]) * \
@@ -178,26 +178,13 @@ class FD2D(SpatialDiscretization):  # TE mode
         rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
                - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
         
-        if self.tfsf == True:  #esto como seria???
+        if self.tfsf == True:  
             self.updateIncidentFieldH()
 
-
-            rhsH[self.left_TF_limit - 1] +=  (1.0/self.dx[0]) * self.Einc[self.left_TF_limit]
-            rhsH[self.right_TF_limit]    -=  (1.0/self.dx[0]) * self.Einc[self.right_TF_limit]
-
-
-
-            rhsH = + self.cEy*(self.Einc[self.XL_TF_limit -1, :] - self.Einc[self.XL_TF_limit, :]) \
-               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
-            
-            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
-               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
-            
-            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
-               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
-            
-            rhsH = + self.cEy*(Ex[1:, :] - Ex[:-1, :]) \
-               - self.cEx*(Ey[:, 1:] - Ey[:, :-1])
+            rhsH[self.XL_TF_limit, :] +=  (1.0/self.dx[0]) * self.Einc_y[self.XL_TF_limit-1, :] #left face  (signos cambiados por sullivan)
+            rhsH[self.XU_TF_limit, :] -=  (1.0/self.dx[0]) * self.Einc_y[self.XU_TF_limit+1, :] #right face         
+            rhsH[ :,self.YL_TF_limit] -=  (1.0/self.dx[0]) * self.Einc_x[:,self.YL_TF_limit -1] #front face
+            rhsH[ :,self.YU_TF_limit] +=  (1.0/self.dx[0]) * self.Einc_x[:,self.YU_TF_limit +1] #back face
 
         return rhsH
 
@@ -208,28 +195,48 @@ class FD2D(SpatialDiscretization):  # TE mode
         return {'E': rhsE, 'H': rhsH}
     
     def updateIncidentFieldE(self):
-        self.Einc[1:-1,:] = self.Einc[1:-1,:] - self.dt*(1.0/self.dxH[0]) * (self.Hinc[1:,:] - self.Hinc[:-1,:])
+        self.Einc_x[1:-1,:] = self.Einc_x[1:-1,:] - self.dt*(1.0/self.dxH[0])\
+              * (self.Hinc[1:,:] - self.Hinc[:-1,:])
             
-        self.Einc[0,:] = \
-            self.Eprev[1] - \
+        self.Einc_x[0,:] = \
+            self.Eprev_x[1,:] - \
             (self.c0 * self.dt - self.dx[0]) / \
             (self.c0 * self.dt + self.dx[0]) * \
-            (self.Einc[1,:] - self.Eprev[0,:])
+            (self.Einc_x[1,:] - self.Eprev_x[0,:])
 
-        self.Einc[-1,:] = \
-            self.Eprev[-2,:] - \
+        self.Einc_x[-1,:] = \
+            self.Eprev_x[-2,:] - \
             (self.c0 * self.dt - self.dx[0]) / \
             (self.c0 * self.dt + self.dx[0]) * \
-            (self.Einc[-2,:] - self.Eprev[-1,:])
+            (self.Einc_x[-2,:] - self.Eprev_x[-1,:])
 
-        self.Eprev[:,:] = self.Einc[:,:]
+        self.Eprev_x[:,:] = self.Einc_x[:,:]
+
+
+
+
+        self.Einc_y[:,1:-1] = self.Einc_y[:,1:-1] - self.dt*(1.0/self.dxH[0])\
+              * (self.Hinc[:,1:] - self.Hinc[:,:-1])
+            
+        self.Einc_y[:,0] = \
+            self.Eprev_y[:,1] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc_y[:,1] - self.Eprev_y[:,0])
+
+        self.Ein_y[:,-1] = \
+            self.Eprev_y[:,-2] - \
+            (self.c0 * self.dt - self.dx[0]) / \
+            (self.c0 * self.dt + self.dx[0]) * \
+            (self.Einc_y[:,-2] - self.Eprev_y[:,-1])
+
+        self.Eprev_y[:,:] = self.Einc_y[:,:]
 
     def updateIncidentFieldH(self):
-        self.Hinc = self.Hinc - self.dt*(1.0/self.dx[0]) * (self.Einc[1:,:] - self.Einc[:-1,:])
 
-#··································································································
+        self.Hinc = + self.cEy*(self.Einc_x[1:, :] - self.Einc_x[:-1, :]) \
+               - self.cEx*(self.Einc_y[:, 1:] - self.Einc_y[:, :-1])
        
-
     def isStaggered(self):
         return True
 

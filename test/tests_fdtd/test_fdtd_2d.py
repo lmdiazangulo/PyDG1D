@@ -158,8 +158,8 @@ def test_fdtd2d_check_initial_conditions_GW_right():
     driver['H'][:,:] = initialFieldH[:,:]
 
     # x, y = np.meshgrid(sp.x, sp.y)
-    # initialFieldE = np.exp(-(y - driver.dt/2)**2/(2*s0**2))
-    # driver['E']['y'][:,:] = initialFieldE[:,:]
+    # initialFieldE = np.exp(-(x - driver.dt/2)**2/(2*s0**2))
+    # driver['E']['x'][:,:] = initialFieldE[:,:]
 
     plot(sp, driver, final_time , xH, yH)
 
@@ -203,8 +203,8 @@ def test_tfsf2d_null_field():
     driver['H'][:,:] = initialFieldH[:,:]
 
     x, y = np.meshgrid(sp.x, sp.y)
-    initialFieldE = np.exp(-(y - driver.dt/2)**2/(2*s0**2))
-    driver['E']['y'][:,:] = initialFieldE[:,:]
+    initialFieldE = np.exp(-(x - driver.dt/2)**2/(2*s0**2))
+    driver['E']['x'][:,:] = initialFieldE[:,:]
 
     #plot(sp, driver, final_time , xH, yH)
 
