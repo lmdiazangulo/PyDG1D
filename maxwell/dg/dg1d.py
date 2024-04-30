@@ -215,29 +215,20 @@ class DG1D(SpatialDiscretization):
             A[:, i] = q0[:, 0]
         return A
     
-    def reorder_array(self, A, ordering):
+    def reorder_by_elements(self, A):
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{K-1}, H_0, ..., H_{K-1} ]
         N = A.shape[0]
         K = self.mesh.number_of_elements()
         Np = self.number_of_nodes_per_element()
         new_order = np.arange(N, dtype=int)
-        if ordering == 'byElements':
-            for i in range(N):
-                node = i % Np
-                elem = int(np.floor(i / Np)) % K
-                if i < N/2:
-                    new_order[2*elem*Np+node] = i
-                else:
-                    new_order[2*elem*Np+Np+node] = i
-        if ordering == 'interleaved':
-            for i in range(N):
-                node = i % Np
-                elem = int(np.floor(i / Np)) % K
-                if i < N/2:
-                    new_order[2*elem*Np+node*2] = i
-                else:
-                    new_order[2*elem*Np+node*2+1] = i
+        for i in range(N):
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/2:
+                new_order[2*elem*Np+node] = i
+            else:
+                new_order[2*elem*Np+Np+node] = i
         if (len(A.shape) == 1):
             A1 = [A[i] for i in new_order]
         elif (len(A.shape) == 2):

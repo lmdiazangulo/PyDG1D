@@ -22,7 +22,7 @@ def test_buildEvolutionOperator_PEC():
     m = Mesh1D(0, 1, 5, boundary_label='PEC')
     sp = DG1D(1, m, "Centered")
     A = sp.buildEvolutionOperator()
-    A = sp.reorder_array(A, 'byElements')
+    A = sp.reorder_by_elements(A)
     M = sp.buildGlobalMassMatrix()
 
     
@@ -51,7 +51,7 @@ def test_buildEvolutionOperator_sorting():
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)
 
-    A_by_elem = sp.reorder_array(A, 'byElements')
+    A_by_elem = sp.reorder_by_elements(A)
     eigA_by_elem, _ = np.linalg.eig(A_by_elem)
 
     assert A.shape == A_by_elem.shape

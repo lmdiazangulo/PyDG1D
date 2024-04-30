@@ -17,7 +17,7 @@ def plot(sp, driver):
         plt.ylim(-1, 1)
         plt.title(driver.timeIntegrator.time)
         plt.grid(which='both')
-        plt.pause(0.01)
+        plt.pause(0.1)
         plt.cla()
 
 # ······················································
@@ -44,10 +44,11 @@ def test_buildDrivedEvolutionOperator():
     
 def test_buildDrivedEvolutionOperator_reduced():
     K = 5
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="Periodic"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-
-    A = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=True)
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
+    
+    A_0_9 = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.9).buildDrivedEvolutionOperator()
+    A_1_0 = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0).buildDrivedEvolutionOperator()
+    A_1_01 = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.01).buildDrivedEvolutionOperator()
     
     # A = sp.reorder_by_elements(A)
     # plt.matshow(A, cmap='RdGy')
@@ -57,7 +58,9 @@ def test_buildDrivedEvolutionOperator_reduced():
     #     plt.hlines(k*2-0.5, -0.5, K*2-0.5, color='gray', linestyle='dashed')
     # plt.show()
     
-    assert np.allclose(np.abs(np.linalg.eig(A)[0]), 1.0)
+    assert np.allclose(np.abs(np.linalg.eig(A_0_9)[0]), 1.0)
+    assert np.allclose(np.abs(np.linalg.eig(A_1_0)[0]), 1.0)
+    assert np.any(np.abs(np.linalg.eig(A_1_01)[0]) - 1.0 > 0)
 
 
 def test_fdtd_pec():
@@ -78,7 +81,7 @@ def test_fdtd_pec():
 
 
 def test_fdtd_periodic():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="Periodic"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
     s0 = 0.25
