@@ -939,7 +939,7 @@ def test_buildDrivedEvolutionOperator():
     )
     driver = MaxwellDriver(sp)
     
-    A = driver.buildDrivedEvolutionOperator()
+    A = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
     
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))

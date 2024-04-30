@@ -12,6 +12,7 @@ from .integrators.LF2 import *
 from .integrators.LF2V import *
 from .integrators.EULER import *
 
+import copy
 
 class MaxwellDriver:
     def __init__(self, 
@@ -79,9 +80,12 @@ class MaxwellDriver:
     def __getitem__(self, key):
         return self.fields[key]
     
-    def buildDrivedEvolutionOperator(self):
+    def buildDrivedEvolutionOperator(self, reduceToEsentialDoF=True):
         N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
+        
+        oldFields = copy.deepcopy(self.fields)
+        
         for i in range(N):
             self.fields = self.sp.buildFields()
             self.sp.setFieldWithIndex(self.fields, i, 1.0)
@@ -89,6 +93,9 @@ class MaxwellDriver:
             q = self.sp.fieldsAsStateVector(self.fields) 
             A[:,i] = q[:]
         
-        self.fields = self.sp.buildFields()
+        self.fields = oldFields
+        
+        if reduceToEsentialDoF:
+            A = self.sp.reduceToEssentialDoF(A)
         
         return A

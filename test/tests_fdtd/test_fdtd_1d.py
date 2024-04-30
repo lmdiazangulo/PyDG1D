@@ -27,7 +27,7 @@ def test_buildDrivedEvolutionOperator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
-    A = driver.buildDrivedEvolutionOperator()
+    A = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -41,6 +41,23 @@ def test_buildDrivedEvolutionOperator():
     q = A.dot(q0)
 
     assert np.allclose(qExpected, q)
+    
+def test_buildDrivedEvolutionOperator_reduced():
+    K = 5
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="Periodic"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    A = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=True)
+    
+    # A = sp.reorder_by_elements(A)
+    # plt.matshow(A, cmap='RdGy')
+    # plt.colorbar(fraction=0.046, pad=0.04)
+    # for k in range(K):
+    #     plt.vlines(k*2-0.5, -0.5, K*2-0.5, color='gray', linestyle='dashed')
+    #     plt.hlines(k*2-0.5, -0.5, K*2-0.5, color='gray', linestyle='dashed')
+    # plt.show()
+    
+    assert np.allclose(np.abs(np.linalg.eig(A)[0]), 1.0)
 
 
 def test_fdtd_pec():
