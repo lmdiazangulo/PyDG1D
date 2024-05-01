@@ -23,6 +23,7 @@ def test_spatial_discretization_lift():
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
+
 def test_pec():
     sp = DG1D(
         n_order=5,
@@ -234,7 +235,7 @@ def test_pec_centered_lf2v():
 
     R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
                     -finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0,1] > 0.9999
+    assert R[0, 1] > 0.9999
 
     # driver['E'][:] = initialFieldE[:]
     # for _ in range(1000):
@@ -255,24 +256,24 @@ def test_pec_centered_lf2_and_lf2v_are_equivalent():
     )
     drLF = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.8)
     drVe = MaxwellDriver(sp, timeIntegratorType='LF2V', CFL=0.8)
-    
+
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     drLF['E'][:] = initialFieldE
     drVe['E'][:] = initialFieldE
-    
+
     for _ in range(200):
         drLF.step()
         drVe.step()
-        assert np.allclose(drLF['H'] - drVe['H'], 0.0) 
-        
+        assert np.allclose(drLF['H'] - drVe['H'], 0.0)
+
         # plt.plot(sp.x, drLF['H'], 'b')
         # plt.plot(sp.x, drVe['H'], 'g')
         # plt.ylim(-1, 1)
         # plt.grid(which='both')
         # plt.pause(0.01)
         # plt.cla()
-    
+
 
 def test_pec_centered_ibe():
     sp = DG1D(
@@ -367,35 +368,6 @@ def test_periodic_centered_dirk2():
     #     plt.pause(0.001)
     #     plt.cla()
 
-# def test_pec_centered_iglrk4():
-#     sp = Maxwell1D(
-#         n_order = 3,
-#         mesh = Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
-#         fluxType="Upwind"
-#     )
-#     driver = MaxwellDriver(sp, timeIntegratorType='IGLRK4', CFL=2)
-
-#     final_time = 3.999
-#     s0 = 0.25
-#     initialField = np.exp(-(sp.x)**2/(2*s0**2))
-
-#     driver['E'][:] = initialField[:]
-#     driver['H'][:] = initialField[:]
-#     finalFieldE = driver['E']
-
-#     driver.run_until(final_time)
-
-#     driver['E'][:] = initialField[:]
-#     driver['H'][:] = initialField[:]
-#     for _ in range(500):
-#         driver.step()
-#         plt.plot(sp.x, driver['E'],'b')
-#         plt.plot(sp.x, driver['H'],'r')
-#         plt.ylim(-1, 1)
-#         plt.grid(which='both')
-#         plt.pause(0.001)
-#         plt.cla()
-
 
 def test_energy_evolution_centered():
     ''' 
@@ -421,37 +393,38 @@ def test_energy_evolution_centered():
 
     totalEnergy = energyE + energyH
     # Expect some dissipation due to LSERK4.
-    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 2e-4 
+    assert np.abs(totalEnergy[-1]-totalEnergy[0]) < 2e-4
 
     # plt.plot(energyE, 'b')
     # plt.plot(energyH, 'r')
     # plt.plot(totalEnergy, 'g')
     # plt.show()
 
+
 def test_energy_evolution_with_operators():
     sp = DG1D(
         n_order=2,
-        mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"),
+        mesh=Mesh1D(0, 1.0, 10, boundary_label="Periodic"),
         fluxType="Centered"
     )
-    dr = MaxwellDriver(sp, timeIntegratorType='LSERK4', CFL=0.7)
-    dr['H'][:] = np.exp(-sp.x**2/(2*0.25**2))
-    
+    dr = MaxwellDriver(sp)
+    dr['E'][:] = np.exp(-sp.x**2/(2*0.25**2))
+
     q0 = sp.fieldsAsStateVector(dr.fields)
     G = dr.buildDrivedEvolutionOperator()
     Mg = sp.buildGlobalMassMatrix()
     q = G.dot(q0)
-    
+
     initialEnergy = q0.T.dot(Mg).dot(q0)
     finalEnergy = q.T.dot(Mg).dot(q)
-    
+
     expectedPower = (finalEnergy - initialEnergy)/dr.dt
+    PG = (1/dr.dt)*(G.T.dot(Mg).dot(G) - Mg)
     
-    power = (1/dr.dt) * q0.T.dot(G.T.dot(Mg).dot(G) - Mg).dot(q0)
-    
+    power = q0.T.dot(PG).dot(q0)
+
     assert np.isclose(power, expectedPower)
-    
-    
+
 
 def test_energy_evolution_centered_lf2():
     sp = DG1D(
@@ -989,23 +962,23 @@ def test_buildDrivedEvolutionOperator():
         fluxType="Centered"
     )
     driver = MaxwellDriver(sp)
-    
+
     G = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
-    
+
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
-    
+
     q0 = sp.fieldsAsStateVector(driver.fields)
-    
+
     driver.step()
     qExpected = sp.fieldsAsStateVector(driver.fields)
-    
+
     q = G.dot(q0)
 
     assert np.allclose(qExpected, q)
-    
-    
+
+
 def test_buildDrivedEvolutionOperator_LF2V():
     sp = DG1D(
         n_order=2,
@@ -1013,18 +986,18 @@ def test_buildDrivedEvolutionOperator_LF2V():
         fluxType="Centered"
     )
     driver = MaxwellDriver(sp, timeIntegratorType='LF2V')
-    
+
     G = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
-    
+
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
-    
+
     q0 = sp.fieldsAsStateVector(driver.fields)
-    
+
     driver.step()
     qExpected = sp.fieldsAsStateVector(driver.fields)
-    
+
     q = G.dot(q0)
 
     assert np.allclose(qExpected, q)
