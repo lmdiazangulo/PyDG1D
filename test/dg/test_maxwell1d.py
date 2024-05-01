@@ -18,6 +18,23 @@ def test_get_energy_N1():
     assert np.isclose(sp.getEnergy(fields['E']),         1.0, rtol=1e-9)
 
 
+def test_energy_with_operators():
+    m = Mesh1D(0, 1, 10)
+    sp = DG1D(1, m)
+    
+    fields = sp.buildFields()
+    fields['E'].fill(1.0)
+    fields['H'].fill(2.0)
+    
+    expectedEnergy = sp.getEnergy(fields['E']) + sp.getEnergy(fields['H'])
+    
+    q = sp.fieldsAsStateVector(fields)
+    Mg = sp.buildGlobalMassMatrix()
+    energy = q.T.dot(Mg).dot(q)
+    
+    assert np.isclose(expectedEnergy, energy)
+    
+
 def test_buildEvolutionOperator_PEC():
     m = Mesh1D(0, 1, 5, boundary_label='PEC')
     sp = DG1D(1, m, "Centered")

@@ -12,22 +12,10 @@ class LF2V:
         E = fields['E']
         H = fields['H']
         
-        # #Velocity Verlet
-        # self.time += dt
-        # H += 0.5*dt*self.sp.computeRHSH(fields)
-       
-        # self.time += dt
-        # E += dt*self.sp.computeRHSE(fields)
-        # H += 0.5*dt*self.sp.computeRHSH(fields)
-        
-        
-        #Position Verlet
-        
         E += 0.5*dt*self.sp.computeRHSE(fields)
-        
+        H += dt*self.sp.computeRHSH(fields)
+        E += 0.5*dt*self.sp.computeRHSE(fields)
         self.time += dt
-        H += 0.5*dt*self.sp.computeRHSH(fields)
-        E += 0.5*dt*self.sp.computeRHSE(fields)
         
         
         # #Verlet Algorithm
