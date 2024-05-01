@@ -419,8 +419,8 @@ def test_energy_evolution_with_operators():
     finalEnergy = q.T.dot(Mg).dot(q)
 
     expectedPower = (finalEnergy - initialEnergy)/dr.dt
-    PG = (1/dr.dt)*(G.T.dot(Mg).dot(G) - Mg)
     
+    PG = dr.buildPowerOperator()
     power = q0.T.dot(PG).dot(q0)
 
     assert np.isclose(power, expectedPower)

@@ -99,3 +99,8 @@ class MaxwellDriver:
             A = self.sp.reduceToEssentialDoF(A)
         
         return A
+    
+    def buildPowerOperator(self):
+        G = self.buildDrivedEvolutionOperator()
+        Mg = self.sp.buildGlobalMassMatrix()
+        return (1/self.dt)*(G.T.dot(Mg).dot(G) - Mg)
