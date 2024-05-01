@@ -95,7 +95,7 @@ class MaxwellDriver:
         
         self.fields = oldFields
         
-        if reduceToEsentialDoF:
+        if reduceToEsentialDoF and self.sp.isStaggered():
             A = self.sp.reduceToEssentialDoF(A)
         
         return A
