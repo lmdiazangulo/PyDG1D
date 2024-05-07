@@ -385,9 +385,39 @@ def test_buildCausallyConnectedOperators():
     G_reassembled = np.concatenate([G1, G2])
     
     assert np.all(G == G_reassembled)
-    
-    
 
+
+def test_buildCausallyConnectedOperators_2():
+    sp = DG1D(
+        n_order=1,
+        mesh=Mesh1D(-1.0, 1.0, 15, boundary_label="Periodic"),
+        fluxType="Upwind"
+    )
+    dr = MaxwellDriver(sp)
+    
+    G = sp.reorder_by_elements(dr.buildDrivedEvolutionOperator())
+    A,B,C,D,Mk,Mn = dr.buildCausallyConnectedOperators(element=5)
+    G1 = np.concatenate([A, B], axis=1)
+    G2 = np.concatenate([C, D], axis=1)
+    G_reassembled = np.concatenate([G1, G2])
+    Nk = A.shape[0]
+    Nn = int(B.shape[1]/2)
+    new_order = np.concatenate([np.arange(Nk, Nk+Nn), np.arange(0, Nk), np.arange(Nn+Nk, 2*Nn+Nk)])
+    G_f = np.array([[G_reassembled[i][j] for j in new_order] for i in new_order])
+    
+    assert np.all(G[:G_f.shape[0], :G_f.shape[1]] == G_f)    
+
+def test_local_causal_operator():
+    sp = DG1D(
+        n_order=1,
+        mesh=Mesh1D(-1.0, 1.0, 11, boundary_label="Periodic"),
+        fluxType="Centered"
+    )
+    dr = MaxwellDriver(sp)    
+    G = sp.reorder_by_elements(dr.buildDrivedEvolutionOperator())
+    L = sp.reorder
+    
+    
 
 def test_energy_evolution_centered():
     ''' 

@@ -34,11 +34,11 @@ class SpatialDiscretization():
         q[i] = 1.0
         return q
 
-    def buildLocalAndNeighborIndices(self, neighs):
+    def buildLocalAndNeighborIndices(self, element, neighs):
         Np = self.number_of_nodes_per_element()
         N = self.number_of_unknowns()
-
-        local_indices = np.arange(0, 2*Np)
+        k = element 
+        local_indices = np.arange(k*2*Np, (k+1)*2*Np)
         right_neigh_indices = local_indices[-1] + 1 + np.arange(0, 2*Np*neighs)
         left_neigh_indices = np.sort(
             local_indices[0] - np.arange(0, 2*Np*neighs) - 1) % N
