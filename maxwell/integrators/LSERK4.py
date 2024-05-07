@@ -26,10 +26,8 @@ class LSERK4:
     def step(self, fields, dt):
         for s in range(0, self.N_STAGES):
             fieldsRHS = self.sp.computeRHS(fields)
-            for l, f in fieldsRHS.items():
-                self.fieldsRes[l] = self.A[s]*self.fieldsRes[l] + dt*f
-            
-            for l, f in fields.items():
-                fields[l] += self.B[s] * self.fieldsRes[l]
+            for label, f in fieldsRHS.items():
+                self.fieldsRes[label] = self.A[s]*self.fieldsRes[label] + dt*f
+                fields[label] += self.B[s] * self.fieldsRes[label]
 
         self.time += dt

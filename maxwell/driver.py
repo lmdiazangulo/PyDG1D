@@ -104,3 +104,23 @@ class MaxwellDriver:
         G = self.buildDrivedEvolutionOperator()
         Mg = self.sp.buildGlobalMassMatrix()
         return (1/self.dt)*(G.T.dot(Mg).dot(G) - Mg)
+    
+
+    def buildCausallyConnectedOperators(self, neighbors=-1):
+        if neighbors == -1:
+            neighs = self.timeIntegrator.N_STAGES
+        else:
+            neighs = neighbors
+            
+        local_indices, neigh_indices = self.sp.buildLocalAndNeighborIndices(neighs)
+
+        G = self.sp.reorder_by_elements(self.buildDrivedEvolutionOperator())
+        Mg = self.sp.buildGlobalMassMatrix()
+        A = G[local_indices][:,local_indices]
+        B = G[local_indices][:,neigh_indices]
+        C = G[neigh_indices][:,local_indices]
+        D = G[neigh_indices][:,neigh_indices]
+        Mk = Mg[local_indices][:,local_indices]
+        Mn = Mg[neigh_indices][:,neigh_indices]
+        
+        return A, B, C, D, Mk, Mn
