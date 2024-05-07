@@ -6,20 +6,16 @@ from .mesh1d import Mesh1D
 
 
 class DG1D(SpatialDiscretization):
-    def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind"):
+    def __init__(self, n_order: int, mesh: Mesh1D, fluxPenalty=1.0):
         SpatialDiscretization.__init__(self, mesh)
         
         assert n_order > 0
         self.n_order = n_order
         
-        assert fluxType == "Upwind" or fluxType == "Centered"
-        self.fluxType = fluxType       
-
+        self.alpha = fluxPenalty
         self.n_faces = 2
         self.n_fp = 1   
 
-        alpha = 0
-        beta = 0
 
         # Set up material parameters
         self.epsilon = np.ones(mesh.number_of_elements())
@@ -32,7 +28,7 @@ class DG1D(SpatialDiscretization):
         self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(
             n_order, self.x, etoe, etof)
 
-        r = jacobiGL(alpha, beta, n_order)
+        r = jacobiGL(0, 0, n_order)
         self.fmask, self.fmask_1, self.fmask_2 = buildFMask(r)
 
         self.mass = mass_matrix(n_order, r)
@@ -92,6 +88,9 @@ class DG1D(SpatialDiscretization):
                 elif label == "PMC":
                     Hbc = - H.transpose().take(self.vmap_b)
                     Ebc = E.transpose().take(self.vmap_b)
+                elif label == "NULL":
+                    Hbc = - H.transpose().take(self.vmap_b)
+                    Ebc = - E.transpose().take(self.vmap_b)
                 elif label == "SMA":
                     Hbc = H.transpose().take(self.vmap_b) * 0.0
                     Ebc = E.transpose().take(self.vmap_b) * 0.0
@@ -104,38 +103,13 @@ class DG1D(SpatialDiscretization):
 
     def computeFluxE(self, E, H):
         dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
-        elif self.fluxType == "Centered":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
-        else:
-            raise ValueError("Invalid fluxType label")
+        flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-self.alpha*dE)
         return flux_E
 
     def computeFluxH(self, E, H):
         dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
-        elif self.fluxType == "Centered":
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
-        else:
-            raise ValueError("Invalid fluxType label")
+        flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-self.alpha*dH)
         return flux_H
-
-    def computeFlux(self, E, H):
-        dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
-        elif self.fluxType == "Centered":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
-        else:
-            raise ValueError("Invalid fluxType label")
-        return flux_E, flux_H
 
     def computeJumps(self, E, H):
         Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)

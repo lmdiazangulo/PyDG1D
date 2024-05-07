@@ -23,6 +23,7 @@ class LSERK4:
         for l, f in fields.items():
             self.fieldsRes[l] = np.zeros(f.shape)
     
+    
     def step(self, fields, dt):
         for s in range(0, self.N_STAGES):
             fieldsRHS = self.sp.computeRHS(fields)
