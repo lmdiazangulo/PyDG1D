@@ -88,9 +88,6 @@ class DG1D(SpatialDiscretization):
                 elif label == "PMC":
                     Hbc = - H.transpose().take(self.vmap_b)
                     Ebc = E.transpose().take(self.vmap_b)
-                elif label == "NULL":
-                    Hbc = - H.transpose().take(self.vmap_b)
-                    Ebc = - E.transpose().take(self.vmap_b)
                 elif label == "SMA":
                     Hbc = H.transpose().take(self.vmap_b) * 0.0
                     Ebc = E.transpose().take(self.vmap_b) * 0.0

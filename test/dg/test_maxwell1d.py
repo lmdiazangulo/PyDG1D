@@ -37,7 +37,7 @@ def test_energy_with_operators():
 
 def test_buildEvolutionOperator_PEC():
     m = Mesh1D(0, 1, 5, boundary_label='PEC')
-    sp = DG1D(1, m, "Centered")
+    sp = DG1D(1, m, 0.0)
     A = sp.buildEvolutionOperator()
     A = sp.reorder_by_elements(A)
     M = sp.buildGlobalMassMatrix()
@@ -50,7 +50,7 @@ def test_buildEvolutionOperator_PEC():
 
 def test_buildEvolutionOperator_Periodic():
     m = Mesh1D(0, 1, 5, boundary_label='Periodic')
-    sp = DG1D(1, m, "Centered")
+    sp = DG1D(1, m, 0.0)
     A = sp.buildEvolutionOperator()
     M = sp.buildGlobalMassMatrix()
 
@@ -61,7 +61,7 @@ def test_buildEvolutionOperator_Periodic():
 
 def test_buildEvolutionOperator_sorting():
     m = Mesh1D(0, 1, 3)
-    sp = DG1D(2, m, "Centered")
+    sp = DG1D(2, m, 0.0)
     Np = sp.number_of_nodes_per_element()
     K = m.number_of_elements()
 
