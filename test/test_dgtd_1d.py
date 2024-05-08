@@ -58,7 +58,7 @@ def test_pec():
 def test_pec_centered():
     sp = DG1D(
         n_order=3,
-        mesh=Mesh1D(0, 1.0, 15),
+        mesh=Mesh1D(0, 1.0, 15, boundary_label="PEC"),
         fluxPenalty=0.0
     )
     driver = MaxwellDriver(sp, CFL=1.0)
@@ -72,19 +72,19 @@ def test_pec_centered():
 
     driver.run_until(final_time)
 
-    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
-    #                 -finalFieldE.reshape(1, finalFieldE.size))
-    # assert R[0, 1] > 0.9999
+    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
+                    -finalFieldE.reshape(1, finalFieldE.size))
+    assert R[0, 1] > 0.9999
 
-    driver['E'][:] = initialFieldE[:]
-    for _ in range(172):
-        driver.step()
-        # plt.plot(sp.x, driver['E'],'b')
-        # plt.plot(sp.x, driver['H'],'r')
-        # plt.ylim(-1, 1)
-        # plt.grid(which='both')
-        # plt.pause(0.01)
-        # plt.cla()
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(172):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.05)
+    #     plt.cla()
 
 
 def test_pec_centered_lserk74():
@@ -1028,6 +1028,35 @@ def test_sma():
     driver.run_until(final_time)
 
     assert np.allclose(0.0, finalFieldE, atol=1e-6)
+
+def test_abc_centered():
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="ABC"),
+        fluxPenalty=0.0
+    )
+
+    final_time = 3.999
+    driver = MaxwellDriver(sp)
+    initialFieldE = np.exp(-(sp.x)**2/(2*0.25**2))
+
+    driver['E'][:] = initialFieldE[:]
+    finalFieldE = driver['E']
+
+    driver.run_until(final_time)
+
+    assert np.allclose(0.0, finalFieldE, atol=1e-4)
+
+
+    # driver['E'][:] = initialFieldE[:]
+    # for _ in range(172):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.pause(0.05)
+    #     plt.cla()
 
 
 def test_buildDrivedEvolutionOperator():

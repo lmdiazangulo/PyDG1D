@@ -7,6 +7,10 @@ from .mesh1d import Mesh1D
 
 class DG1D(SpatialDiscretization):
     def __init__(self, n_order: int, mesh: Mesh1D, fluxPenalty=1.0):
+        '''
+        fluxPenalty is a real in [0, 1]. A value of 0.0 means no penalty
+        which is equivalent to a centered flux. 1.0 means full upwinding.
+        '''
         SpatialDiscretization.__init__(self, mesh)
         
         assert n_order > 0
@@ -15,6 +19,9 @@ class DG1D(SpatialDiscretization):
         self.alpha = fluxPenalty
         self.n_faces = 2
         self.n_fp = 1   
+        
+        if self.mesh.boundary_label["LEFT"] != self.mesh.boundary_label["RIGHT"]:
+            raise ValueError("Boundaries must be of the same type.")
 
 
         # Set up material parameters
@@ -78,25 +85,27 @@ class DG1D(SpatialDiscretization):
         return Z_imp
 
     def fieldsOnBoundaryConditions(self, E, H):
-        bcType = self.mesh.boundary_label
-
-        for bdr, label in self.mesh.boundary_label.items():
-            if bdr == "LEFT" or bdr == "RIGHT":
-                if label == "PEC":
-                    Ebc = - E.transpose().take(self.vmap_b)
-                    Hbc = H.transpose().take(self.vmap_b)
-                elif label == "PMC":
-                    Hbc = - H.transpose().take(self.vmap_b)
-                    Ebc = E.transpose().take(self.vmap_b)
-                elif label == "SMA":
-                    Hbc = H.transpose().take(self.vmap_b) * 0.0
-                    Ebc = E.transpose().take(self.vmap_b) * 0.0
-                elif label == "Periodic":
-                    Ebc = E.transpose().take(self.vmap_b[::-1])
-                    Hbc = H.transpose().take(self.vmap_b[::-1])
-                else:
-                    raise ValueError("Invalid boundary label.")
-                return Ebc, Hbc
+        label = self.mesh.boundary_label["LEFT"]
+        Eb = E.transpose().take(self.vmap_b)
+        Hb = H.transpose().take(self.vmap_b)
+        if label == "PEC":
+            Ebc = - Eb
+            Hbc = Hb
+        elif label == "PMC":
+            Hbc = - Hb
+            Ebc = Eb
+        elif label == "ABC":
+            Ebc = (Eb + self.nx.take(self.map_b) * Hb)*0.5
+            Hbc = (Hb + self.nx.take(self.map_b) * Eb)*0.5
+        elif label == "SMA":
+            Hbc = Hb * 0.0
+            Ebc = Eb * 0.0
+        elif label == "Periodic":
+            Ebc = E.transpose().take(self.vmap_b[::-1])
+            Hbc = H.transpose().take(self.vmap_b[::-1])
+        else:
+            raise ValueError("Invalid boundary label.")
+        return Ebc, Hbc
 
     def computeFluxE(self, E, H):
         dE, dH = self.computeJumps(E, H)
