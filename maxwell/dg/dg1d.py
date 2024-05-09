@@ -239,7 +239,7 @@ class DG1D(SpatialDiscretization):
         assert field.shape == (Np, K)
         energy = 0.0
         for k in range(K):
-            energy += np.inner(
+            energy += 0.5*np.inner(
                 field[:, k].dot(self.mass),
                 field[:, k]*self.jacobian[:, k]
             )

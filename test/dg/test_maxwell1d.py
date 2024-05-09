@@ -12,10 +12,10 @@ def test_get_energy_N1():
 
     fields['E'].fill(0.0)
     fields['E'][0, 0] = 1.0
-    assert np.isclose(sp.getEnergy(fields['E']), 0.1*1.0/3.0, rtol=1e-9)
+    assert np.isclose(sp.getEnergy(fields['E']), 0.1*1.0/3.0/2, rtol=1e-9)
 
     fields['E'].fill(1.0)
-    assert np.isclose(sp.getEnergy(fields['E']),         1.0, rtol=1e-9)
+    assert np.isclose(sp.getEnergy(fields['E']),         1.0/2, rtol=1e-9)
 
 
 def test_energy_with_operators():
@@ -30,7 +30,7 @@ def test_energy_with_operators():
     
     q = sp.fieldsAsStateVector(fields)
     Mg = sp.buildGlobalMassMatrix()
-    energy = q.T.dot(Mg).dot(q)
+    energy = 0.5*q.T.dot(Mg).dot(q)
     
     assert np.isclose(expectedEnergy, energy)
     
