@@ -58,14 +58,14 @@ def test_pec():
 def test_pec_centered():
     sp = DG1D(
         n_order=3,
-        mesh=Mesh1D(0, 1.0, 15, boundary_label="PEC"),
+        mesh=Mesh1D(-1.0, 1.0, 15, boundary_label="PEC"),
         fluxPenalty=0.0
     )
     driver = MaxwellDriver(sp, CFL=1.0)
 
     final_time = 1.999
-    s0 = 0.125
-    initialFieldE = np.exp(-(sp.x-0.5)**2/(2*s0**2))
+    s0 = 0.25
+    initialFieldE = np.exp(-sp.x**2/(2*s0**2))
 
     driver['E'][:] = initialFieldE[:]
     finalFieldE = driver['E']

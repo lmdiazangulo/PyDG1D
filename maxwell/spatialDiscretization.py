@@ -21,6 +21,11 @@ class SpatialDiscretization():
         for f in fields.values():
             q = np.append(q, f.reshape(f.size, 1, order='F'))
         return q
+    
+    def stateVectorAsFields(self, q):
+        fields = self.buildFields()
+        self.copyVectorToFields(q, fields)
+        return fields
 
     def buildStateVector(self):
         fields = self.buildFields()

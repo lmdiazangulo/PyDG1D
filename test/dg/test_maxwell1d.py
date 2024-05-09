@@ -81,8 +81,26 @@ def test_build_global_mass_matrix():
     sp = DG1D(2, Mesh1D(0, 1, 3))
     M = sp.buildGlobalMassMatrix()
 
+    N = 2 * sp.mesh.number_of_elements() * sp.number_of_nodes_per_element()
+    assert M.shape == (N, N)
+    
     # plt.spy(M)
     # plt.show()
 
-    N = 2 * sp.mesh.number_of_elements() * sp.number_of_nodes_per_element()
-    assert M.shape == (N, N)
+def test_stateVectorAsFields():
+    sp = DG1D(2, Mesh1D(0, 1, 3))
+    
+    fields = sp.buildFields()
+    for l, f in fields.items():
+        fields[l] = np.random.rand(*f.shape)
+    
+    q_from_fields = sp.fieldsAsStateVector(fields)
+    fields_from_q = sp.stateVectorAsFields(q_from_fields)
+    
+    for label, f in fields_from_q.items():
+        assert np.all(fields[label] == f)    
+    
+    
+    
+    
+    
