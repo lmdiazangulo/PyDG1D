@@ -27,7 +27,7 @@ def test_buildDrivedEvolutionOperator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
-    A = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
+    A = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -218,6 +218,36 @@ def test_fdtd_check_initial_conditions_GW_right():
 
     R1 = np.corrcoef(expectedE, evolvedE)
     assert R1[0, 1] > 0.995
+    
+def test_energy_evolution():
+    '''
+        Eneregy evolution for LF2 needs to account for the fact that
+        the magnetic field is staggered in time. 
+        This requires a special operator to compute energy.
+    '''
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+    dr = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    G = dr.buildDrivedEvolutionOperator(reduceToEssentialDoF=True)    
+    s0 = 0.25
+    dr['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+   
+
+    Nsteps = 500
+    energyE = np.zeros(Nsteps)
+    energyH = np.zeros(Nsteps)
+    totalEnergy = np.zeros(Nsteps)
+    for n in range(Nsteps):
+        energyE[n] = sp.getEnergy(dr['E'])
+        energyH[n] = sp.getEnergy(dr['H'])
+        totalEnergy[n] = sp.getTotalEnergy(G, dr.fields)
+        dr.step()
+
+    # plt.plot(energyE + energyH) 
+    # plt.plot((energyE[:-1] +energyE[1:])*0.5 + energyH[:-1])
+    # plt.plot(totalEnergy)
+    # plt.show()
+    assert np.isclose(totalEnergy[0],totalEnergy[-1])
 
 
 def test_fdtd_periodic_lserk():

@@ -80,7 +80,7 @@ class MaxwellDriver:
     def __getitem__(self, key):
         return self.fields[key]
     
-    def buildDrivedEvolutionOperator(self, reduceToEsentialDoF=True):
+    def buildDrivedEvolutionOperator(self, reduceToEssentialDoF=True):
         N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
         
@@ -95,7 +95,7 @@ class MaxwellDriver:
         
         self.fields = oldFields
         
-        if reduceToEsentialDoF and self.sp.isStaggered():
+        if reduceToEssentialDoF and self.sp.isStaggered():
             A = self.sp.reduceToEssentialDoF(A)
         
         return A
@@ -115,7 +115,7 @@ class MaxwellDriver:
         local_indices, neigh_indices = self.sp.buildLocalAndNeighborIndices(element, neighs)
 
         G = self.sp.reorder_by_elements(self.buildDrivedEvolutionOperator())
-        Mg = self.sp.buildGlobalMassMatrix()
+        Mg =  self.sp.reorder_by_elements(self.sp.buildGlobalMassMatrix())
         A = G[local_indices][:,local_indices]
         B = G[local_indices][:,neigh_indices]
         C = G[neigh_indices][:,local_indices]

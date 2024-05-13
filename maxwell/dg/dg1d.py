@@ -94,6 +94,12 @@ class DG1D(SpatialDiscretization):
         elif label == "PMC":
             Hbc = - Hb
             Ebc = Eb
+        elif label == "Null":
+            Hbc = Hb
+            Ebc = Eb
+        elif label == "Double":
+            Hbc = -(Eb + Hb)/2
+            Ebc = -(Eb - Hb)/2
         elif label == "ABC":
             Ebc = (Eb + self.nx.take(self.map_b) * Hb)*0.5
             Hbc = (Hb + self.nx.take(self.map_b) * Eb)*0.5
@@ -231,7 +237,7 @@ class DG1D(SpatialDiscretization):
     def getEnergy(self, field):
         '''
         Gets energy stored in field by computing
-            field^T * MassMatrix * field * Jacobian.
+            (1/2) * field^T * MassMatrix * field * Jacobian.
         for each element and then the sum.
         '''
         Np = self.number_of_nodes_per_element()

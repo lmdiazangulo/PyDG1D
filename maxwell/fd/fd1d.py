@@ -6,6 +6,8 @@ import numpy as np
 from ..spatialDiscretization import *
 from ..dg.mesh1d import Mesh1D
 
+import copy
+
 
 class FD1D(SpatialDiscretization):
     def __init__(self, mesh: Mesh1D):
@@ -161,6 +163,27 @@ class FD1D(SpatialDiscretization):
     def number_of_nodes_per_element(self):
         return 1
 
+    def number_of_unknowns(self, field='all', reduceToEssentialDoF=False):
+        if field == 'all':
+            return self.number_of_unknowns('E', reduceToEssentialDoF) \
+                + self.number_of_unknowns('H', reduceToEssentialDoF)
+        elif field == 'E':
+            if reduceToEssentialDoF:
+                if self.mesh.boundary_label['LEFT'] == 'Periodic' and \
+                        self.mesh.boundary_label['RIGHT'] == 'Periodic':
+                    return len(self.x) - 1
+                elif self.mesh.boundary_label['LEFT'] == 'PEC' and \
+                        self.mesh.boundary_label['LEFT'] == 'PEC':
+                    return len(self.x) - 2
+                else:
+                    raise ValueError('Invalid boundary labels for reduction.')
+            else:
+                return len(self.x)
+        elif field == 'H':
+            return len(self.xH)
+        else:
+            raise ValueError('Invalid field label.')
+
     def setFieldWithIndex(self, fields, i, val):
         NE = fields['E'].size
         if i < NE:
@@ -180,12 +203,12 @@ class FD1D(SpatialDiscretization):
                 and self.mesh.boundary_label['RIGHT'] == 'PEC':
             A = np.delete(A, NE-1, 0)
             A = np.delete(A, NE-1, 1)
-            A = np.delete(A, 0, 0)
+            A =  np.delete(A, 0, 0)
             A = np.delete(A, 0, 1)
         else:
             raise ValueError(
                 "Periodic conditions must be ensured at both ends")
-            
+
         return A
 
     def buildEvolutionOperator(self, reduceToEssentialDoF=True):
@@ -197,10 +220,46 @@ class FD1D(SpatialDiscretization):
             fieldsRHS = self.computeRHS(fields)
             q0 = np.concatenate([fieldsRHS['E'], fieldsRHS['H']])
             A[:, i] = q0[:]
-        
+
         if reduceToEssentialDoF:
-            A = self.reduceToEssentialDoF(A)    
+            A = self.reduceToEssentialDoF(A)
         return A
+
+    def getEnergy(self, field):
+        h = self.x[1] - self.x[0]
+        assert np.allclose(h, self.x[1:] - self.x[:-1])
+
+        M =  np.eye(len(field)) * h
+        return 0.5 * field.T.dot(M).dot(field)
+
+    def getTotalEnergy(self, G, fields):
+        dt = self.dt
+
+        Gdt = G*dt
+
+        N = self.number_of_unknowns(      reduceToEssentialDoF=True)
+        NE = self.number_of_unknowns('E', reduceToEssentialDoF=True)
+        NH = self.number_of_unknowns('H', reduceToEssentialDoF=True)
+
+        S_E = np.zeros((N, N))
+        S_E[:NE, :NE] = np.eye(NE)
+        S_H = np.zeros((N, N))
+        S_H[NE:, NE:] = np.eye(NH)
+        
+        h = self.x[1] - self.x[0]
+        assert np.allclose(h, self.x[1:] - self.x[:-1])
+
+        M = np.eye(N)*h
+        V = 0.5*(M - 0.5*S_E.T.dot(Gdt.T).dot(S_H) - 0.5*S_H.T.dot(Gdt).dot(S_E))
+        
+        if self.mesh.boundary_label['LEFT'] != 'Periodic':
+            raise ValueError("Only implemented for periodic.")
+            
+        f = copy.deepcopy(fields)
+        f['E'] = np.zeros(len(fields['E'])-1)
+        f['E'][:] = fields['E'][:-1]
+        q = self.fieldsAsStateVector(f)
+        return q.T.dot(V).dot(q)
 
     def reorder_by_elements(self, A):
         # Assumes that the original array contains all DoF ordered as:
@@ -219,13 +278,13 @@ class FD1D(SpatialDiscretization):
                 "Unable to order by elements with different size fields.")
         N = NE + NH
         new_order = np.zeros(N, dtype=int) - 1
-        
+
         for i in range(N):
             if i < NE:
                 new_order[2*i] = i
             else:
                 new_order[2*int(i - NE)+1] = i
-                
+
         if (len(A.shape) == 1):
             A1 = [A[i] for i in new_order]
         elif (len(A.shape) == 2):

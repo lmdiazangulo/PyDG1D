@@ -470,6 +470,45 @@ def test_energy_evolution_upwind():
     # plt.plot(totalEnergy, '.-g')
     # plt.show()
 
+def test_abnormal_energy_evolution_upwind():
+    '''
+        This abnormal "energy" evolution happens because the upwind fluxes 
+        are not accounted correctly to compute the physical energy.
+    '''
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="Periodic"),
+        fluxPenalty=1.0
+    )
+    dr = MaxwellDriver(sp)
+    
+    P = dr.buildPowerOperator()
+    wP, vP = np.linalg.eig(P)
+    
+    unstableIndices = np.where(wP>0.0)[0]
+    assert len(unstableIndices) > 0
+    
+    dr.fields = sp.stateVectorAsFields(np.real(vP[:,unstableIndices[0]]))
+
+    Nsteps = 5
+    energyE = np.zeros(Nsteps)
+    energyH = np.zeros(Nsteps)
+    for n in range(Nsteps):
+        energyE[n] = sp.getEnergy(dr['E'])
+        energyH[n] = sp.getEnergy(dr['H'])
+        # plt.plot(sp.x, dr['E'],'b')
+        # plt.plot(sp.x, dr['H'],'r')
+        # plt.show()
+        dr.step()
+
+    totalEnergy = energyE + energyH
+    assert (totalEnergy[1]-totalEnergy[0]) > 0
+    assert np.all(totalEnergy[2:]-totalEnergy[1:-1] < 0)
+
+    # plt.plot(energyE, '.-b')
+    # plt.plot(energyH, '.-r')
+    plt.plot(totalEnergy, '.-g')
+    plt.show()
 
 
 def test_energy_evolution_with_operators():
@@ -1093,7 +1132,7 @@ def test_buildDrivedEvolutionOperator_LF2V():
     )
     driver = MaxwellDriver(sp, timeIntegratorType='LF2V')
 
-    G = driver.buildDrivedEvolutionOperator(reduceToEsentialDoF=False)
+    G = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
