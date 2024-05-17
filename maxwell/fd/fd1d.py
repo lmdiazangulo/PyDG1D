@@ -228,9 +228,13 @@ class FD1D(SpatialDiscretization):
     def getEnergy(self, field):
         h = self.x[1] - self.x[0]
         assert np.allclose(h, self.x[1:] - self.x[:-1])
-
-        M =  np.eye(len(field)) * h
-        return 0.5 * field.T.dot(M).dot(field)
+        f = copy.deepcopy(field)
+        if self.mesh.boundary_label['LEFT'] == 'Periodic':
+            f = np.zeros(len(field)-1)
+            f[:] = field[:-1]
+    
+        M =  np.eye(len(f)) * h
+        return 0.5 * f.T.dot(M).dot(f)
 
     def getTotalEnergy(self, G, fields):
         dt = self.dt
@@ -250,7 +254,7 @@ class FD1D(SpatialDiscretization):
         assert np.allclose(h, self.x[1:] - self.x[:-1])
 
         M = np.eye(N)*h
-        V = 0.5*(M - 0.5*S_E.T.dot(Gdt.T).dot(S_H) - 0.5*S_H.T.dot(Gdt).dot(S_E))
+        V = 0.5*(M + 0.5*S_E.T.dot(Gdt.T).dot(S_H) + 0.5*S_H.T.dot(Gdt).dot(S_E))
         
         if self.mesh.boundary_label['LEFT'] != 'Periodic':
             raise ValueError("Only implemented for periodic.")

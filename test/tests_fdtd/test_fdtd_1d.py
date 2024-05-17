@@ -71,7 +71,8 @@ def test_fdtd_pec():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    # plot(sp, driver)
+    plot(sp, driver)
+
 
     driver.run_until(2.0)
 
@@ -81,7 +82,8 @@ def test_fdtd_pec():
 
 
 def test_fdtd_periodic():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="Periodic"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
+
     driver = MaxwellDriver(sp, timeIntegratorType='LF2')
 
     s0 = 0.25
@@ -243,10 +245,10 @@ def test_energy_evolution():
         totalEnergy[n] = sp.getTotalEnergy(G, dr.fields)
         dr.step()
 
-    # plt.plot(energyE + energyH) 
-    # plt.plot((energyE[:-1] +energyE[1:])*0.5 + energyH[:-1])
-    # plt.plot(totalEnergy)
-    # plt.show()
+    plt.plot(energyE + energyH) 
+    plt.plot((energyE[:-1] + energyE[1:])*0.5 + energyH[:-1])
+    plt.plot(totalEnergy)
+    plt.show()
     assert np.isclose(totalEnergy[0],totalEnergy[-1])
 
 
