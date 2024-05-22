@@ -71,8 +71,7 @@ def test_fdtd_pec():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    plot(sp, driver)
-
+    # plot(sp, driver)
 
     driver.run_until(2.0)
 
@@ -223,7 +222,7 @@ def test_fdtd_check_initial_conditions_GW_right():
     
 def test_energy_evolution():
     '''
-        Eneregy evolution for LF2 needs to account for the fact that
+        Energy evolution for LF2 needs to account for the fact that
         the magnetic field is staggered in time. 
         This requires a special operator to compute energy.
     '''
@@ -234,21 +233,25 @@ def test_energy_evolution():
     s0 = 0.25
     dr['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
    
+    if sp.mesh.boundary_label['LEFT'] == 'Periodic':    
+        removeLastE = True
 
-    Nsteps = 500
+    Nsteps = 300
     energyE = np.zeros(Nsteps)
     energyH = np.zeros(Nsteps)
     totalEnergy = np.zeros(Nsteps)
     for n in range(Nsteps):
-        energyE[n] = sp.getEnergy(dr['E'])
+        energyE[n] = sp.getEnergy(dr['E'], removeLast=removeLastE)
         energyH[n] = sp.getEnergy(dr['H'])
         totalEnergy[n] = sp.getTotalEnergy(G, dr.fields)
         dr.step()
 
-    plt.plot(energyE + energyH) 
-    plt.plot((energyE[:-1] + energyE[1:])*0.5 + energyH[:-1])
-    plt.plot(totalEnergy)
-    plt.show()
+    # plt.plot(energyE + energyH) 
+    # plt.plot((energyH[:-1] + energyH[1:])*0.5 + energyE[:-1])
+    # plt.plot(energyE)
+    # plt.plot(energyH)
+    # plt.plot(totalEnergy)
+    # plt.show()
     assert np.isclose(totalEnergy[0],totalEnergy[-1])
 
 

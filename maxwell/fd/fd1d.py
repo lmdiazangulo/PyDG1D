@@ -225,16 +225,15 @@ class FD1D(SpatialDiscretization):
             A = self.reduceToEssentialDoF(A)
         return A
 
-    def getEnergy(self, field):
+    def getEnergy(self, field, removeLast=False):
         h = self.x[1] - self.x[0]
         assert np.allclose(h, self.x[1:] - self.x[:-1])
         f = copy.deepcopy(field)
-        if self.mesh.boundary_label['LEFT'] == 'Periodic':
+        if removeLast:
             f = np.zeros(len(field)-1)
             f[:] = field[:-1]
     
-        M =  np.eye(len(f)) * h
-        return 0.5 * f.T.dot(M).dot(f)
+        return 0.5 * h * f.T.dot(f)
 
     def getTotalEnergy(self, G, fields):
         dt = self.dt
