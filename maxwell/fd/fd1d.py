@@ -76,43 +76,48 @@ class FD1D(SpatialDiscretization):
                 if label == "PEC":
                     rhsE[0] = 0.0
 
-                if label == "PMC":
+                elif label == "PMC":
                     rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
 
-                if label == "Periodic":
+                elif label == "Periodic":
                     rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
                     rhsE[-1] = rhsE[0]
 
-                if label == "Mur":
-
+                elif label == "Mur":
                     rhsE[0] = E[1] + \
                         (self.c0 * self.dt - self.dx[0]) / \
                         (self.c0 * self.dt + self.dx[0]) * \
-                        (rhsE[1] - E[0])
+                        (rhsE[1]*self.dt + E[1] - E[0])
 
                     rhsE[0] -= E[0]
                     rhsE[0] /= self.dt
+                
+                else: 
+                    raise ValueError("Invalid boundary.")
 
             if bdr == "RIGHT":
                 if label == "PEC":
                     rhsE[-1] = 0.0
 
-                if label == "PMC":
+                elif label == "PMC":
                     rhsE[-1] = - (1.0/self.dxH[0]) * (-2 * H[-1])
 
-                if label == "Periodic":
+                elif label == "Periodic":
                     rhsE[0] = - (1.0/self.dxH[0]) * (H[0] - H[-1])
                     rhsE[-1] = rhsE[0]
 
-                if label == "Mur":
+                elif label == "Mur":
 
                     rhsE[-1] = E[-2] + \
-                        (self.c0 * self.dt - self.dx[0]) / \
-                        (self.c0 * self.dt + self.dx[0]) * \
-                        (rhsE[-2] - E[-1])
+                        (self.c0 * self.dt - self.dx[-1]) / \
+                        (self.c0 * self.dt + self.dx[-1]) * \
+                        (rhsE[-2]*self.dt + E[-2] - E[-1])
 
                     rhsE[-1] -= E[-1]
                     rhsE[-1] /= self.dt
+                    
+                else: 
+                    raise ValueError("Invalid boundary.")
 
         return rhsE
 

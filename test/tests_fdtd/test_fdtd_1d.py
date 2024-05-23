@@ -136,7 +136,7 @@ def test_fdtd_pmc_cfl_equals_half():
 
 def test_fdtd_mur():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Mur"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2')
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
@@ -159,7 +159,7 @@ def test_fdtd_mur_right_only():
 
     s0 = 0.25
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
-    driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
+    driver['H'][:] = np.exp(-(sp.xH + driver.dt/2)**2/(2*s0**2))
 
     # plot(sp, driver)
 
@@ -178,13 +178,13 @@ def test_fdtd_right_only_mur_and_pec():
 
     t_final = 8.0
 
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label=bdrs))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 50, boundary_label=bdrs))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.7)
+    
     s0 = 0.25
     driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
     initialFieldE = driver['E'][:]
-    driver['H'][:] = np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
+    driver['H'][:] = -np.exp(-(sp.xH - driver.dt/2)**2/(2*s0**2))
 
     # plot(sp, driver)
 
