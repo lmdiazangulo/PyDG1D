@@ -148,6 +148,22 @@ def test_fdtd_mur():
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
+    
+def test_fdtd_mur_constant_mode():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label='Mur'))
+
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    driver['E'][:] = 0.1
+    driver['H'][:] = 0.1
+    
+    # plot(sp, driver)
+
+    driver.run_until(1.0)
+
+    finalFieldE = driver['E'][:]
+    assert np.allclose(finalFieldE, 0.1, atol=1e-12)
 
 
 def test_fdtd_mur_right_only():

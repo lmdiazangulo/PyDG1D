@@ -75,6 +75,7 @@ class FD1D(SpatialDiscretization):
             if bdr == "LEFT":
                 if label == "PEC":
                     rhsE[0] = 0.0
+                    # rhsE[0] = (0.0 - E[0])/self.dt
 
                 elif label == "PMC":
                     rhsE[0] = - (1.0/self.dxH[0]) * (2 * H[0])
@@ -98,6 +99,7 @@ class FD1D(SpatialDiscretization):
             if bdr == "RIGHT":
                 if label == "PEC":
                     rhsE[-1] = 0.0
+                    #rhsE[-1] = (0.0 - E[-1])/self.dt
 
                 elif label == "PMC":
                     rhsE[-1] = - (1.0/self.dxH[0]) * (-2 * H[-1])
