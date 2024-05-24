@@ -221,6 +221,14 @@ class DG1D(SpatialDiscretization):
             A1 = [[A[i][j] for j in new_order] for i in new_order]
         return np.array(A1)
 
+    def number_of_unknowns(self, field='all'):
+        if field == 'all':
+            return self.number_of_unknowns('E') \
+                + self.number_of_unknowns('H')
+        else:
+            f = self.buildFields()
+            return f[field].size
+
     def buildGlobalMassMatrix(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
