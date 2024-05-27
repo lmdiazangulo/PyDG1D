@@ -57,7 +57,19 @@ def test_buildEvolutionOperator_Periodic():
     assert np.allclose(A.T.dot(M) + (M).dot(A), 0.0)
     assert A.shape == (20, 20)
     assert np.allclose(np.real(np.linalg.eig(A)[0]), 0)
+    
+    
+def test_stiffness_and_flux_operators():
+    m = Mesh1D(0, 1, 5, boundary_label='Periodic')
+    sp = DG1D(1, m, 0.0)
+    
+    A = sp.buildEvolutionOperator()
+    S = sp.buildStiffnessMatrix()
+    F = sp.buildFluxMatrix()
+    
+    assert np.allclose(A, S+F)
 
+    
 
 def test_buildEvolutionOperator_sorting():
     m = Mesh1D(0, 1, 3)

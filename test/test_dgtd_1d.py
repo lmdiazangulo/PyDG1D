@@ -340,6 +340,46 @@ def test_pec_centered_cn():
     #     plt.cla()
 
 
+
+def test_periodic_centered():
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(0, 1.0, 30, boundary_label="Periodic"),
+        fluxPenalty=0.0
+    )
+    dr = MaxwellDriver(sp, timeIntegratorType='LSERK4', CFL=1.365)
+
+    # final_time = 1.999
+    s0 = 0.125
+    initialFieldE = np.exp(-(sp.x-0.5)**2/(2*s0**2))
+
+    # dr['E'][:] = initialFieldE[:]
+    # finalFieldE = dr['E']
+
+    # dr.run_until(final_time)
+
+    # R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
+    #                 -finalFieldE.reshape(1, finalFieldE.size))
+    # assert R[0, 1] > 0.9999
+    
+
+    dr['E'][:] = initialFieldE[:]
+    
+    initialEnergy = sp.getEnergy(dr['E']) + sp.getEnergy(dr['H'])
+    for _ in range(500):
+        dr.step()
+        # plt.plot(sp.x, dr['E'],'b')
+        # plt.plot(sp.x, dr['H'],'r')
+        # plt.ylim(-1, 1)
+        # plt.grid(which='both')
+        # plt.pause(0.05)
+        # plt.cla()
+    finalEnergy = sp.getEnergy(dr['E']) + sp.getEnergy(dr['H'])
+    maxEVG = np.max(np.abs(np.linalg.eig(dr.buildDrivedEvolutionOperator())[0]))
+    
+    assert maxEVG < 1.0 or np.isclose(maxEVG, 1.0)
+    assert finalEnergy <= initialEnergy
+
 def test_periodic_centered_dirk2():
     sp = DG1D(
         n_order=5,
@@ -612,11 +652,11 @@ def test_energy_evolution_centered_lf2v():
 def test_periodic_tested():
     sp = DG1D(
         n_order=3,
-        mesh=Mesh1D(-1.0, 1.0, 20, boundary_label="Periodic"),
-        fluxPenalty=1.0
+        mesh=Mesh1D(-1.0, 1.0, 30, boundary_label="Periodic"),
+        fluxPenalty=0.0
     )
     final_time = 1.999
-    driver = MaxwellDriver(sp, timeIntegratorType='LSERK134')
+    driver = MaxwellDriver(sp, timeIntegratorType='LSERK54')
     initialField = np.sin(2*np.pi*sp.x)
 
     driver['E'][:] = initialField[:]
@@ -648,7 +688,7 @@ def test_periodic_tested():
         driver.step()
         t += driver.dt
 
-    assert (np.sqrt(error).max() < 1e-02, True)
+    assert np.sqrt(error).max() < 1e-08
 
 
 @pytest.mark.skip(reason="Nothing is being tested.")
@@ -953,7 +993,7 @@ def test_errors():
     print("ERROR LSERK134", error_RMSE_LSERK134)
     # Show dt in driver
 
-    assert (np.sqrt(error_abs).max() < 1e-02, True)
+    assert np.sqrt(error_abs).max() < 1e-02
 
 
 @pytest.mark.skip(reason="Nothing is being tested.")

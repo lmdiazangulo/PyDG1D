@@ -229,6 +229,50 @@ class DG1D(SpatialDiscretization):
             f = self.buildFields()
             return f[field].size
 
+    def buildStiffnessMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = self.number_of_unknowns()
+        A = np.zeros((N, N))
+        for i in range(N):
+            fields = self.buildFields()
+            E = fields['E']
+            H = fields['H']
+            self.setFieldWithIndex(fields, i, 1.0)
+            rhs_drE = np.matmul(self.diff_matrix, E)
+            rhs_drH = np.matmul(self.diff_matrix, H)
+            rhsE = 1/self.epsilon * np.multiply(-1*self.rx, rhs_drH)
+            rhsH = 1/self.mu * np.multiply(-1*self.rx, rhs_drE)
+            q0 = np.vstack([
+                rhsE.reshape(Np*K, 1, order='F'),
+                rhsH.reshape(Np*K, 1, order='F')
+            ])
+            A[:, i] = q0[:, 0]
+        return A
+
+
+
+    def buildFluxMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = self.number_of_unknowns()
+        A = np.zeros((N, N))
+        for i in range(N):
+            fields = self.buildFields()
+            E = fields['E']
+            H = fields['H']
+            self.setFieldWithIndex(fields, i, 1.0)
+            flux_E = self.computeFluxE(E, H)
+            flux_H = self.computeFluxH(E, H)
+            rhsE = 1/self.epsilon * np.matmul(self.lift, self.f_scale * flux_E)
+            rhsH = 1/self.mu * (np.matmul(self.lift, self.f_scale * flux_H))
+            q0 = np.vstack([
+                rhsE.reshape(Np*K, 1, order='F'),
+                rhsH.reshape(Np*K, 1, order='F')
+            ])
+            A[:, i] = q0[:, 0]
+        return A
+
     def buildGlobalMassMatrix(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
