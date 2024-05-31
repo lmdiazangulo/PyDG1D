@@ -254,3 +254,4 @@ def test_mass_matrix():
                          [-1.,  2.,  4.]]) / 15
     
     assert np.allclose(M, expected)
+

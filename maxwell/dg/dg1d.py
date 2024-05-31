@@ -291,6 +291,7 @@ class DG1D(SpatialDiscretization):
         Gets energy stored in field by computing
             (1/2) * field^T * MassMatrix * field * Jacobian.
         for each element and then the sum.
+        WRONG IF EVOLVED BY A STAGGERED SCHEME.
         '''
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
@@ -303,3 +304,20 @@ class DG1D(SpatialDiscretization):
             )
 
         return energy
+
+    def buildConnectedOperators(self, element=0, neighbors=1):
+        
+        neighs = neighbors
+            
+        local_indices, neigh_indices = self.buildLocalAndNeighborIndices(element, neighs)
+
+        G = self.reorder_by_elements(self.buildEvolutionOperator())
+        Mg =  self.reorder_by_elements(self.buildGlobalMassMatrix())
+        A = G[local_indices][:,local_indices]
+        B = G[local_indices][:,neigh_indices]
+        C = G[neigh_indices][:,local_indices]
+        D = G[neigh_indices][:,neigh_indices]
+        Mk = Mg[local_indices][:,local_indices]
+        Mn = Mg[neigh_indices][:,neigh_indices]
+        
+        return A, B, C, D, Mk, Mn
