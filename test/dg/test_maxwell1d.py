@@ -88,19 +88,25 @@ def test_buildEvolutionOperator_sorting():
 
 
 def test_build_connected_operators():
-    sp = DG1D(2, Mesh1D(0, 1, 3), 0.0)
-
+    sp = DG1D(2, Mesh1D(0, 1, 11, "Periodic"), 0.0)
+    
+    Np = sp.number_of_nodes_per_element()
+    k = 5
+    n = 1
+    
     Ag = sp.reorder_by_elements(sp.buildEvolutionOperator())
-    eigAg = np.sort(np.linalg.eig(Ag)[0])
-    A, B, C, D, _, _ = sp.buildConnectedOperators(1, 1)
+    A, B, C, D, _, _ = sp.buildConnectedOperators(k, n)
 
-    Ag_reassembled_1 = np.concatenate([A, B], axis=1)
-    Ag_reassembled_2 = np.concatenate([C, D], axis=1)
-    Ag_reassembled = np.concatenate([Ag_reassembled_1, Ag_reassembled_2])
-    eigAg_reassembled = np.sort(np.linalg.eig(Ag_reassembled)[0])
-
-    assert np.allclose(eigAg, eigAg_reassembled)
-
+    assert np.allclose(A,              Ag[k*2*Np:(k+1)*2*Np,k*2*Np:(k+1)*2*Np])
+    assert np.allclose(B[:, :n*2*Np],  Ag[k*2*Np:(k+1)*2*Np,(k-n)*2*Np:k*2*Np])
+    assert np.allclose(B[:, n*2*Np:],  Ag[k*2*Np:(k+1)*2*Np,(k+1)*2*Np:(k+1+n)*2*Np])
+    assert np.allclose(C[:n*2*Np, :],  Ag[(k-n)*2*Np:k*2*Np,k*2*Np:(k+1)*2*Np])
+    assert np.allclose(C[n*2*Np:, :],  Ag[(k+1)*2*Np:(k+1+n)*2*Np,k*2*Np:(k+1)*2*Np])
+    assert np.allclose(D[:2*Np, :2*Np],  A)
+    assert np.allclose(D[2*Np:, 2*Np:],  A)
+    assert np.allclose(D[:2*Np, 2*Np:],  0)
+    assert np.allclose(D[2*Np:, :2*Np],  0)
+    
 
 def test_build_global_mass_matrix():
     sp = DG1D(2, Mesh1D(0, 1, 3))
