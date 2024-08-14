@@ -243,24 +243,21 @@ class FD1D(SpatialDiscretization):
         return 0.5 * h * f.T.dot(f)
 
     def getTotalEnergy(self, G, fields):
-        dt = self.dt
-
-        Gdt = G*dt
-
         N = self.number_of_unknowns(      reduceToEssentialDoF=True)
         NE = self.number_of_unknowns('E', reduceToEssentialDoF=True)
         NH = self.number_of_unknowns('H', reduceToEssentialDoF=True)
 
-        S_E = np.zeros((N, N))
-        S_E[:NE, :NE] = np.eye(NE)
-        S_H = np.zeros((N, N))
-        S_H[NE:, NE:] = np.eye(NH)
+        L_E = np.zeros((N, N))
+        L_E[:NE, :NE] = np.eye(NE)
+        L_H = np.zeros((N, N))
+        L_H[NE:, NE:] = np.eye(NH)
         
         h = self.x[1] - self.x[0]
         assert np.allclose(h, self.x[1:] - self.x[:-1])
-
         M = np.eye(N)*h
-        V = 0.5*(M + 0.5*S_E.T.dot(Gdt.T).dot(S_H) + 0.5*S_H.T.dot(Gdt).dot(S_E))
+        P = 0.5*( L_E.dot(M).dot(L_E)
+            + 0.5*L_H.dot(M).dot(L_H).dot(G)
+            + 0.5*G.T.dot(L_H).dot(M).dot(L_H))
         
         if self.mesh.boundary_label['LEFT'] != 'Periodic':
             raise ValueError("Only implemented for periodic.")
@@ -269,7 +266,7 @@ class FD1D(SpatialDiscretization):
         f['E'] = np.zeros(len(fields['E'])-1)
         f['E'][:] = fields['E'][:-1]
         q = self.fieldsAsStateVector(f)
-        return q.T.dot(V).dot(q)
+        return q.T.dot(P).dot(q)
 
     def reorder_by_elements(self, A):
         # Assumes that the original array contains all DoF ordered as:

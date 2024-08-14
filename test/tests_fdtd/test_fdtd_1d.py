@@ -243,7 +243,7 @@ def test_energy_evolution():
         This requires a special operator to compute energy.
     '''
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="Periodic"))
-    dr = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dr = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=0.7)
 
     G = dr.buildDrivedEvolutionOperator(reduceToEssentialDoF=True)    
     s0 = 0.25
@@ -264,8 +264,8 @@ def test_energy_evolution():
 
     # plt.plot(energyE + energyH) 
     # plt.plot((energyH[:-1] + energyH[1:])*0.5 + energyE[:-1])
-    # plt.plot(energyE)
-    # plt.plot(energyH)
+    # # plt.plot(energyE)
+    # # plt.plot(energyH)
     # plt.plot(totalEnergy)
     # plt.show()
     assert np.isclose(totalEnergy[0],totalEnergy[-1])
