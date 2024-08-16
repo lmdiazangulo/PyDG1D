@@ -304,6 +304,26 @@ class DG1D(SpatialDiscretization):
             )
 
         return energy
+    
+    def getTotalEnergy(self, G, fields):
+        N = self.number_of_unknowns()
+        NE = self.number_of_unknowns('E')
+        NH = self.number_of_unknowns('H')
+
+        L_E = np.zeros((N, N))
+        L_E[:NE, :NE] = np.eye(NE)
+        L_H = np.zeros((N, N))
+        L_H[NE:, NE:] = np.eye(NH)
+              
+        M = self.buildGlobalMassMatrix()
+        
+        P = 0.5*( M
+                + 0.5*L_E.dot(G.T).dot(L_H).dot(M).dot(L_H)
+                + 0.5*L_H.dot(M).dot(L_H).dot(G).dot(L_E)
+        )
+                   
+        q = self.fieldsAsStateVector(fields)
+        return q.T.dot(P).dot(q)
 
     def buildConnectedOperators(self, element=0, neighbors=1):
         

@@ -259,12 +259,14 @@ class FD1D(SpatialDiscretization):
             + 0.5*L_H.dot(M).dot(L_H).dot(G)
             + 0.5*G.T.dot(L_H).dot(M).dot(L_H))
         
-        if self.mesh.boundary_label['LEFT'] != 'Periodic':
+        f = copy.deepcopy(fields)
+        
+        if self.mesh.boundary_label['LEFT'] == 'Periodic':
+            f['E'] = np.zeros(len(fields['E'])-1)
+            f['E'][:] = fields['E'][:-1]
+        else:
             raise ValueError("Only implemented for periodic.")
             
-        f = copy.deepcopy(fields)
-        f['E'] = np.zeros(len(fields['E'])-1)
-        f['E'][:] = fields['E'][:-1]
         q = self.fieldsAsStateVector(f)
         return q.T.dot(P).dot(q)
 
