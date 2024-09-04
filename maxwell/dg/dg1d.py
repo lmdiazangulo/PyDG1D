@@ -31,8 +31,8 @@ class DG1D(SpatialDiscretization):
         self.sigma = np.zeros(mesh.number_of_elements())
 
         for index in range(len(self.mesh.matmap.matmap)):
-            interval = self.mesh.matmap.get_interval(index)
-            material = self.mesh.matmap.get_material_for_matmap_index(index)
+            interval = self.mesh.matmap.get_interval_for_index(index)
+            material = self.mesh.matmap.get_material_for_index(index)
             for element_index in range(interval.start, interval.end, 1):
                 self.epsilon[element_index] = material.epsilon
                 self.mu     [element_index] = material.mu
