@@ -3,6 +3,7 @@ import math
 from .dg1d_tools import *
 from ..spatialDiscretization import *
 from .mesh1d import Mesh1D
+from ..material import *
 
 
 class DG1D(SpatialDiscretization):
@@ -27,6 +28,16 @@ class DG1D(SpatialDiscretization):
         # Set up material parameters
         self.epsilon = np.ones(mesh.number_of_elements())
         self.mu = np.ones(mesh.number_of_elements())
+        self.sigma = np.zeros(mesh.number_of_elements())
+
+        for index in range(len(self.mesh.matmap.matmap)):
+            interval = self.mesh.matmap.get_interval(index)
+            material = self.mesh.matmap.get_material_for_matmap_index(index)
+            for element_index in range(interval.start, interval.end, 1):
+                self.epsilon[element_index] = material.epsilon
+                self.mu     [element_index] = material.mu
+                self.sigma  [element_index] = material.sigma
+
 
         self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx)
         self.nx = normals(mesh.number_of_elements())
@@ -141,9 +152,9 @@ class DG1D(SpatialDiscretization):
 
         flux_E = self.computeFluxE(E, H)
         rhs_drH = np.matmul(self.diff_matrix, H)
-        rhsE = 1/self.epsilon * \
-            (np.multiply(-1*self.rx, rhs_drH) +
-             np.matmul(self.lift, self.f_scale * flux_E))
+        rhsE = 1/self.epsilon * (np.multiply(-1*self.rx, rhs_drH) +
+                                 np.matmul(self.lift, self.f_scale * flux_E) - 
+                                 self.sigma * E)
 
         return rhsE
 
