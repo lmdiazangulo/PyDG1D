@@ -1214,3 +1214,31 @@ def test_materials_epsilon():
         plt.grid(which='both')
         plt.pause(0.001)
         plt.cla()
+
+# @pytest.mark.skip(reason="Test still being written.")
+def test_materials_thin_layer():
+
+    z0 = 376.730313412
+    mat_map = MaterialMap()
+    mat_map.add_material(ElementInterval( 1, 24), Material(1.0, 1.0, 0.0))
+    mat_map.add_material(ElementInterval(25, 26), Material(1.0, 1.0, 2.0*z0/z0))
+    mat_map.add_material(ElementInterval(26, 50), Material(1.0, 1.0, 0.0))
+
+    sp = DG1D(
+        n_order=4,
+        mesh=Mesh1D(-1.0, 1.0, 50, boundary_label="SMA", material_map=mat_map)
+    )
+    driver = MaxwellDriver(sp)
+
+    s0 = 0.05
+    initialFieldE = np.exp(-(sp.x + 0.5)**2/(2*s0**2))
+
+    driver['E'][:] = initialFieldE[:]
+    for _ in range(500):
+        driver.step()
+        plt.plot(sp.x, driver['E'],'b')
+        plt.plot(sp.x, driver['H'],'r')
+        plt.ylim(-1, 1)
+        plt.grid(which='both')
+        plt.pause(0.001)
+        plt.cla()
