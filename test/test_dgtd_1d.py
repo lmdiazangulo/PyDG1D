@@ -23,35 +23,283 @@ def test_spatial_discretization_lift():
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
-def test_pec():
+
+def test_pec_transmitted():
+    epsilon_1=1
+    # epsilon_2=1
+    # mu_1=1
+    # mu_2=1
+    # z_1=np.sqrt(mu_1/epsilon_1)
+    # z_2=np.sqrt(mu_2/epsilon_2)
+    # v_1=1/np.sqrt(epsilon_1*mu_1)
+    # v_2=1/np.sqrt(epsilon_2*mu_2)
+    L1=-5.0
+    L2=5.0
+    elements=100
+    epsilons = epsilon_1*np.ones(elements)
+    sigmas=np.zeros(elements) 
+    sigmas[45:55]=2.
+    # epsilons[int(elements/2):elements-1]=epsilon_2
+
     sp = DG1D(
-        n_order=5,
-        mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC")
+        n_order=3,
+        mesh=Mesh1D(L1, L2, elements, boundary_label="PEC"),
+        epsilon=epsilons,
+        sigma=sigmas
     )
     driver = MaxwellDriver(sp)
 
-    final_time = 1.999
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    s0 = 0.50
+    x0=-2
+    final_time = 1
+    steps = 100
+    time_vector = np.linspace(0, final_time, steps)
+    freq_vector = np.logspace(6, 9, 31)
+
+    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldH = initialFieldE
 
     driver['E'][:] = initialFieldE[:]
-    finalFieldE = driver['E']
+    driver['H'][:] = initialFieldH[:]
+    E_vector = []
 
+    for t in range(len(time_vector)):
+        driver.run_until(time_vector[t])
+        E_vector.append(driver['E'][2])
+
+
+    X = np.zeros(len(freq_vector), dtype=complex)
+
+    for k in range(len(freq_vector)):
+        for t in range(len(time_vector)):
+            X[k] = np.sum(E_vector[t] * np.exp(-2j * np.pi * freq_vector[k] * time_vector[t]))
+
+    plt.figure(figsize=(12, 5))
+
+    plt.plot(freq_vector, X, 'bo-') 
+    plt.title('Magnitud de la DFT')
+    plt.xlabel('Frecuencia (Hz)')
+    plt.xscale("log")
+    plt.ylabel('DFT')
+    plt.grid()
+    
+    plt.show()
+    
+    
+    # E1 = driver['E'][2][0:45]  
+    # E2 = driver['E'][2][55:100]   
+
+    # DFT_1=dft(E1)
+    # DFT_2=dft(E2)
+
+    # T=DFT_1/DFT_2
+
+    # print(T)
+
+    # N1= len(E1)
+    # N2 = len(E2)
+
+    # freqs1 = np.fft.fftfreq(N1, d=1)  
+    # freqs2 = np.fft.fftfreq(N2, d=1)  
+
+    # # Grafic0 DFT
+    # plt.figure(figsize=(12, 5))
+
+    # plt.subplot(1, 2, 1)
+    # plt.plot(freqs1[:N1//2], np.abs(DFT_1[:N1//2]), 'bo-') 
+    # plt.title('Magnitud de la DFT (Intervalo 55-100)')
+    # plt.xlabel('Frecuencia (Hz)')
+    # plt.ylabel('DFT')
+    # plt.grid()
+
+    # plt.subplot(1, 2, 2)
+    # plt.plot(freqs2[:N2//2], np.abs(DFT_2[:N2//2]), 'ro-') 
+    # plt.title('Magnitud de la DFT (Intervalo 0-45)')
+    # plt.xlabel('Frecuencia (Hz)')
+    # plt.ylabel('DFT')
+    # plt.grid()
+
+    # plt.show()
+
+def test_pec_dielectrico_upwind():
+#planificar el test a mano
+#numero elementos
+    #calcular amplitudes coeficientes
+    epsilon_1=1
+    epsilon_2=2
+    mu_1=1
+    mu_2=1
+    z_1=np.sqrt(mu_1/epsilon_1)
+    z_2=np.sqrt(mu_2/epsilon_2)
+    epsilons = epsilon_1*np.ones(100)  
+    epsilons[50:99]=epsilon_2
+    
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(-5.0, 5.0, 100, boundary_label="PEC"),
+        epsilon=epsilons
+    )
+    driver = MaxwellDriver(sp)
+
+
+    #Coeficientes T y R
+    T_E=2*z_2/(z_1+z_2)
+    R_E=(z_2-z_1)/(z_2+z_1)
+
+    final_time = 6
+    s0 = 0.50
+    initialFieldE = np.exp(-(sp.x+2)**2/(2*s0**2))
+    initialFieldH = initialFieldE
+
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+        
     driver.run_until(final_time)
 
-    R = np.corrcoef(initialFieldE.reshape(1, initialFieldE.size),
-                    -finalFieldE.reshape(1, finalFieldE.size))
-    assert R[0, 1] > 0.9999
+    max_electric_field_2 = np.max(driver['E'][2][50:99])
+    assert np.isclose(max_electric_field_2, T_E, atol=0.1)
+
+    min_electric_field_1 = np.min(driver['E'][2][0:49])
+    assert np.isclose(min_electric_field_1, R_E, atol=0.1)
 
     # driver['E'][:] = initialFieldE[:]
-    # for _ in range(172):
+    # driver['H'][:] = initialFieldH[:]
+    # for _ in range(300):
     #     driver.step()
     #     plt.plot(sp.x, driver['E'],'b')
     #     plt.plot(sp.x, driver['H'],'r')
-    #     plt.ylim(-1, 1)
+    #     plt.ylim(-1, 1.5)
     #     plt.grid(which='both')
     #     plt.pause(0.01)
     #     plt.cla()
+
+def test_pec_dielectrico_upwind_v():
+    epsilon_1=1
+    epsilon_2=2
+    mu_1=1
+    mu_2=1
+    z_1=np.sqrt(mu_1/epsilon_1)
+    z_2=np.sqrt(mu_2/epsilon_2)
+    v_1=1/np.sqrt(epsilon_1*mu_1)
+    v_2=1/np.sqrt(epsilon_2*mu_2)
+    L1=-5.0
+    L2=5.0
+    Lt=abs(L1)+abs(L2)
+    elements=100
+    epsilons = epsilon_1*np.ones(elements)  
+    epsilons[int(elements/2):elements-1]=epsilon_2
+
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(L1, L2, elements, boundary_label="PEC"),
+        epsilon=epsilons,
+        sigma=np.zeros(100)
+    )
+    driver = MaxwellDriver(sp)
+
+
+    #Coeficientes T y R
+    T_E=2*z_2/(z_1+z_2)
+    R_E=(z_2-z_1)/(z_2+z_1)
+
+    s0 = 0.50
+    x0=-2
+    t_0=abs(x0/v_1)
+    final_time = 6
+
+    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldH = initialFieldE
+
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+        
+    driver.run_until(final_time)
+
+    reflectedelement=int(abs(v_1*final_time+L1)*elements/Lt)
+    transelement=int((-L1+(final_time-t_0)*v_2)*elements/Lt)
+    
+    max_electric_field_2 = np.max(driver['E'][2][transelement-1:transelement+1])
+    assert np.isclose(max_electric_field_2, T_E, atol=0.1)
+
+    min_electric_field_1 = np.min(driver['E'][2][reflectedelement-1:reflectedelement+1])
+    assert np.isclose(min_electric_field_1, R_E, atol=0.1)
+
+    # driver['E'][:] = initialFieldE[:]
+    # driver['H'][:] = initialFieldH[:]
+    # for _ in range(300):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1, 1.5)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
+def test_pec_dielectrico_centered_right():
+    epsilon_1=2
+    epsilon_2=1
+    mu_1=1
+    mu_2=1
+    z_1=np.sqrt(mu_1/epsilon_1)
+    z_2=np.sqrt(mu_2/epsilon_2)
+    v_1=1/np.sqrt(epsilon_1*mu_1)
+    v_2=1/np.sqrt(epsilon_2*mu_2)
+    L1=-5.0
+    L2=5.0
+    Lt=abs(L1)+abs(L2)
+    elements=100
+    epsilons = epsilon_1*np.ones(elements)  
+    epsilons[int(elements/2):elements-1]=epsilon_2
+
+    sp = DG1D(
+        n_order=3,
+        mesh=Mesh1D(L1, L2, elements, boundary_label="PEC"),
+        fluxType="Centered",
+        epsilon=epsilons
+    )
+    driver = MaxwellDriver(sp)
+
+
+    #Coeficientes T y R
+    
+    #Llevan un menos delante porque al chocar con el borde, al ser epsilon=inf, la onda se refleja invertida
+    T_E=-2*z_1/(z_1+z_2)
+    R_E=-(z_1-z_2)/(z_2+z_1)
+
+    s0 = 0.5
+    x0=2
+    t_front=(2*L2-x0)/v_2
+    final_time = 10
+
+    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
+    initialFieldH = initialFieldE
+
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = initialFieldH[:]
+        
+    driver.run_until(final_time)
+
+    reflectedelement=int((-L1+v_2*(final_time-t_front))*elements/Lt)
+    transelement=int((-L1-v_1*(final_time-t_front))*elements/Lt)
+    
+    max_electric_field_2 = np.max(driver['E'][2][reflectedelement-1:reflectedelement+1])
+    assert np.isclose(max_electric_field_2, R_E, atol=0.01)
+
+    min_electric_field_1 = np.min(driver['E'][2][transelement-1:transelement+1])
+    assert np.isclose(min_electric_field_1, T_E, atol=0.01)
+
+    # driver['E'][:] = initialFieldE[:]
+    # driver['H'][:] = initialFieldH[:]
+
+    # for _ in range(240):
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'],'b')
+    #     plt.plot(sp.x, driver['H'],'r')
+    #     plt.ylim(-1.5, 1.5)
+    #     plt.grid(which='both')
+    #     plt.pause(0.01)
+    #     plt.cla()
+
 
 
 def test_pec_centered():
@@ -509,7 +757,7 @@ def test_periodic_tested():
         driver.step()
         t += driver.dt
 
-    assert (np.sqrt(error).max() < 1e-02, True)
+    assert np.max(np.sqrt(error)) < 1e-02
 
 
 @pytest.mark.skip(reason="Nothing is being tested.")
@@ -814,7 +1062,7 @@ def test_errors():
     print("ERROR LSERK134", error_RMSE_LSERK134)
     # Show dt in driver
 
-    assert (np.sqrt(error_abs).max() < 1e-02, True)
+    assert np.max(np.sqrt(error_abs)) < 1e-02
 
 
 @pytest.mark.skip(reason="Nothing is being tested.")
