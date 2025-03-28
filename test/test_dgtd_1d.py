@@ -757,7 +757,7 @@ def test_periodic_tested():
         driver.step()
         t += driver.dt
 
-    assert np.max(np.sqrt(error)) < 1e-02
+    assert (np.sqrt(error).max() < 1e-02, True)
 
 
 @pytest.mark.skip(reason="Nothing is being tested.")
