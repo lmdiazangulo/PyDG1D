@@ -23,7 +23,7 @@ def dft(x,freq,time):
         X.append(summatory)
     return X
 
-
+@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
 def test_TFG_ep50_rho1_slab_1cm():
 
     #Material distribution
@@ -112,7 +112,7 @@ def test_TFG_ep50_rho1_slab_1cm():
     plt.show()
 
 
-
+@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
 def test_TFG_ep20_rho5_slab_1cm():
 
     #Material distribution
@@ -201,7 +201,7 @@ def test_TFG_ep20_rho5_slab_1cm():
     plt.show()
 
 
-
+@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
 def test_TFG_ep20_rho5_slab_6cm():
 
     #Material distribution
@@ -290,7 +290,7 @@ def test_TFG_ep20_rho5_slab_6cm():
     plt.show()
 
 
-
+@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
 def test_TFG_ep6_rho8_slab_6cm():
 
     #Material distribution

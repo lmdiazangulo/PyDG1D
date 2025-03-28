@@ -12,6 +12,7 @@ def dft(x):
             X[i]=X[i]+ x[n] * np.exp(-2j*np.pi*i*n/N)
     return X
 
+@pytest.mark.skip(reason="Deactivated test, no analytical data to compare. Only checks visual behaviour.")
 def test_DFT():
     # Función para realizar la DFT manualmente
 
@@ -60,6 +61,7 @@ def test_DFT():
     plt.tight_layout()
     plt.show()
 
+@pytest.mark.skip(reason="Deactivated test, no analytical data to compare. Only checks visual behaviour.")
 def test_python_fft_practice():
         
     epsilon_1=1
