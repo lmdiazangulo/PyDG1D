@@ -23,7 +23,7 @@ def dft(x,freq,time):
         X.append(summatory)
     return X
 
-@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
+
 def test_TFG_ep50_rho1_slab_1cm():
 
     #Material distribution
@@ -98,21 +98,39 @@ def test_TFG_ep50_rho1_slab_1cm():
     dB_T=20*np.log10(T) 
     dB_R=20*np.log10(R) 
 
+    #Load reference data from Scikit
+    reference_data = np.loadtxt("transmission_reflection_data_single_50_1_1_scikit.dat")
+    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+
+    # Interpolate computed R and T to match reference frequencies
+    R_interp = np.interp(freq_ref, freq_vector, dB_R)
+    T_interp = np.interp(freq_ref, freq_vector, dB_T)
+
+    # Assert conditions
+    assert np.all(np.abs(R_interp - R_ref) <= 0.1), "Computed R deviates too much!"
+    assert np.all(np.abs(T_interp - T_ref) <= 0.1), "Computed T deviates too much!"
+
+
+    # Save data to .dat file
+    # with open("transmission_reflection_data_single_50_1_1.dat", "w") as f:
+    #     f.write("# Frequency (MHz)    Transmission (dB)    Reflection (dB)\n")
+    #     for freq, t, r in zip(freq_vector / 1e6, dB_T, dB_R):
+    #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
+
 
     #T and R graph
-    plt.figure(figsize=(10, 8))
-    plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    plt.title('Transmission and Reflection Coefficients')
-    plt.xlabel('Frequency (MHz)')
-    plt.xlim(1e2, 1e3)
-    plt.ylabel('Magnitude (dB)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.figure(figsize=(10, 8))
+    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
+    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
+    # plt.title('Transmission and Reflection Coefficients')
+    # plt.xlabel('Frequency (MHz)')
+    # plt.xlim(1e2, 1e3)
+    # plt.ylabel('Magnitude (dB)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
 
-@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
 def test_TFG_ep20_rho5_slab_1cm():
 
     #Material distribution
@@ -187,21 +205,40 @@ def test_TFG_ep20_rho5_slab_1cm():
     dB_T=20*np.log10(T) 
     dB_R=20*np.log10(R) 
 
+    #Load reference data from Scikit
+    reference_data = np.loadtxt("transmission_reflection_data_single_20_5_1_scikit.dat")
+    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+
+    #Interpolate computed R and T to match reference frequencies
+    R_interp = np.interp(freq_ref, freq_vector, dB_R)
+    T_interp = np.interp(freq_ref, freq_vector, dB_T)
+
+    #Assert conditions
+    assert np.all(np.abs(R_interp - R_ref) <= 0.1), "Computed R deviates too much!"
+    assert np.all(np.abs(T_interp - T_ref) <= 0.1), "Computed T deviates too much!"
+
+
+    #Save data to .dat file
+    # with open("transmission_reflection_data_single_20_5_1.dat", "w") as f:
+    #     f.write("# Frequency (MHz)    Transmission (dB)    Reflection (dB)\n")
+    #     for freq, t, r in zip(freq_vector / 1e6, dB_T, dB_R):
+    #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
+
 
     #T and R graph
-    plt.figure(figsize=(10, 8))
-    plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    plt.title('Transmission and Reflection Coefficients')
-    plt.xlabel('Frequency (MHz)')
-    plt.xlim(1e2, 1e3)
-    plt.ylabel('Magnitude (dB)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.figure(figsize=(10, 8))
+    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
+    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
+    # plt.title('Transmission and Reflection Coefficients')
+    # plt.xlabel('Frequency (MHz)')
+    # plt.xlim(1e2, 1e3)
+    # plt.ylabel('Magnitude (dB)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
 
-@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
+
 def test_TFG_ep20_rho5_slab_6cm():
 
     #Material distribution
@@ -276,21 +313,40 @@ def test_TFG_ep20_rho5_slab_6cm():
     dB_T=20*np.log10(T) 
     dB_R=20*np.log10(R) 
 
+    #Load reference data from Scikit
+    reference_data = np.loadtxt("transmission_reflection_data_single_20_5_6_scikit.dat")
+    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+
+    #Interpolate computed R and T to match reference frequencies
+    R_interp = np.interp(freq_ref, freq_vector, dB_R)
+    T_interp = np.interp(freq_ref, freq_vector, dB_T)
+
+    #Assert conditions
+    assert np.all(np.abs(R_interp - R_ref) <= 0.1), "Computed R deviates too much!"
+    assert np.all(np.abs(T_interp - T_ref) <= 0.1), "Computed T deviates too much!"
+
+
+    #Save data to .dat file
+    # with open("transmission_reflection_data_single_20_5_6.dat", "w") as f:
+    #     f.write("# Frequency (MHz)    Transmission (dB)    Reflection (dB)\n")
+    #     for freq, t, r in zip(freq_vector / 1e6, dB_T, dB_R):
+    #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
+
 
     #T and R graph
-    plt.figure(figsize=(10, 8))
-    plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    plt.title('Transmission and Reflection Coefficients')
-    plt.xlabel('Frequency (MHz)')
-    plt.xlim(1e2, 1e3)
-    plt.ylabel('Magnitude (dB)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.figure(figsize=(10, 8))
+    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
+    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
+    # plt.title('Transmission and Reflection Coefficients')
+    # plt.xlabel('Frequency (MHz)')
+    # plt.xlim(1e2, 1e3)
+    # plt.ylabel('Magnitude (dB)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
 
-@pytest.mark.skip(reason="Temporarily deactivated. Modifying test to add asserts.")
+
 def test_TFG_ep6_rho8_slab_6cm():
 
     #Material distribution
@@ -366,14 +422,34 @@ def test_TFG_ep6_rho8_slab_6cm():
     dB_R=20*np.log10(R) 
 
 
+    #Load reference data from Scikit
+    reference_data = np.loadtxt("transmission_reflection_data_single_6_8_6_scikit.dat")
+    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+
+    #Interpolate computed R and T to match reference frequencies
+    R_interp = np.interp(freq_ref, freq_vector, dB_R)
+    T_interp = np.interp(freq_ref, freq_vector, dB_T)
+
+    #Assert conditions
+    assert np.all(np.abs(R_interp - R_ref) <= 0.1), "Computed R deviates too much!"
+    assert np.all(np.abs(T_interp - T_ref) <= 0.1), "Computed T deviates too much!"
+
+
+    #Save data to .dat file
+    # with open("transmission_reflection_data_single_6_8_6.dat", "w") as f:
+    #     f.write("# Frequency (MHz)    Transmission (dB)    Reflection (dB)\n")
+    #     for freq, t, r in zip(freq_vector / 1e6, dB_T, dB_R):
+    #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
+
+
     #T and R graph
-    plt.figure(figsize=(10, 8))
-    plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    plt.title('Transmission and Reflection Coefficients')
-    plt.xlabel('Frequency (MHz)')
-    plt.xlim(1e2, 1e3)
-    plt.ylabel('Magnitude (dB)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # plt.figure(figsize=(10, 8))
+    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
+    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
+    # plt.title('Transmission and Reflection Coefficients')
+    # plt.xlabel('Frequency (MHz)')
+    # plt.xlim(1e2, 1e3)
+    # plt.ylabel('Magnitude (dB)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
