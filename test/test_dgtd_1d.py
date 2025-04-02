@@ -23,109 +23,7 @@ def test_spatial_discretization_lift():
     assert np.allclose(surface_integral_dg(1, jacobiGL(0.0, 0.0, 1)),
                        np.array([[2.0, -1.0], [-1.0, 2.0]]))
 
-@pytest.mark.skip(reason="Only visual aid. Deactivated to pass automated tests.")
-def test_pec_transmitted():
-    epsilon_1=1
-    # epsilon_2=1
-    # mu_1=1
-    # mu_2=1
-    # z_1=np.sqrt(mu_1/epsilon_1)
-    # z_2=np.sqrt(mu_2/epsilon_2)
-    # v_1=1/np.sqrt(epsilon_1*mu_1)
-    # v_2=1/np.sqrt(epsilon_2*mu_2)
-    L1=-5.0
-    L2=5.0
-    elements=100
-    epsilons = epsilon_1*np.ones(elements)
-    sigmas=np.zeros(elements) 
-    sigmas[45:55]=2.
-    # epsilons[int(elements/2):elements-1]=epsilon_2
-
-    sp = DG1D(
-        n_order=3,
-        mesh=Mesh1D(L1, L2, elements, boundary_label="PEC"),
-        epsilon=epsilons,
-        sigma=sigmas
-    )
-    driver = MaxwellDriver(sp)
-
-    s0 = 0.50
-    x0=-2
-    final_time = 1
-    steps = 100
-    time_vector = np.linspace(0, final_time, steps)
-    freq_vector = np.logspace(6, 9, 31)
-
-    initialFieldE = np.exp(-(sp.x-x0)**2/(2*s0**2))
-    initialFieldH = initialFieldE
-
-    driver['E'][:] = initialFieldE[:]
-    driver['H'][:] = initialFieldH[:]
-    E_vector = []
-
-    for t in range(len(time_vector)):
-        driver.run_until(time_vector[t])
-        E_vector.append(driver['E'][2])
-
-
-    X = np.zeros(len(freq_vector), dtype=complex)
-
-    for k in range(len(freq_vector)):
-        for t in range(len(time_vector)):
-            X[k] = np.sum(E_vector[t] * np.exp(-2j * np.pi * freq_vector[k] * time_vector[t]))
-
-    # plt.figure(figsize=(12, 5))
-
-    # plt.plot(freq_vector, X, 'bo-') 
-    # plt.title('Magnitud de la DFT')
-    # plt.xlabel('Frecuencia (Hz)')
-    # plt.xscale("log")
-    # plt.ylabel('DFT')
-    # plt.grid()
-    
-    # plt.show()
-    
-    
-    # E1 = driver['E'][2][0:45]  
-    # E2 = driver['E'][2][55:100]   
-
-    # DFT_1=dft(E1)
-    # DFT_2=dft(E2)
-
-    # T=DFT_1/DFT_2
-
-    # print(T)
-
-    # N1= len(E1)
-    # N2 = len(E2)
-
-    # freqs1 = np.fft.fftfreq(N1, d=1)  
-    # freqs2 = np.fft.fftfreq(N2, d=1)  
-
-    # # Grafic0 DFT
-    # plt.figure(figsize=(12, 5))
-
-    # plt.subplot(1, 2, 1)
-    # plt.plot(freqs1[:N1//2], np.abs(DFT_1[:N1//2]), 'bo-') 
-    # plt.title('Magnitud de la DFT (Intervalo 55-100)')
-    # plt.xlabel('Frecuencia (Hz)')
-    # plt.ylabel('DFT')
-    # plt.grid()
-
-    # plt.subplot(1, 2, 2)
-    # plt.plot(freqs2[:N2//2], np.abs(DFT_2[:N2//2]), 'ro-') 
-    # plt.title('Magnitud de la DFT (Intervalo 0-45)')
-    # plt.xlabel('Frecuencia (Hz)')
-    # plt.ylabel('DFT')
-    # plt.grid()
-
-    # plt.show()
-
-
-def test_pec_dielectrico_upwind():
-#planificar el test a mano
-#numero elementos
-    #calcular amplitudes coeficientes
+def test_pec_dielectric_upwind():
     epsilon_1=1
     epsilon_2=2
     mu_1=1
@@ -143,7 +41,7 @@ def test_pec_dielectrico_upwind():
     driver = MaxwellDriver(sp)
 
 
-    #Coeficientes T y R
+    #T and R coeffs
     T_E=2*z_2/(z_1+z_2)
     R_E=(z_2-z_1)/(z_2+z_1)
 
@@ -174,7 +72,7 @@ def test_pec_dielectrico_upwind():
     #     plt.pause(0.01)
     #     plt.cla()
 
-def test_pec_dielectrico_upwind_v():
+def test_pec_dielectric_upwind_v():
     epsilon_1=1
     epsilon_2=2
     mu_1=1
@@ -199,7 +97,7 @@ def test_pec_dielectrico_upwind_v():
     driver = MaxwellDriver(sp)
 
 
-    #Coeficientes T y R
+    #T and R coeffs
     T_E=2*z_2/(z_1+z_2)
     R_E=(z_2-z_1)/(z_2+z_1)
 
@@ -236,7 +134,7 @@ def test_pec_dielectrico_upwind_v():
     #     plt.pause(0.01)
     #     plt.cla()
 
-def test_pec_dielectrico_centered_right():
+def test_pec_dielectric_centered_right():
     epsilon_1=2
     epsilon_2=1
     mu_1=1
@@ -261,9 +159,7 @@ def test_pec_dielectrico_centered_right():
     driver = MaxwellDriver(sp)
 
 
-    #Coeficientes T y R
-    
-    #Llevan un menos delante porque al chocar con el borde, al ser epsilon=inf, la onda se refleja invertida
+    #T and R coeffs
     T_E=-2*z_1/(z_1+z_2)
     R_E=-(z_1-z_2)/(z_2+z_1)
 
@@ -300,8 +196,6 @@ def test_pec_dielectrico_centered_right():
     #     plt.grid(which='both')
     #     plt.pause(0.01)
     #     plt.cla()
-
-
 
 def test_pec_centered():
     sp = DG1D(

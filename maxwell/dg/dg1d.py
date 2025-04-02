@@ -22,21 +22,22 @@ class DG1D(SpatialDiscretization):
         beta = 0
 
         # Epsilon implementation in 1D
-
         if epsilon is None:
             self.epsilon = np.ones(mesh.number_of_elements())
         elif len(epsilon) != mesh.number_of_elements():
-            raise ValueError("El tamaño del vector de permitividades debe coincidir con el número de elementos en la malla.")
+            raise ValueError("The dimensions of the permittivity vector must align with the number of elements in the mesh.")
         else:          
             self.epsilon = np.array(epsilon)
 
-        # Sigma implementation necessary for J
+
+        # Sigma implementation necessary for J for 1D
         if sigma is None:
             self.sigma = np.zeros(mesh.number_of_elements())
         elif len(sigma) != mesh.number_of_elements():
-            raise ValueError("El tamaño del vector de densidad de carga debe coincidir con el número de elementos en la malla.")
+            raise ValueError("The dimensions of the charge density vector must align with the number of elements in the mesh.")
         else:          
             self.sigma = np.array(sigma)       
+        
         
         self.mu = np.ones(mesh.number_of_elements())
 
@@ -170,9 +171,7 @@ class DG1D(SpatialDiscretization):
         H = fields['H']
         J = np.zeros((self.number_of_nodes_per_element(), self.mesh.number_of_elements()))
 
-        for i in range(self.number_of_nodes_per_element()):
-            for j in range(self.mesh.number_of_elements()):
-                J[i][j]=E[i][j]*self.sigma[j]
+        J[:, :] = E * self.sigma
 
         flux_E = self.computeFluxE(E, H)
         rhs_drH = np.matmul(self.diff_matrix, H)

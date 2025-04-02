@@ -24,6 +24,7 @@ def dft(x,freq,time):
     return X
 
 
+
 def test_TFG_ep50_rho1_slab_1cm():
 
     #Material distribution
@@ -99,8 +100,11 @@ def test_TFG_ep50_rho1_slab_1cm():
     dB_R=20*np.log10(R) 
 
     #Load reference data from Scikit
-    reference_data = np.loadtxt("transmission_reflection_data_single_50_1_1_scikit.dat")
-    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+    reference_data = np.genfromtxt("testData/single_50_1_1.s2p", skip_header=3)
+    freq_ref, ReS11, ImS11, ReS21, ImS21 = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2], reference_data[:, 3], reference_data[:, 4]
+
+    R_ref = 20*np.log10(np.sqrt(ReS11**2 + ImS11**2))
+    T_ref = 20*np.log10(np.sqrt(ReS21**2 + ImS21**2))
 
     # Interpolate computed R and T to match reference frequencies
     R_interp = np.interp(freq_ref, freq_vector, dB_R)
@@ -118,17 +122,20 @@ def test_TFG_ep50_rho1_slab_1cm():
     #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
 
 
-    #T and R graph
-    # plt.figure(figsize=(10, 8))
-    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    # plt.title('Transmission and Reflection Coefficients')
+    #Plot
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(freq_vector/1e6, dB_T, 'b-', label='DGTD T')  
+    # plt.plot(freq_vector/1e6, dB_R, 'c-', label='DGTD R')  
+    # plt.plot(freq_ref/1e6, T_ref, 'm--', label='Sci-kit T')  
+    # plt.plot(freq_ref/1e6, R_ref, 'r--', label='Sci-kit R')  
+    # plt.title(r'$\rho = 1, \epsilon = 50$, slab width = 1 cm')
     # plt.xlabel('Frequency (MHz)')
-    # plt.xlim(1e2, 1e3)
     # plt.ylabel('Magnitude (dB)')
     # plt.legend()
-    # plt.grid(True)
+    # plt.xlim(100, 1000)
+    # plt.grid(True, linestyle='--', alpha=0.5)
     # plt.show()
+
 
 
 def test_TFG_ep20_rho5_slab_1cm():
@@ -206,8 +213,11 @@ def test_TFG_ep20_rho5_slab_1cm():
     dB_R=20*np.log10(R) 
 
     #Load reference data from Scikit
-    reference_data = np.loadtxt("transmission_reflection_data_single_20_5_1_scikit.dat")
-    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+    reference_data = np.genfromtxt("testData/single_20_5_1.s2p", skip_header=3)
+    freq_ref, ReS11, ImS11, ReS21, ImS21 = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2], reference_data[:, 3], reference_data[:, 4]
+
+    R_ref = 20*np.log10(np.sqrt(ReS11**2 + ImS11**2))
+    T_ref = 20*np.log10(np.sqrt(ReS21**2 + ImS21**2))
 
     #Interpolate computed R and T to match reference frequencies
     R_interp = np.interp(freq_ref, freq_vector, dB_R)
@@ -225,16 +235,18 @@ def test_TFG_ep20_rho5_slab_1cm():
     #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
 
 
-    #T and R graph
-    # plt.figure(figsize=(10, 8))
-    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    # plt.title('Transmission and Reflection Coefficients')
+    #Plot
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(freq_vector/1e6, dB_T, 'b-', label='DGTD T')  
+    # plt.plot(freq_vector/1e6, dB_R, 'c-', label='DGTD R')  
+    # plt.plot(freq_ref/1e6, T_ref, 'm--', label='Sci-kit T')  
+    # plt.plot(freq_ref/1e6, R_ref, 'r--', label='Sci-kit R')  
+    # plt.title(r'$\rho = 5, \epsilon = 20$, slab width = 1 cm')
     # plt.xlabel('Frequency (MHz)')
-    # plt.xlim(1e2, 1e3)
     # plt.ylabel('Magnitude (dB)')
     # plt.legend()
-    # plt.grid(True)
+    # plt.xlim(100, 1000)
+    # plt.grid(True, linestyle='--', alpha=0.5)
     # plt.show()
 
 
@@ -314,8 +326,11 @@ def test_TFG_ep20_rho5_slab_6cm():
     dB_R=20*np.log10(R) 
 
     #Load reference data from Scikit
-    reference_data = np.loadtxt("transmission_reflection_data_single_20_5_6_scikit.dat")
-    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+    reference_data = np.genfromtxt("testData/single_20_5_6.s2p", skip_header=3)
+    freq_ref, ReS11, ImS11, ReS21, ImS21 = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2], reference_data[:, 3], reference_data[:, 4]
+
+    R_ref = 20*np.log10(np.sqrt(ReS11**2 + ImS11**2))
+    T_ref = 20*np.log10(np.sqrt(ReS21**2 + ImS21**2))
 
     #Interpolate computed R and T to match reference frequencies
     R_interp = np.interp(freq_ref, freq_vector, dB_R)
@@ -333,16 +348,18 @@ def test_TFG_ep20_rho5_slab_6cm():
     #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
 
 
-    #T and R graph
-    # plt.figure(figsize=(10, 8))
-    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    # plt.title('Transmission and Reflection Coefficients')
+    #Plot
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(freq_vector/1e6, dB_T, 'b-', label='DGTD T')  
+    # plt.plot(freq_vector/1e6, dB_R, 'c-', label='DGTD R')  
+    # plt.plot(freq_ref/1e6, T_ref, 'm--', label='Sci-kit T')  
+    # plt.plot(freq_ref/1e6, R_ref, 'r--', label='Sci-kit R')  
+    # plt.title(r'$\rho = 5, \epsilon = 20$, slab width = 6 cm')
     # plt.xlabel('Frequency (MHz)')
-    # plt.xlim(1e2, 1e3)
     # plt.ylabel('Magnitude (dB)')
     # plt.legend()
-    # plt.grid(True)
+    # plt.xlim(100, 1000)
+    # plt.grid(True, linestyle='--', alpha=0.5)
     # plt.show()
 
 
@@ -421,10 +438,12 @@ def test_TFG_ep6_rho8_slab_6cm():
     dB_T=20*np.log10(T) 
     dB_R=20*np.log10(R) 
 
-
     #Load reference data from Scikit
-    reference_data = np.loadtxt("transmission_reflection_data_single_6_8_6_scikit.dat")
-    freq_ref, R_ref, T_ref = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2]
+    reference_data = np.genfromtxt("testData/single_6_8_6.s2p", skip_header=3)
+    freq_ref, ReS11, ImS11, ReS21, ImS21 = reference_data[:, 0] * 1e6, reference_data[:, 1], reference_data[:, 2], reference_data[:, 3], reference_data[:, 4]
+
+    R_ref = 20*np.log10(np.sqrt(ReS11**2 + ImS11**2))
+    T_ref = 20*np.log10(np.sqrt(ReS21**2 + ImS21**2))
 
     #Interpolate computed R and T to match reference frequencies
     R_interp = np.interp(freq_ref, freq_vector, dB_R)
@@ -442,14 +461,16 @@ def test_TFG_ep6_rho8_slab_6cm():
     #         f.write(f"{freq:.6e}    {t:.6e}    {r:.6e}\n")
 
 
-    #T and R graph
-    # plt.figure(figsize=(10, 8))
-    # plt.plot(freq_vector/1e6, dB_T, label='Transmission Coefficient (T)', color='purple')
-    # plt.plot(freq_vector/1e6, dB_R, label='Reflection Coefficient (R)', color='orange')
-    # plt.title('Transmission and Reflection Coefficients')
+    #Plot
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(freq_vector/1e6, dB_T, 'b-', label='DGTD T')  
+    # plt.plot(freq_vector/1e6, dB_R, 'c-', label='DGTD R')  
+    # plt.plot(freq_ref/1e6, T_ref, 'm--', label='Sci-kit T')  
+    # plt.plot(freq_ref/1e6, R_ref, 'r--', label='Sci-kit R')  
+    # plt.title(r'$\rho = 8, \epsilon = 6$, slab width = 6 cm')
     # plt.xlabel('Frequency (MHz)')
-    # plt.xlim(1e2, 1e3)
     # plt.ylabel('Magnitude (dB)')
     # plt.legend()
-    # plt.grid(True)
+    # plt.xlim(100, 1000)
+    # plt.grid(True, linestyle='--', alpha=0.5)
     # plt.show()
