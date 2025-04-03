@@ -4,12 +4,3 @@ maxwell/*/__pycache__/*
 test/*/__pycache__/*
 integrators/__pycache__/*
 fdtd/__pycache__/*
-transmission_reflection_data_single_6_8_6.dat/*
-transmission_reflection_data_single_20_5_6.dat/*
-transmission_reflection_data_single_20_5_1.dat/*
-transmission_reflection_data_single_50_1_1.dat/*
-transmission_reflection_data1.dat/*
-transmission_reflection_data2.dat/*
-transmission_reflection_data3.dat/*
-transmission_reflection_data4.dat/*
-transmission_reflection_vacuum.dat
