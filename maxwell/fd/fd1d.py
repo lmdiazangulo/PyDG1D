@@ -251,3 +251,35 @@ class FD1D(SpatialDiscretization):
             )
 
         return energy
+    
+    def buildAlternateBasisVectors(self):
+        xE = self.x
+        xH = self.xH
+
+        if len(xE) < 4 or len(xH) < 4:
+            raise ValueError("Not enough nodes to build alternate basis vectors. Insert at least 4 nodes per field")
+
+        vE0 = np.zeros(len(xE) + len(xH), dtype=int)
+        vE1 = np.zeros(len(xE) + len(xH), dtype=int)
+        vE2 = np.zeros(len(xE) + len(xH), dtype=int)
+        vE3 = np.zeros(len(xE) + len(xH), dtype=int)
+
+        vH0 = np.zeros(len(xE) + len(xH), dtype=int)
+        vH1 = np.zeros(len(xE) + len(xH), dtype=int)
+        vH2 = np.zeros(len(xE) + len(xH), dtype=int)
+        vH3 = np.zeros(len(xE) + len(xH), dtype=int)
+
+        vE0[:len(xE)][0::4] = 1
+        vE1[:len(xE)][1::4] = 1
+        vE2[:len(xE)][2::4] = 1
+        vE3[:len(xE)][3::4] = 1
+        
+        vH0[len(xE):][0::4] = 1  
+        vH1[len(xE):][1::4] = 1
+        vH2[len(xE):][2::4] = 1  
+        vH3[len(xE):][3::4] = 1
+
+        vE_basis = [vE0, vE1, vE2, vE3]
+        vH_basis = [vH0, vH1, vH2, vH3]
+
+        return vE_basis + vH_basis
