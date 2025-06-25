@@ -24,7 +24,7 @@ def plot(sp, driver):
 
 
 def test_buildDrivedEvolutionOperator():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     A = driver.buildDrivedEvolutionOperator()
@@ -243,3 +243,23 @@ def test_tfsf_null_field():
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
+
+def test_comparation_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
+    for k in range(5, 51, 1):
+        sp = FD1D(mesh=Mesh1D(-1.0, 1.0, k, boundary_label="PEC"))
+        driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+        A = driver.buildDrivedEvolutionOperator()
+
+        s0 = 0.25
+        initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+        driver['E'][:] = initialFieldE[:]
+        q0 = np.concatenate([driver['E'], driver['H']])
+        q = A.dot(q0)
+
+        v_basis = sp.buildAlternateBasisVectors()
+        q_outputs = driver.generateOutputFromAlternateBasisVectors()
+        A_alternate = driver.buildDrivedEvolutionOperator_FromAlternateBasis()
+        map = driver.buildEvolutionOperatorMap()
+
+        assert np.allclose(A_alternate, A)
