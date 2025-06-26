@@ -93,51 +93,6 @@ class MaxwellDriver:
         
         return A
     
-    def buildEvolutionOperatorMap(self):
-        N = self.sp.number_of_unknowns()
-        x_len = len(self.sp.x)
-
-        # This part of index must be improved, in the examples of 1D FDTD this points are just the necessary ones and the covers
-        # the frontiers columns of the time evolution operator (in both E and H) and two arbitrary points between each frontier
-        # to obtain the general columns form from the operator.
-
-        # Select representative indices from the evolution matrix
-        indices = [
-            0,                          # First E point
-            (x_len - 1) // 2,           # Middle E point
-            x_len - 1,                  # Last E point
-            x_len,                      # First H point
-            (N + x_len) // 2,           # Middle H point
-            N - 1                       # Last H point
-        ]
-
-        # Compute the columns corresponding to the selected indices
-        selected_columns = {}
-        for idx in indices:
-            self.fields = self.sp.buildFields()
-            self.sp.setFieldWithIndex(self.fields, idx, 1.0)
-            self.step()
-            q = self.sp.fieldsAsStateVector(self.fields)
-            selected_columns[idx] = q.copy()
-        self.fields = self.sp.buildFields()  
-
-        # Map each k to the nonzero indices of the relevant column
-        k_to_nonzero_map = {}
-        for k in range(N):
-            if k in [indices[0], indices[2], indices[3], indices[5]]:
-                col = selected_columns[k if k in selected_columns else indices[0]]
-            elif k < x_len:
-                # E: shift the middle E column as needed
-                shift = k - indices[1]
-                col = np.roll(selected_columns[indices[1]], shift)
-            else:
-                # H: shift the middle H column as needed
-                shift = k - indices[4]
-                col = np.roll(selected_columns[indices[4]], shift)
-            k_to_nonzero_map[k] = np.flatnonzero(col).tolist()
-
-        return k_to_nonzero_map
-    
     def generateOutputFromAlternateBasisVectors(self):
         v_basis = self.sp.buildAlternateBasisVectors()
         q_outputs = []
@@ -163,7 +118,8 @@ class MaxwellDriver:
         Q = np.column_stack(q_outputs)
         V = np.column_stack(v_basis)
 
-        column_nodes_map = self.buildEvolutionOperatorMap()
+        # column_nodes_map = self.buildEvolutionOperatorMap()
+        column_nodes_map = self.sp.mesh.buildEvolutionOperator_Column_map()
 
         for col_idx in range(V.shape[1]):
             v_col = V[:, col_idx]

@@ -26,6 +26,142 @@ class Mesh1D:
 
     def number_of_elements(self):
         return self.vx.shape[0] - 1
+    
+    def frontierIndexNeighbors(self):
+        special_indices = {}
+        frontier_condition_on_only_extremes = ["PEC", "PMC", "Periodic", "Mur"]
+        for bdr, label in self.boundary_label.items():
+            
+            if bdr == "LEFT":
+                if label in frontier_condition_on_only_extremes:
+                    # special_indices.append(0)
+                    special_indices[bdr] = [0]
+                    
+
+            if bdr == "RIGHT":
+                if label in frontier_condition_on_only_extremes:
+                    # special_indices.append(self.number_of_vertices()) 
+                    special_indices[bdr] = [self.number_of_vertices()-1]
+
+        return special_indices
+    
+    def getRelatedEvolutionNodes_E_map(self):
+        # This map is equivalent to obtain the non zero values of the firsts len(number_of_vertices()) rows in the drived operator evolution,
+        # i.e, the rows associated to the evolution of the electric field.
+
+        frontiers = self.frontierIndexNeighbors()
+        specialNodes = set(node for nodes in frontiers.values() for node in nodes)
+        relatedENodes_map = {}
+        relatedHNodes_map = {}
+
+        for i in range(self.number_of_vertices()):
+            if i in specialNodes:
+                continue    
+            else:
+                relatedENodes_map[i] = [i]
+                relatedHNodes_map[i] = [i-1, i]
+
+
+        for bdr, label in self.boundary_label.items():
+            nodes = frontiers.get(bdr, [])
+            
+            for i in nodes:
+                if bdr == "LEFT":
+                    if label == "PEC" or label =="PMC":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = []
+
+                    if label == "PMC":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = [i]
+
+                    if label == "Periodic":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = [i, self.number_of_elements]
+
+                    if label == "Mur":
+                        relatedENodes_map[i] = [i, i+1]
+                        relatedHNodes_map[i] = [i, i+1]
+
+                if bdr == "RIGHT":
+                    if label == "PEC" or label =="PMC":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = []
+
+                    if label == "PMC":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = [i]
+
+                    if label == "Periodic":
+                        relatedENodes_map[i] = [i]
+                        relatedHNodes_map[i] = [self.number_of_elements - i, i]
+
+                    if label == "Mur":
+                        relatedENodes_map[i] = [i-1, i]
+                        relatedHNodes_map[i] = [i-1, i]
+
+        relatedENodes_map = dict(sorted(relatedENodes_map.items()))
+        relatedHNodes_map = dict(sorted(relatedHNodes_map.items()))
+
+        return relatedENodes_map, relatedHNodes_map
+    
+    def getRelatedEvolutionNodes_H_map(self):
+        # Similar to the previous one, this dictionary/map corresponds to the evolution of the magnetic field
+        relatedENodes_map = {}
+        relatedHNodes_map = {}
+
+        _, relatedHNodes_fromE = self.getRelatedEvolutionNodes_E_map()
+
+        for i in range(self.number_of_elements()):
+            relatedENodes_map[i] = [i, i+1]
+            relatedHNodes_map[i] = list(set(relatedHNodes_fromE.get(i, [])) | set(relatedHNodes_fromE.get(i+1, [])))
+
+        return relatedENodes_map, relatedHNodes_map
+
+    def buildEvolutionOperator_Row_map(self):
+        # Using the previous two maps, we can construct another one containing all the information of the non zero values in each row for the
+        # drived Evolution operation
+        A_E_rows_map = self.getRelatedEvolutionNodes_E_map()
+        A_H_rows_map = self.getRelatedEvolutionNodes_H_map()
+        row_map_E = {}
+        row_map_H = {}
+        row_map = {}
+
+        for i in A_E_rows_map[0]:
+            E_E_nodes = A_E_rows_map[0].get(i, [])
+            E_H_nodes = [e_h_nodes + self.number_of_vertices() for e_h_nodes in A_E_rows_map[1].get(i, [])]
+            row_map_E[i] = E_E_nodes + E_H_nodes
+
+        for i in A_H_rows_map[0]:
+            H_E_nodes = A_H_rows_map[0].get(i, [])
+            H_H_nodes = [h_h_nodes + self.number_of_vertices() for h_h_nodes in A_H_rows_map[1].get(i, [])]
+            row_map_H[i] = H_E_nodes + H_H_nodes
+
+        for i in row_map_E:
+            row_map[i] = row_map_E[i]
+
+        for i in row_map_H:
+            row_map[i + self.number_of_vertices()] = row_map_H[i]
+
+        return row_map
+    
+    def buildEvolutionOperator_Column_map(self):
+        # Finally, we construct another dictionary that contains the same information but the key items is now the columns, and this is the one used
+        # for the information extraction from the outputs obtained with alternate vector basis.
+        row_map = self.buildEvolutionOperator_Row_map()
+        col_map = {}
+
+        for row, cols in row_map.items():
+            for col in cols:
+                if col not in col_map:
+                    col_map[col] = []
+                col_map[col].append(row)
+
+        col_map = dict(sorted(col_map.items()))
+
+        return col_map
+
+
 
 def mesh_generator(xmin,xmax,k_elem):
     """
@@ -54,4 +190,4 @@ def mesh_generator(xmin,xmax,k_elem):
         EToV[i,1] = i+1
 
     return [n_v,vx,k_elem,EToV]
-    
+
