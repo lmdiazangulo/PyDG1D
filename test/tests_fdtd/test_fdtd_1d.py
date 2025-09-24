@@ -322,10 +322,64 @@ def test_comparison_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
 
         A = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
 
-        s0 = 0.25
-        initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
-        driver['E'][:] = initialFieldE[:]
-
         A_alternate = driver.buildDrivedEvolutionOperator_FromAlternateBasis()
 
         assert np.allclose(A_alternate, A)
+
+def test_snapshots_creation():
+
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    Q_skip1 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10)
+    Q_skip2 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=2)
+    Q_skip3 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=3)
+
+    assert np.allclose(Q_skip1[:, 2], Q_skip2[:, 1])
+    assert np.allclose(Q_skip1[:, 3], Q_skip3[:, 1])
+    assert np.allclose(Q_skip2[:, 3], Q_skip3[:, 2])
+
+def test_svd_decomposition():
+    # If the SVD decomposition works well, the reduced order model decomposition will also be functional
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 500, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=1)
+
+    U, S, VT = driver.buildSingularValueDecomposition()
+
+    assert np.allclose(Q, U.dot(np.diag(S)).dot(VT))
+
+    # For some reason, the product U @ U.T doesn't result in the identity matrix
+    assert np.allclose(U.T.dot(U), np.eye(U.shape[1]))
+
+    assert np.allclose(VT.dot(VT.T), np.eye(VT.shape[0]))
+    assert np.allclose(VT.T.dot(VT), np.eye(VT.shape[1]))
+
+def test_comparison_fullsolver_reducedOrderModel_POD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=100, time_step_skip=1)
+
+    number_of_time_steps = 50
+    Ur, Ar = driver.buildReducedOrderModel(percentage_treshhold=1-1e-9, useAlternateBasis=True)
+    qf_r = driver.evolveReducedOrderModel(Ar, Ur, driver.fields, time_steps=number_of_time_steps)
+
+    for t in range(number_of_time_steps):
+        driver.step()
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    assert np.allclose(qf_solver, Ur.dot(qf_r), atol=5e-5)
+    
+

@@ -128,6 +128,8 @@ class MaxwellDriver:
     def generateOutputFromAlternateBasisVectors(self):
         v_basis = self.sp.buildAlternateBasis()
         q_outputs = []
+        
+        oldFields = copy.deepcopy(self.fields)
 
         if (self.sp.dimension() == 1):
             for i in range(len(v_basis)):
@@ -138,7 +140,7 @@ class MaxwellDriver:
                 qi = self.sp.fieldsAsStateVector(self.fields)
                 q_outputs.append(qi)
             
-            self.fields = self.sp.buildFields()
+            self.fields = oldFields
 
         elif (self.sp.dimension() == 2):
             for i in range(len(v_basis)):
@@ -208,3 +210,60 @@ class MaxwellDriver:
                     A[i, k] = Q[i, col_idx]  
 
         return A
+
+    def buildSnapshots_ProperOrthogonalDecomposition(self, number_of_snapshots, time_step_skip=1):
+        oldFields = copy.deepcopy(self.fields)
+        qi = self.sp.fieldsAsStateVector(self.fields)
+
+        if np.allclose(qi, 0.0):
+            raise ValueError("Initial condition is zero, all the snapshots will be zero.")
+        
+        self.snapshots = np.zeros((len(qi), number_of_snapshots))
+
+        for n in range(number_of_snapshots):
+            self.snapshots[:,n] = qi
+
+            for t in range(time_step_skip):
+                self.step()
+
+            qi = self.sp.fieldsAsStateVector(self.fields)
+
+        self.fields = oldFields
+
+        return self.snapshots
+    
+    def buildSingularValueDecomposition(self):
+        if not hasattr(self, 'snapshots'):
+            raise ValueError("You need to build the snapshots first using buildSnapshots_ProperOrthogonalDecomposition method.")
+        
+        U, S, VT = np.linalg.svd(self.snapshots, full_matrices=False)
+        return U, S, VT
+    
+    def energyCriterionForPOD(self, percentage_treshhold, S):
+        total_energy = np.sum(S**2)
+        cumulative_energy = np.cumsum(S**2) / total_energy
+        r = np.searchsorted(cumulative_energy, percentage_treshhold) + 1
+        return r
+    
+    def buildReducedOrderModel(self, percentage_treshhold=0.99, useAlternateBasis=False):
+        
+        if useAlternateBasis:
+            A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
+        else:
+            A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
+        
+        U, S, VT = self.buildSingularValueDecomposition()
+        r = self.energyCriterionForPOD(percentage_treshhold, S)
+
+        Ur = U[:,:r]
+        Ar = Ur.T.dot(A).dot(Ur)
+        
+        return Ur, Ar
+    
+    def evolveReducedOrderModel(self, Ar, Ur, initialField, time_steps):
+        qi = self.sp.fieldsAsStateVector(initialField)
+        qi_r = Ur.T.dot(qi)
+
+        qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
+
+        return qf_r
