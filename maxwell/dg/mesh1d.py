@@ -45,59 +45,66 @@ class Mesh1D:
 
         return special_indices
     
+    def getRelatedEvolutionNodes_H_map(self):
+        # This map is equivalent to obtain the non zero values of the lasts len(number_of_vertices()) rows in the drived operator evolution,
+        # i.e, the rows associated to the evolution of the magnetic field.
+
+        relatedENodes_map = {}
+        relatedHNodes_map = {}
+
+        for i in range(self.number_of_elements()):
+            relatedENodes_map[i] = [i, i+1]
+            relatedHNodes_map[i] = [i]
+
+        return relatedENodes_map, relatedHNodes_map
+    
     def getRelatedEvolutionNodes_E_map(self):
-        # This map is equivalent to obtain the non zero values of the firsts len(number_of_vertices()) rows in the drived operator evolution,
-        # i.e, the rows associated to the evolution of the electric field.
+        # Similar to the previous one, this dictionary/map corresponds to the evolution of the electric field
 
         frontiers = self.frontierIndexNeighbors()
         specialNodes = set(node for nodes in frontiers.values() for node in nodes)
         relatedENodes_map = {}
         relatedHNodes_map = {}
 
+        relatedENodes_fromH, _ = self.getRelatedEvolutionNodes_H_map()
+
         for i in range(self.number_of_vertices()):
             if i in specialNodes:
                 continue    
             else:
-                relatedENodes_map[i] = [i]
+                relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i-1, [])) | set(relatedENodes_fromH.get(i, [])))
                 relatedHNodes_map[i] = [i-1, i]
 
 
         for bdr, label in self.boundary_label.items():
             nodes = frontiers.get(bdr, [])
             
+            # I need to verify if the boundary condition from MUR is well implemented, I think it is not correct
             for i in nodes:
                 if bdr == "LEFT":
-                    if label == "PEC" or label =="PMC":
-                        relatedENodes_map[i] = [i]
-                        relatedHNodes_map[i] = []
-
-                    if label == "PMC":
-                        relatedENodes_map[i] = [i]
+                    if label == "PEC" or label == "PMC":
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])))
                         relatedHNodes_map[i] = [i]
 
                     if label == "Periodic":
-                        relatedENodes_map[i] = [i]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])) | set(relatedENodes_fromH.get(self.number_of_elements, [])))
                         relatedHNodes_map[i] = [i, self.number_of_elements]
 
                     if label == "Mur":
-                        relatedENodes_map[i] = [i, i+1]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])) | set(relatedENodes_fromH.get(i+1, [])))
                         relatedHNodes_map[i] = [i, i+1]
 
                 if bdr == "RIGHT":
-                    if label == "PEC" or label =="PMC":
-                        relatedENodes_map[i] = [i]
-                        relatedHNodes_map[i] = []
-
-                    if label == "PMC":
-                        relatedENodes_map[i] = [i]
-                        relatedHNodes_map[i] = [i]
+                    if label == "PEC" or label == "PMC":
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i-1, [])))
+                        relatedHNodes_map[i] = [i-1]
 
                     if label == "Periodic":
-                        relatedENodes_map[i] = [i]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(self.number_of_elements - i, [])) | set(relatedENodes_fromH.get(i, [])))
                         relatedHNodes_map[i] = [self.number_of_elements - i, i]
 
                     if label == "Mur":
-                        relatedENodes_map[i] = [i-1, i]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i-1, [])) | set(relatedENodes_fromH.get(i, [])))
                         relatedHNodes_map[i] = [i-1, i]
 
         relatedENodes_map = dict(sorted(relatedENodes_map.items()))
@@ -105,18 +112,6 @@ class Mesh1D:
 
         return relatedENodes_map, relatedHNodes_map
     
-    def getRelatedEvolutionNodes_H_map(self):
-        # Similar to the previous one, this dictionary/map corresponds to the evolution of the magnetic field
-        relatedENodes_map = {}
-        relatedHNodes_map = {}
-
-        _, relatedHNodes_fromE = self.getRelatedEvolutionNodes_E_map()
-
-        for i in range(self.number_of_elements()):
-            relatedENodes_map[i] = [i, i+1]
-            relatedHNodes_map[i] = list(set(relatedHNodes_fromE.get(i, [])) | set(relatedHNodes_fromE.get(i+1, [])))
-
-        return relatedENodes_map, relatedHNodes_map
 
     def buildEvolutionOperator_Row_map(self):
         # Using the previous two maps, we can construct another one containing all the information of the non zero values in each row for the

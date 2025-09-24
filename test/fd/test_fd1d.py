@@ -63,7 +63,7 @@ def test_buildEvolutionOperator_sorting():
     A = sp.buildEvolutionOperator()
     eigA, _ = np.linalg.eig(A)
 
-    A_by_elem = sp.reorder_array(A, 'byElements') 
+    A_by_elem = sp.reorder_by_elements(A) 
     eigA_by_elem, _ = np.linalg.eig(A_by_elem)
 
     assert A.shape == A_by_elem.shape

@@ -12,6 +12,7 @@ from .integrators.LF2 import *
 from .integrators.LF2V import *
 from .integrators.EULER import *
 
+import copy
 
 class MaxwellDriver:
     def __init__(self, 
@@ -79,9 +80,12 @@ class MaxwellDriver:
     def __getitem__(self, key):
         return self.fields[key]
     
-    def buildDrivedEvolutionOperator(self):
+    def buildDrivedEvolutionOperator(self, reduceToEssentialDoF=True):
         N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
+        
+        oldFields = copy.deepcopy(self.fields)
+        
         for i in range(N):
             self.fields = self.sp.buildFields()
             self.sp.setFieldWithIndex(self.fields, i, 1.0)
@@ -89,9 +93,37 @@ class MaxwellDriver:
             q = self.sp.fieldsAsStateVector(self.fields) 
             A[:,i] = q[:]
         
-        self.fields = self.sp.buildFields()
+        self.fields = oldFields
+        
+        if reduceToEssentialDoF and self.sp.isStaggered():
+            A = self.sp.reduceToEssentialDoF(A)
         
         return A
+    
+    def buildPowerOperator(self):
+        G = self.buildDrivedEvolutionOperator()
+        Mg = self.sp.buildGlobalMassMatrix()
+        return (1/self.dt)*(G.T.dot(Mg).dot(G) - Mg)
+    
+
+    def buildCausallyConnectedOperators(self, element=0, neighbors=-1):
+        if neighbors == -1:
+            neighs = self.timeIntegrator.N_STAGES
+        else:
+            neighs = neighbors
+            
+        local_indices, neigh_indices = self.sp.buildLocalAndNeighborIndices(element, neighs)
+
+        G = self.sp.reorder_by_elements(self.buildDrivedEvolutionOperator())
+        Mg =  self.sp.reorder_by_elements(self.sp.buildGlobalMassMatrix())
+        A = G[local_indices][:,local_indices]
+        B = G[local_indices][:,neigh_indices]
+        C = G[neigh_indices][:,local_indices]
+        D = G[neigh_indices][:,neigh_indices]
+        Mk = Mg[local_indices][:,local_indices]
+        Mn = Mg[neigh_indices][:,neigh_indices]
+        
+        return A, B, C, D, Mk, Mn
     
     def generateOutputFromAlternateBasisVectors(self):
         v_basis = self.sp.buildAlternateBasis()
@@ -103,7 +135,7 @@ class MaxwellDriver:
                 self.fields['E'][:] = v_basis[i][:len(self.sp.x)]
                 self.fields['H'][:] = v_basis[i][len(self.sp.x):]
                 self.step()
-                qi = np.concatenate([self.fields['E'], self.fields['H']])
+                qi = self.sp.fieldsAsStateVector(self.fields)
                 q_outputs.append(qi)
             
             self.fields = self.sp.buildFields()

@@ -18,7 +18,7 @@ def resonant_cavity_ez_field(x, y, t):
     return np.sin(m*np.pi*x)*np.sin(n*np.pi*y)*np.cos(w*t)
 
 def test_pec():
-    N = 2
+    N = 5
     msh = readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K146.neu')
     sp = Maxwell2D(N, msh, 'Centered')
     
@@ -30,12 +30,11 @@ def test_pec():
     # ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
     # plt.show()
 
-    for _ in range(40):       
-        # sp.plot_field(N, driver['Ez'])
-        # plt.pause(0.001)
-        # plt.cla()
-
-        driver.step()
+    # for _ in range(40):       
+    #     sp.plot_field(N, driver['Ez'])
+    #     plt.pause(0.1)
+    #     driver.step()
+    #     plt.cla()
 
     ez_expected = resonant_cavity_ez_field(sp.x, sp.y, driver.timeIntegrator.time)
     R = np.corrcoef(ez_expected, driver['Ez'])

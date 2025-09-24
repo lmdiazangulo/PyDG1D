@@ -6,20 +6,19 @@ from .mesh1d import Mesh1D
 
 
 class DG1D(SpatialDiscretization):
-    def __init__(self, n_order: int, mesh: Mesh1D, fluxType="Upwind",epsilon=None,sigma=None):
+    def __init__(self, n_order: int, mesh: Mesh1D, fluxPenalty=1.0, epsilon=None,sigma=None):
         SpatialDiscretization.__init__(self, mesh)
         
         assert n_order > 0
         self.n_order = n_order
         
-        assert fluxType == "Upwind" or fluxType == "Centered"
-        self.fluxType = fluxType       
-
+        self.alpha = fluxPenalty
         self.n_faces = 2
         self.n_fp = 1   
+        
+        if self.mesh.boundary_label["LEFT"] != self.mesh.boundary_label["RIGHT"]:
+            raise ValueError("Boundaries must be of the same type.")
 
-        alpha = 0
-        beta = 0
 
         # Epsilon implementation in 1D
         if epsilon is None:
@@ -48,7 +47,7 @@ class DG1D(SpatialDiscretization):
         self.vmap_m, self.vmap_p, self.vmap_b, self.map_b = build_maps(
             n_order, self.x, etoe, etof)
 
-        r = jacobiGL(alpha, beta, n_order)
+        r = jacobiGL(0, 0, n_order)
         self.fmask, self.fmask_1, self.fmask_2 = buildFMask(r)
 
         self.mass = mass_matrix(n_order, r)
@@ -99,60 +98,43 @@ class DG1D(SpatialDiscretization):
         return Z_imp
 
     def fieldsOnBoundaryConditions(self, E, H):
-        bcType = self.mesh.boundary_label
-
-        for bdr, label in self.mesh.boundary_label.items():
-            if bdr == "LEFT" or bdr == "RIGHT":
-                if label == "PEC":
-                    Ebc = - E.transpose().take(self.vmap_b)
-                    Hbc = H.transpose().take(self.vmap_b)
-                elif label == "PMC":
-                    Hbc = - H.transpose().take(self.vmap_b)
-                    Ebc = E.transpose().take(self.vmap_b)
-                elif label == "SMA":
-                    Hbc = H.transpose().take(self.vmap_b) * 0.0
-                    Ebc = E.transpose().take(self.vmap_b) * 0.0
-                elif label == "Periodic":
-                    Ebc = E.transpose().take(self.vmap_b[::-1])
-                    Hbc = H.transpose().take(self.vmap_b[::-1])
-                else:
-                    raise ValueError("Invalid boundary label.")
-                return Ebc, Hbc
+        label = self.mesh.boundary_label["LEFT"]
+        Eb = E.transpose().take(self.vmap_b)
+        Hb = H.transpose().take(self.vmap_b)
+        if label == "PEC":
+            Ebc = - Eb
+            Hbc = Hb
+        elif label == "PMC":
+            Hbc = - Hb
+            Ebc = Eb
+        elif label == "Null":
+            Hbc = Hb
+            Ebc = Eb
+        elif label == "Double":
+            Hbc = -(Eb + Hb)/2
+            Ebc = -(Eb - Hb)/2
+        elif label == "ABC":
+            Ebc = (Eb + self.nx.take(self.map_b) * Hb)*0.5
+            Hbc = (Hb + self.nx.take(self.map_b) * Eb)*0.5
+        elif label == "SMA":
+            Hbc = Hb * 0.0
+            Ebc = Eb * 0.0
+        elif label == "Periodic":
+            Ebc = E.transpose().take(self.vmap_b[::-1])
+            Hbc = H.transpose().take(self.vmap_b[::-1])
+        else:
+            raise ValueError("Invalid boundary label.")
+        return Ebc, Hbc
 
     def computeFluxE(self, E, H):
         dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
-        elif self.fluxType == "Centered":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
-        else:
-            raise ValueError("Invalid fluxType label")
+        flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-self.alpha*dE)
         return flux_E
 
     def computeFluxH(self, E, H):
         dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
-        elif self.fluxType == "Centered":
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
-        else:
-            raise ValueError("Invalid fluxType label")
+        flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-self.alpha*dH)
         return flux_H
-
-    def computeFlux(self, E, H):
-        dE, dH = self.computeJumps(E, H)
-
-        if self.fluxType == "Upwind":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH-dE)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE-dH)
-        elif self.fluxType == "Centered":
-            flux_E = 1/self.Z_imp_sum*(self.nx*self.Z_imp_p*dH)
-            flux_H = 1/self.Y_imp_sum*(self.nx*self.Y_imp_p*dE)
-        else:
-            raise ValueError("Invalid fluxType label")
-        return flux_E, flux_H
 
     def computeJumps(self, E, H):
         Ebc, Hbc = self.fieldsOnBoundaryConditions(E, H)
@@ -237,34 +219,77 @@ class DG1D(SpatialDiscretization):
             A[:, i] = q0[:, 0]
         return A
     
-    def reorder_array(self, A, ordering):
+    def reorder_by_elements(self, A):
         # Assumes that the original array contains all DoF ordered as:
         # [ E_0, ..., E_{K-1}, H_0, ..., H_{K-1} ]
         N = A.shape[0]
         K = self.mesh.number_of_elements()
         Np = self.number_of_nodes_per_element()
         new_order = np.arange(N, dtype=int)
-        if ordering == 'byElements':
-            for i in range(N):
-                node = i % Np
-                elem = int(np.floor(i / Np)) % K
-                if i < N/2:
-                    new_order[2*elem*Np+node] = i
-                else:
-                    new_order[2*elem*Np+Np+node] = i
-        if ordering == 'interleaved':
-            for i in range(N):
-                node = i % Np
-                elem = int(np.floor(i / Np)) % K
-                if i < N/2:
-                    new_order[2*elem*Np+node*2] = i
-                else:
-                    new_order[2*elem*Np+node*2+1] = i
+        for i in range(N):
+            node = i % Np
+            elem = int(np.floor(i / Np)) % K
+            if i < N/2:
+                new_order[2*elem*Np+node] = i
+            else:
+                new_order[2*elem*Np+Np+node] = i
         if (len(A.shape) == 1):
             A1 = [A[i] for i in new_order]
         elif (len(A.shape) == 2):
             A1 = [[A[i][j] for j in new_order] for i in new_order]
         return np.array(A1)
+
+    def number_of_unknowns(self, field='all'):
+        if field == 'all':
+            return self.number_of_unknowns('E') \
+                + self.number_of_unknowns('H')
+        else:
+            f = self.buildFields()
+            return f[field].size
+
+    def buildStiffnessMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = self.number_of_unknowns()
+        A = np.zeros((N, N))
+        for i in range(N):
+            fields = self.buildFields()
+            E = fields['E']
+            H = fields['H']
+            self.setFieldWithIndex(fields, i, 1.0)
+            rhs_drE = np.matmul(self.diff_matrix, E)
+            rhs_drH = np.matmul(self.diff_matrix, H)
+            rhsE = 1/self.epsilon * np.multiply(-1*self.rx, rhs_drH)
+            rhsH = 1/self.mu * np.multiply(-1*self.rx, rhs_drE)
+            q0 = np.vstack([
+                rhsE.reshape(Np*K, 1, order='F'),
+                rhsH.reshape(Np*K, 1, order='F')
+            ])
+            A[:, i] = q0[:, 0]
+        return A
+
+
+
+    def buildFluxMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        N = self.number_of_unknowns()
+        A = np.zeros((N, N))
+        for i in range(N):
+            fields = self.buildFields()
+            E = fields['E']
+            H = fields['H']
+            self.setFieldWithIndex(fields, i, 1.0)
+            flux_E = self.computeFluxE(E, H)
+            flux_H = self.computeFluxH(E, H)
+            rhsE = 1/self.epsilon * np.matmul(self.lift, self.f_scale * flux_E)
+            rhsH = 1/self.mu * (np.matmul(self.lift, self.f_scale * flux_H))
+            q0 = np.vstack([
+                rhsE.reshape(Np*K, 1, order='F'),
+                rhsH.reshape(Np*K, 1, order='F')
+            ])
+            A[:, i] = q0[:, 0]
+        return A
 
     def buildGlobalMassMatrix(self):
         Np = self.number_of_nodes_per_element()
@@ -282,17 +307,55 @@ class DG1D(SpatialDiscretization):
     def getEnergy(self, field):
         '''
         Gets energy stored in field by computing
-            field^T * MassMatrix * field * Jacobian.
+            (1/2) * field^T * MassMatrix * field * Jacobian.
         for each element and then the sum.
+        WRONG IF EVOLVED BY A STAGGERED SCHEME.
         '''
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         assert field.shape == (Np, K)
         energy = 0.0
         for k in range(K):
-            energy += np.inner(
+            energy += 0.5*np.inner(
                 field[:, k].dot(self.mass),
                 field[:, k]*self.jacobian[:, k]
             )
 
         return energy
+    
+    def getTotalEnergy(self, G, fields):
+        N = self.number_of_unknowns()
+        NE = self.number_of_unknowns('E')
+        NH = self.number_of_unknowns('H')
+
+        L_E = np.zeros((N, N))
+        L_E[:NE, :NE] = np.eye(NE)
+        L_H = np.zeros((N, N))
+        L_H[NE:, NE:] = np.eye(NH)
+              
+        M = self.buildGlobalMassMatrix()
+        
+        P = 0.5*( M
+                + 0.5*L_E.dot(G.T).dot(L_H).dot(M).dot(L_H)
+                + 0.5*L_H.dot(M).dot(L_H).dot(G).dot(L_E)
+        )
+                   
+        q = self.fieldsAsStateVector(fields)
+        return q.T.dot(P).dot(q)
+
+    def buildConnectedOperators(self, element=0, neighbors=1):
+        
+        neighs = neighbors
+            
+        local_indices, neigh_indices = self.buildLocalAndNeighborIndices(element, neighs)
+
+        G = self.reorder_by_elements(self.buildEvolutionOperator())
+        Mg =  self.reorder_by_elements(self.buildGlobalMassMatrix())
+        A = G[local_indices][:,local_indices]
+        B = G[local_indices][:,neigh_indices]
+        C = G[neigh_indices][:,local_indices]
+        D = G[neigh_indices][:,neigh_indices]
+        Mk = Mg[local_indices][:,local_indices]
+        Mn = Mg[neigh_indices][:,neigh_indices]
+        
+        return A, B, C, D, Mk, Mn
