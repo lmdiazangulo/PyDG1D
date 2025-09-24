@@ -94,18 +94,36 @@ class MaxwellDriver:
         return A
     
     def generateOutputFromAlternateBasisVectors(self):
-        v_basis = self.sp.buildAlternateBasisVectors()
+        v_basis = self.sp.buildAlternateBasis()
         q_outputs = []
 
-        for i in range(len(v_basis)):
+        if (self.sp.dimension() == 1):
+            for i in range(len(v_basis)):
+                self.fields = self.sp.buildFields()
+                self.fields['E'][:] = v_basis[i][:len(self.sp.x)]
+                self.fields['H'][:] = v_basis[i][len(self.sp.x):]
+                self.step()
+                qi = np.concatenate([self.fields['E'], self.fields['H']])
+                q_outputs.append(qi)
+            
             self.fields = self.sp.buildFields()
-            self.fields['E'][:] = v_basis[i][:len(self.sp.x)]
-            self.fields['H'][:] = v_basis[i][len(self.sp.x):]
-            self.step()
-            qi = np.concatenate([self.fields['E'], self.fields['H']])
-            q_outputs.append(qi)
-        
-        self.fields = self.sp.buildFields()
+
+        elif (self.sp.dimension() == 2):
+            for i in range(len(v_basis)):
+                self.fields = self.sp.buildFields()
+                if i < 2:
+                    self.fields['E']['x'][:] = v_basis[i]
+                elif i < 4:
+                    self.fields['E']['y'][:] = v_basis[i]
+                else:
+                    self.fields['H'][:] = v_basis[i]
+                self.step()
+
+                qi = np.concatenate([self.fields['E']['x'].flatten(order='F'), self.fields['E']['y'].flatten(order='F'), self.fields['H'].flatten(order='F')])
+                q_outputs.append(qi)
+            
+            self.fields = self.sp.buildFields()
+
 
         return q_outputs
     
@@ -113,12 +131,36 @@ class MaxwellDriver:
         N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
 
-        v_basis = self.sp.buildAlternateBasisVectors()
+        v_basis = self.sp.buildAlternateBasis()
         q_outputs = self.generateOutputFromAlternateBasisVectors()
         Q = np.column_stack(q_outputs)
-        V = np.column_stack(v_basis)
 
-        # column_nodes_map = self.buildEvolutionOperatorMap()
+        if (self.sp.dimension() == 2):
+            vector_basis = []
+            matrices_E = self.sp.buildElectricAlternateMatrixBasis()
+            matrices_H = self.sp.buildMagneticAlternateMatrixBasis()
+
+            for i, M in enumerate(matrices_E + matrices_H):
+                if i < 2:
+                    vector = np.concatenate([M.flatten(order='F'), 
+                                            np.zeros(np.size(matrices_E[2])),
+                                            np.zeros(np.size(matrices_H[0]))])
+                elif i < 4:
+                    vector = np.concatenate([np.zeros(np.size(matrices_E[0])),
+                                            M.flatten(order='F'), 
+                                            np.zeros(np.size(matrices_H[0]))])
+                else:
+                    vector = np.concatenate([np.zeros(np.size(matrices_E[0])),
+                                            np.zeros(np.size(matrices_E[2])), 
+                                            M.flatten(order='F')])
+                vector_basis.append(vector)
+
+            V = np.column_stack(vector_basis)
+
+        else:
+            V = np.column_stack(v_basis)
+
+        # I need to add now the respective map to 2D
         column_nodes_map = self.sp.mesh.buildEvolutionOperator_Column_map()
 
         for col_idx in range(V.shape[1]):

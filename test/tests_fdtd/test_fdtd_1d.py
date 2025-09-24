@@ -244,7 +244,7 @@ def test_tfsf_null_field():
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
 
-def test_comparation_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
+def test_comparison_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
     for k in range(5, 51, 1):
         sp = FD1D(mesh=Mesh1D(-1.0, 1.0, k, boundary_label="PEC"))
         driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)

@@ -102,3 +102,66 @@ class FD2D(SpatialDiscretization):  # TE mode
 
     def dimension(self):
         return 2
+    
+    def buildMagneticAlternateMatrixBasis(self):
+        Ny = len(self.dy)
+        Nx = len(self.dx)
+
+        matrices = []
+        minimum_separation = 3
+        positions = [ (i, j) for i in [0, minimum_separation] for j in [0, minimum_separation]]
+        shift = [0, 1, 2]
+
+        for y_s in shift:
+            for x_s in shift:
+                M = np.zeros((Ny, Nx), dtype=int)
+
+                for y0, x0 in positions:
+                    y = y0 + y_s
+                    x = x0 + x_s
+                    if 0 <= y < Ny and 0 <= x < Nx:
+                        M[y, x] = 1
+                if np.any(M):
+                    matrices.append(M)
+        return matrices
+    
+    def buildElectricAlternateMatrixBasis(self):
+        Ny = len(self.y)
+        Nx = len(self.x)
+
+        matrices = []
+        minimum_separation = 2
+
+        M1_Ex = np.zeros((Ny, Nx-1))
+        M2_Ex = np.zeros((Ny, Nx-1))
+        basis_Ex = np.ones(Nx-1)
+
+        for i in range(Ny):
+            if i%2 == 0:
+                M1_Ex[i, :] = basis_Ex[:]
+            else:
+                M2_Ex[i, :] = basis_Ex[:]
+
+        matrices.append(M1_Ex)
+        matrices.append(M2_Ex)
+
+        M1_Ey = np.zeros((Ny-1, Nx))
+        M2_Ey = np.zeros((Ny-1, Nx))
+        basis_Ey = np.ones(Ny-1)
+
+        for i in range(Nx):
+            if i%2 == 0:
+                M1_Ey[:, i] = basis_Ey[:]
+            else:
+                M2_Ey[:, i] = basis_Ey[:]
+
+        matrices.append(M1_Ey)
+        matrices.append(M2_Ey)
+
+        return matrices
+
+    def buildAlternateBasis(self):
+        matrices_E = self.buildElectricAlternateMatrixBasis()
+        matrices_H = self.buildMagneticAlternateMatrixBasis()
+
+        return matrices_E + matrices_H

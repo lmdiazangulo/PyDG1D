@@ -172,6 +172,9 @@ class FD1D(SpatialDiscretization):
 
     def isStaggered(self):
         return True
+    
+    def dimension(self):
+        return 1
 
     def number_of_nodes_per_element(self):
         return 1   
@@ -252,7 +255,7 @@ class FD1D(SpatialDiscretization):
 
         return energy
     
-    def buildAlternateBasisVectors(self):
+    def buildAlternateBasis(self):
         xE = self.x
         xH = self.xH
 
