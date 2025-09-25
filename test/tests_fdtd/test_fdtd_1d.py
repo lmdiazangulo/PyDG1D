@@ -367,7 +367,7 @@ def test_svd_decomposition():
     assert np.allclose(VT.T.dot(VT), np.eye(VT.shape[1]))
 
 def test_comparison_fullsolver_reducedOrderModel_POD():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 500000, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 2000000, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -376,7 +376,8 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=100, time_step_skip=1)
 
     number_of_time_steps = 50
-    Ur, Ar = driver.buildReducedOrderModel(percentage_treshhold=1-1e-9, useAlternateBasis=True)
+    # Ur, Ar = driver.buildReducedOrderModel(percentage_treshhold=1-1e-9, useAlternateBasis=True)
+    Ur, Ar = driver.buildReducedOrderModel_truncated_SVD(percentage_treshhold=1-1e-9, useAlternateBasis=True)
     qf_r = driver.evolveReducedOrderModel(Ar, Ur, driver.fields, time_steps=number_of_time_steps)
 
     for t in range(number_of_time_steps):

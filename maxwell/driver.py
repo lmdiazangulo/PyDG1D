@@ -244,9 +244,15 @@ class MaxwellDriver:
         U, S, VT = np.linalg.svd(self.snapshots, full_matrices=False)
         return U, S, VT
     
-    def energyCriterionForPOD(self, percentage_treshhold, S):
+    def quadraticEnergyCriterionForTruncation(self, percentage_treshhold, S):
         total_energy = np.sum(S**2)
         cumulative_energy = np.cumsum(S**2) / total_energy
+        r = np.searchsorted(cumulative_energy, percentage_treshhold) + 1
+        return r
+    
+    def energyCriterionForTruncation(self, percentage_treshhold, S):
+        total_energy = np.sum(S)
+        cumulative_energy = np.cumsum(S) / total_energy
         r = np.searchsorted(cumulative_energy, percentage_treshhold) + 1
         return r
     
@@ -258,12 +264,35 @@ class MaxwellDriver:
             A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
         
         U, S, VT = self.buildSingularValueDecomposition()
-        r = self.energyCriterionForPOD(percentage_treshhold, S)
+        r = self.quadraticEnergyCriterionForTruncation(percentage_treshhold, S)
 
         Ur = U[:,:r]
         # Ar = Ur.T.dot(A).dot(Ur)
         Ar = Ur.T @ A @ Ur
         
+        return Ur, Ar
+    
+    def buildReducedOrderModel_truncated_SVD(self, percentage_treshhold=0.99, useAlternateBasis=False):
+
+        if useAlternateBasis:
+            A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
+        else:
+            A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
+
+        C = self.snapshots.T.dot(self.snapshots)
+        eigenValues = np.linalg.eigvalsh(C)
+        eigenValues = eigenValues[::-1]
+        r = self.energyCriterionForTruncation(percentage_treshhold, eigenValues)
+
+        reducedEigenValues, reducedEigenVectors = scipy.sparse.linalg.eigsh(C, k=r, which="LM")
+
+        Ur = np.zeros((np.size(self.snapshots.T[0]), r))
+
+        for k in range(r):
+            Ur[:, k] = self.snapshots.dot(reducedEigenVectors.T[k]) / np.sqrt(reducedEigenValues[k])
+
+        Ar = Ur.T @ A @ Ur
+
         return Ur, Ar
     
     def evolveReducedOrderModel(self, Ar, Ur, initialField, time_steps):
