@@ -13,6 +13,8 @@ from .integrators.LF2V import *
 from .integrators.EULER import *
 
 import copy
+import scipy.sparse 
+
 
 class MaxwellDriver:
     def __init__(self, 
@@ -163,7 +165,8 @@ class MaxwellDriver:
     
     def buildDrivedEvolutionOperator_FromAlternateBasis(self):
         N = self.sp.number_of_unknowns()
-        A = np.zeros((N,N))
+        # A = np.zeros((N,N))
+        A = scipy.sparse.lil_matrix((N, N))
 
         v_basis = self.sp.buildAlternateBasis()
         q_outputs = self.generateOutputFromAlternateBasisVectors()
@@ -208,6 +211,8 @@ class MaxwellDriver:
 
                 for i in affected_indices:
                     A[i, k] = Q[i, col_idx]  
+
+        A = A.tocsr()            
 
         return A
 
@@ -256,7 +261,8 @@ class MaxwellDriver:
         r = self.energyCriterionForPOD(percentage_treshhold, S)
 
         Ur = U[:,:r]
-        Ar = Ur.T.dot(A).dot(Ur)
+        # Ar = Ur.T.dot(A).dot(Ur)
+        Ar = Ur.T @ A @ Ur
         
         return Ur, Ar
     
@@ -264,6 +270,10 @@ class MaxwellDriver:
         qi = self.sp.fieldsAsStateVector(initialField)
         qi_r = Ur.T.dot(qi)
 
-        qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
+        # qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
+
+        qf_r = copy.deepcopy(qi_r)
+        for _ in range(time_steps):
+            qf_r = Ar @ qf_r
 
         return qf_r

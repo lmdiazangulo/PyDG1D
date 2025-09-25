@@ -324,6 +324,9 @@ def test_comparison_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
 
         A_alternate = driver.buildDrivedEvolutionOperator_FromAlternateBasis()
 
+        if (scipy.sparse.issparse(A_alternate)):
+            A_alternate = A_alternate.todense()
+
         assert np.allclose(A_alternate, A)
 
 def test_snapshots_creation():
@@ -364,7 +367,7 @@ def test_svd_decomposition():
     assert np.allclose(VT.T.dot(VT), np.eye(VT.shape[1]))
 
 def test_comparison_fullsolver_reducedOrderModel_POD():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5000, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 500000, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     s0 = 0.25
@@ -379,6 +382,8 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     for t in range(number_of_time_steps):
         driver.step()
     qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    maximum_absolute_error = np.max((np.abs(qf_solver - Ur.dot(qf_r))))
 
     assert np.allclose(qf_solver, Ur.dot(qf_r), atol=5e-5)
     
