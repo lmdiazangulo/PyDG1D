@@ -224,6 +224,7 @@ class MaxwellDriver:
             raise ValueError("Initial condition is zero, all the snapshots will be zero.")
         
         self.snapshots = np.zeros((len(qi), number_of_snapshots))
+        self.number_of_snapshots = number_of_snapshots
 
         for n in range(number_of_snapshots):
             self.snapshots[:,n] = qi
@@ -244,19 +245,19 @@ class MaxwellDriver:
         U, S, VT = np.linalg.svd(self.snapshots, full_matrices=False)
         return U, S, VT
     
-    def quadraticEnergyCriterionForTruncation(self, percentage_treshhold, S):
+    def quadraticEnergyCriterionForTruncation(self, percentage_threshold, S):
         total_energy = np.sum(S**2)
         cumulative_energy = np.cumsum(S**2) / total_energy
-        r = np.searchsorted(cumulative_energy, percentage_treshhold) + 1
+        r = np.searchsorted(cumulative_energy, percentage_threshold) + 1
         return r
     
-    def energyCriterionForTruncation(self, percentage_treshhold, S):
+    def energyCriterionForTruncation(self, percentage_threshold, S):
         total_energy = np.sum(S)
         cumulative_energy = np.cumsum(S) / total_energy
-        r = np.searchsorted(cumulative_energy, percentage_treshhold) + 1
+        r = np.searchsorted(cumulative_energy, percentage_threshold) + 1
         return r
     
-    def buildReducedOrderModel(self, percentage_treshhold=0.99, useAlternateBasis=False):
+    def buildReducedOrderModel(self, percentage_threshold=0.99, useAlternateBasis=False):
         
         if useAlternateBasis:
             A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
@@ -264,7 +265,7 @@ class MaxwellDriver:
             A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
         
         U, S, VT = self.buildSingularValueDecomposition()
-        r = self.quadraticEnergyCriterionForTruncation(percentage_treshhold, S)
+        r = self.quadraticEnergyCriterionForTruncation(percentage_threshold, S)
 
         Ur = U[:,:r]
         # Ar = Ur.T.dot(A).dot(Ur)
@@ -272,37 +273,118 @@ class MaxwellDriver:
         
         return Ur, Ar
     
-    def buildReducedOrderModel_truncated_SVD(self, percentage_treshhold=0.99, useAlternateBasis=False):
+    def buildReducedOrderModel_truncated_SVD(self, percentage_threshold=0.99, useAlternateBasis=False):
+
+        C = self.snapshots.T.dot(self.snapshots)
+        eigenValues = np.linalg.eigvalsh(C)
+        eigenValues = eigenValues[::-1]
+        r = self.energyCriterionForTruncation(percentage_threshold, eigenValues)
+
+        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
+        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r+1, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
+
+        return Ur, Ar, Ur1, Ar1
+
+    def buildReducedProjectionAndEvolutionOperators(self, number_of_important_eig_values, snapshot, useAlternateBasis=False):
+        if useAlternateBasis:
+            A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
+        else:
+            A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
+
+        symmetric_snapshot_matrix = snapshot.T.dot(snapshot)
+
+        reducedEigenValues, reducedEigenVectors = scipy.sparse.linalg.eigsh(symmetric_snapshot_matrix, k=number_of_important_eig_values, which="LM")
+        Ur = np.zeros((np.size(snapshot.T[0]), number_of_important_eig_values))
+
+        for k in range(number_of_important_eig_values):
+            Ur[:, k] = snapshot.dot(reducedEigenVectors.T[k]) / np.sqrt(reducedEigenValues[k])
+
+        Ar = Ur.T @ A @ Ur
+        
+        return Ur, Ar
+    
+    def evolveReducedOrderModel(self, Ar, Ur, Ar1, Ur1, initialField, time_steps, eps_adaptative=1e-4, useAlternateBasis=False):
+        
+        qi = self.sp.fieldsAsStateVector(initialField)
+
+        qi_r = Ur.T.dot(copy.deepcopy(qi))
+        qi_r1 = Ur1.T.dot(copy.deepcopy(qi))
+
+        # qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
+
+        qf_r = copy.deepcopy(qi_r)
+        qf_r1 = copy.deepcopy(qi_r1)
+        k = 0
+
+        while k < time_steps:
+            qf_r = Ar @ qf_r
+            qf_r1 = Ar1 @ qf_r1
+
+            qf_1 = Ur1 @ qf_r1
+            qf = Ur @ qf_r
+
+            if (np.linalg.norm(qf_1 - qf) / np.linalg.norm(qf_1) > eps_adaptative):
+                print("Warning: The reduced order model might be inaccurate. Consider increasing the number of basis vectors.")
+
+                # Ur, Ar, Ur1, Ar1 = self.updateReducedOrderModel(copy.deepcopy(qf_1), Ur=Ur, Ur1=Ur1, percentage_threshold=1-1e-12, useAlternateBasis=useAlternateBasis)
+
+                self.updateSnapshots(qf_1)
+                Ur, Ar, Ur1, Ar1 = self.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=useAlternateBasis)
+
+                qf_r = Ur.T.dot(copy.deepcopy(qi))
+                qf_r1 = Ur1.T.dot(copy.deepcopy(qi))
+                k = 0
+                continue 
+
+                # qf_r = Ur.T.dot(copy.deepcopy(qf_1))
+                # qf_r1 = Ur1.T.dot(copy.deepcopy(qf_1))
+
+            k += 1
+
+        return Ur.dot(qf_r)
+
+    def updateSnapshots(self, actualState):
+
+        A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
+
+        for k in range(10):
+            self.snapshots = np.column_stack((self.snapshots, actualState / np.linalg.norm(actualState)))
+            actualState = A.dot(actualState)  
+
+        return self.snapshots
+
+    def updateReducedOrderModel(self, actualState, Ur, Ur1, percentage_threshold=1-1e-6, useAlternateBasis=False):
 
         if useAlternateBasis:
             A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
         else:
             A = self.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
 
-        C = self.snapshots.T.dot(self.snapshots)
+        auxiliarSnapshots = np.zeros((len(actualState), 10))
+        
+        for k in range(10):
+            auxiliarSnapshots[:,k] = actualState
+            actualState = A.dot(actualState)
+
+        C = auxiliarSnapshots.T.dot(auxiliarSnapshots)
         eigenValues = np.linalg.eigvalsh(C)
         eigenValues = eigenValues[::-1]
-        r = self.energyCriterionForTruncation(percentage_treshhold, eigenValues)
+        r = self.energyCriterionForTruncation(percentage_threshold, eigenValues)
 
-        reducedEigenValues, reducedEigenVectors = scipy.sparse.linalg.eigsh(C, k=r, which="LM")
+        Ur_aux, _ = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r, snapshot=auxiliarSnapshots, useAlternateBasis=useAlternateBasis)
 
-        Ur = np.zeros((np.size(self.snapshots.T[0]), r))
+        newSnapshots = np.hstack((Ur, Ur_aux))
 
-        for k in range(r):
-            Ur[:, k] = self.snapshots.dot(reducedEigenVectors.T[k]) / np.sqrt(reducedEigenValues[k])
+        newC = newSnapshots.T.dot(newSnapshots)
+        newEigenValues = np.linalg.eigvalsh(newC)
+        newEigenValues = newEigenValues[::-1]
+        new_r = self.energyCriterionForTruncation(percentage_threshold, newEigenValues)
 
-        Ar = Ur.T @ A @ Ur
+        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r-1, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
+        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
 
-        return Ur, Ar
-    
-    def evolveReducedOrderModel(self, Ar, Ur, initialField, time_steps):
-        qi = self.sp.fieldsAsStateVector(initialField)
-        qi_r = Ur.T.dot(qi)
+        
+        # totalSnapshots = np.column_stack((self.snapshots, auxiliarSnapshots))
+        # self.snapshots = totalSnapshots
 
-        # qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
-
-        qf_r = copy.deepcopy(qi_r)
-        for _ in range(time_steps):
-            qf_r = Ar @ qf_r
-
-        return qf_r
+        return Ur, Ar, Ur1, Ar1
