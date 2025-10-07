@@ -268,22 +268,32 @@ class MaxwellDriver:
         r = self.quadraticEnergyCriterionForTruncation(percentage_threshold, S)
 
         Ur = U[:,:r]
-        # Ar = Ur.T.dot(A).dot(Ur)
         Ar = Ur.T @ A @ Ur
         
         return Ur, Ar
     
     def buildReducedOrderModel_truncated_SVD(self, percentage_threshold=0.99, useAlternateBasis=False):
+        self.percentage_threshold = percentage_threshold
 
-        C = self.snapshots.T.dot(self.snapshots)
+        r, r1 = self.getReducedOrderDimension(self.snapshots, percentage_threshold)
+
+        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
+        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r1, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
+
+        return Ur, Ar, Ur1, Ar1
+    
+    def getReducedOrderDimension(self, snapshots, percentage_threshold):
+
+        C = snapshots.T.dot(snapshots)
         eigenValues = np.linalg.eigvalsh(C)
         eigenValues = eigenValues[::-1]
         r = self.energyCriterionForTruncation(percentage_threshold, eigenValues)
+        r1 = self.energyCriterionForTruncation((9 + percentage_threshold) / 10, eigenValues)
 
-        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
-        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r+1, snapshot=self.snapshots, useAlternateBasis=useAlternateBasis)
+        if r == r1:
+            r1 = min(r + 1, len(eigenValues))
 
-        return Ur, Ar, Ur1, Ar1
+        return r, r1
 
     def buildReducedProjectionAndEvolutionOperators(self, number_of_important_eig_values, snapshot, useAlternateBasis=False):
         if useAlternateBasis:
@@ -303,20 +313,21 @@ class MaxwellDriver:
         
         return Ur, Ar
     
-    def evolveReducedOrderModel(self, Ar, Ur, Ar1, Ur1, initialField, time_steps, eps_adaptative=1e-4, useAlternateBasis=False):
+    def evolveReducedOrderModel(self, Ar, Ur, Ar1, Ur1, initialField, time_steps, eps_adaptative=1e-3, useAlternateBasis=False):
         
         qi = self.sp.fieldsAsStateVector(initialField)
 
         qi_r = Ur.T.dot(copy.deepcopy(qi))
         qi_r1 = Ur1.T.dot(copy.deepcopy(qi))
 
-        # qf_r = np.linalg.matrix_power(Ar, time_steps).dot(qi_r)
-
         qf_r = copy.deepcopy(qi_r)
         qf_r1 = copy.deepcopy(qi_r1)
+        old_qf_1 = copy.deepcopy(qi)
+
         k = 0
 
         while k < time_steps:
+
             qf_r = Ar @ qf_r
             qf_r1 = Ar1 @ qf_r1
 
@@ -326,18 +337,16 @@ class MaxwellDriver:
             if (np.linalg.norm(qf_1 - qf) / np.linalg.norm(qf_1) > eps_adaptative):
                 print("Warning: The reduced order model might be inaccurate. Consider increasing the number of basis vectors.")
 
-                # Ur, Ar, Ur1, Ar1 = self.updateReducedOrderModel(copy.deepcopy(qf_1), Ur=Ur, Ur1=Ur1, percentage_threshold=1-1e-12, useAlternateBasis=useAlternateBasis)
+                # Ur, Ar, Ur1, Ar1 = self.updateReducedOrderModel(old_qf_1, Ur=Ur, Ur1=Ur1, percentage_threshold=self.percentage_threshold, useAlternateBasis=useAlternateBasis)
 
-                self.updateSnapshots(qf_1)
-                Ur, Ar, Ur1, Ar1 = self.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=useAlternateBasis)
+                self.updateSnapshots(old_qf_1)
+                Ur, Ar, Ur1, Ar1 = self.buildReducedOrderModel_truncated_SVD(percentage_threshold=self.percentage_threshold, useAlternateBasis=useAlternateBasis)
 
-                qf_r = Ur.T.dot(copy.deepcopy(qi))
-                qf_r1 = Ur1.T.dot(copy.deepcopy(qi))
-                k = 0
-                continue 
-
-                # qf_r = Ur.T.dot(copy.deepcopy(qf_1))
-                # qf_r1 = Ur1.T.dot(copy.deepcopy(qf_1))
+                qf_r = Ur.T.dot(copy.deepcopy(old_qf_1))
+                qf_r1 = Ur1.T.dot(copy.deepcopy(old_qf_1))
+                continue
+            
+            old_qf_1 = copy.deepcopy(qf_1)
 
             k += 1
 
@@ -348,12 +357,12 @@ class MaxwellDriver:
         A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
 
         for k in range(10):
-            self.snapshots = np.column_stack((self.snapshots, actualState / np.linalg.norm(actualState)))
+            self.snapshots = np.column_stack((self.snapshots, actualState))
             actualState = A.dot(actualState)  
 
         return self.snapshots
 
-    def updateReducedOrderModel(self, actualState, Ur, Ur1, percentage_threshold=1-1e-6, useAlternateBasis=False):
+    def updateReducedOrderModel(self, actualState, Ur, Ur1, percentage_threshold, useAlternateBasis=False):
 
         if useAlternateBasis:
             A = self.buildDrivedEvolutionOperator_FromAlternateBasis()
@@ -363,25 +372,19 @@ class MaxwellDriver:
         auxiliarSnapshots = np.zeros((len(actualState), 10))
         
         for k in range(10):
-            auxiliarSnapshots[:,k] = actualState
+            auxiliarSnapshots[:,k] = actualState 
             actualState = A.dot(actualState)
 
-        C = auxiliarSnapshots.T.dot(auxiliarSnapshots)
-        eigenValues = np.linalg.eigvalsh(C)
-        eigenValues = eigenValues[::-1]
-        r = self.energyCriterionForTruncation(percentage_threshold, eigenValues)
+        r, _ = self.getReducedOrderDimension(auxiliarSnapshots, percentage_threshold)
 
         Ur_aux, _ = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=r, snapshot=auxiliarSnapshots, useAlternateBasis=useAlternateBasis)
 
         newSnapshots = np.hstack((Ur, Ur_aux))
 
-        newC = newSnapshots.T.dot(newSnapshots)
-        newEigenValues = np.linalg.eigvalsh(newC)
-        newEigenValues = newEigenValues[::-1]
-        new_r = self.energyCriterionForTruncation(percentage_threshold, newEigenValues)
+        new_r, new_r1 = self.getReducedOrderDimension(newSnapshots, percentage_threshold)
 
-        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r-1, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
-        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
+        Ur, Ar = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
+        Ur1, Ar1 = self.buildReducedProjectionAndEvolutionOperators(number_of_important_eig_values=new_r1, snapshot=newSnapshots, useAlternateBasis=useAlternateBasis)
 
         
         # totalSnapshots = np.column_stack((self.snapshots, auxiliarSnapshots))

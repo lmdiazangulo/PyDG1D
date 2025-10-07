@@ -404,8 +404,7 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     driver['E'][:] = initialFieldE[:]
     Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=100, time_step_skip=10)
 
-    number_of_time_steps = 1500
-    # Ur, Ar = driver.buildReducedOrderModel(percentage_threshold=1-1e-9, useAlternateBasis=True)
+    number_of_time_steps = 10750
     Ur, Ar, Ur1, Ar1 = driver.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=True)
     qf_r = driver.evolveReducedOrderModel(Ar, Ur, Ar1, Ur1, driver.fields, time_steps=number_of_time_steps, useAlternateBasis=True)
 
@@ -432,7 +431,7 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     plt.tight_layout()
     plt.show()
 
-    assert np.allclose(qf_solver, Ur.dot(qf_r), atol=5e-5)
+    assert np.allclose(qf_solver, qf_r, atol=5e-5)
     
 
 def FrobeniusNorm_scaled(Matrix):
