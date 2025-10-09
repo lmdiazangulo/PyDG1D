@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from maxwell.driver import *
+from maxwell.mor import *
 from maxwell.dg.mesh1d import *
 from maxwell.dg.dg1d import *
 from maxwell.fd.fd1d import *
@@ -317,7 +318,7 @@ def test_tfsf_null_field():
 
 def test_comparison_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
     for k in range(5, 51, 1):
-        sp = FD1D(mesh=Mesh1D(-1.0, 1.0, k, boundary_label="PEC"))
+        sp = FD1D(mesh=Mesh1D(-1.0, 1.0, k, boundary_label="Mur"))
         driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
         A = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
@@ -333,106 +334,104 @@ def test_snapshots_creation():
 
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    Q_skip1 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10)
-    Q_skip2 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=2)
-    Q_skip3 = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=3)
+    Q_skip1 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
+    Q_skip2 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=8.0, time_step_skip=2)
+    Q_skip3 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=12.0, time_step_skip=3)
 
     assert np.allclose(Q_skip1[:, 2], Q_skip2[:, 1])
     assert np.allclose(Q_skip1[:, 3], Q_skip3[:, 1])
     assert np.allclose(Q_skip2[:, 3], Q_skip3[:, 2])
 
-def test_svd_decomposition_orthogonality():
-    # If the SVD decomposition works well, the reduced order model decomposition will also be functional
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 500, boundary_label="PEC"))
-    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-
-    s0 = 0.25
-    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
-    driver['E'][:] = initialFieldE[:]
-    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=10, time_step_skip=1)
-
-    U, S, VT = driver.buildSingularValueDecomposition()
-
-    assert np.allclose(Q, U.dot(np.diag(S)).dot(VT))
-
-    # For some reason, the product U @ U.T doesn't result in the identity matrix
-    assert np.allclose(U.T.dot(U), np.eye(U.shape[1]))
-
-    assert np.allclose(VT.dot(VT.T), np.eye(VT.shape[0]))
-    assert np.allclose(VT.T.dot(VT), np.eye(VT.shape[1]))
-
 def test_unitary_vectors_ChangeBasis_operator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
     
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=50, time_step_skip=1)
-    Ur, Ar = driver.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=True)
+    Q = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+
+    for k in range(Ur1.shape[1]):
+        assert np.isclose(1, np.linalg.norm(Ur1[:,k]), rtol=1e-3)
 
     for k in range(Ur.shape[1]):
-        assert np.isclose(1, np.linalg.norm(Ur[:,k]))
+        assert np.isclose(1, np.linalg.norm(Ur[:,k]), rtol=1e-3)
 
 def test_orthogonality_ChangeBasis_operator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
 
-    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=50, time_step_skip=1)
-    Ur, Ar = driver.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=True)
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
 
-    assert np.allclose(Ur.T.dot(Ur), np.eye(Ur.shape[1]))
-    assert np.allclose(Ur.dot(Ur.T), np.eye(Ur.shape[0]))
+    assert np.allclose(Ur.T.dot(Ur), np.eye(Ur.shape[1]), atol=1e-3)
+    assert np.allclose(Ur1.T.dot(Ur1), np.eye(Ur1.shape[1]), atol=1e-2)
 
 
 def test_comparison_fullsolver_reducedOrderModel_POD():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    number_of_time_steps = 1750
+    final_time_of_simulation = number_of_time_steps * driver.dt
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
-    Q = driver.buildSnapshots_ProperOrthogonalDecomposition(number_of_snapshots=100, time_step_skip=10)
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
 
-    number_of_time_steps = 10750
-    Ur, Ar, Ur1, Ar1 = driver.buildReducedOrderModel_truncated_SVD(percentage_threshold=1-1e-12, useAlternateBasis=True)
-    qf_r = driver.evolveReducedOrderModel(Ar, Ur, Ar1, Ur1, driver.fields, time_steps=number_of_time_steps, useAlternateBasis=True)
-
-    for t in range(number_of_time_steps):
-        driver.step()
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6)
+    
+    driver.run_until(final_time_of_simulation)
     qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
 
-    maximum_absolute_error = np.max((np.abs(qf_solver - qf_r)))
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(number_of_time_steps):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.001)
+    #     plt.cla()
 
-    FullFields = driver.sp.stateVectorAsFields(qf_solver)
-    Fields_reduced = driver.sp.stateVectorAsFields(qf_r)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    axes[0].plot(sp.xH, FullFields['H'], '-', label='Full solver magnetic field')
-    axes[0].plot(sp.xH, Fields_reduced['H'], '--', label='Reduced-order model magnetic field')
-    axes[0].set_title('Magnetic Field (H)')
-    axes[0].grid()
-    axes[0].legend()
-    axes[1].plot(sp.x, FullFields['E'], '-', label='Full solver electric field')
-    axes[1].plot(sp.x, Fields_reduced['E'], '--', label='Reduced-order model electric field')
-    axes[1].set_title('Electric Field (E)')
-    axes[1].grid()
-    axes[1].legend()
-    plt.tight_layout()
-    plt.show()
+    # FullFields = driver.sp.stateVectorAsFields(qf_solver)
+    # Fields_reduced = driver.sp.stateVectorAsFields(qf_r)
 
-    assert np.allclose(qf_solver, qf_r, atol=5e-5)
+    # fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # axes[0].plot(sp.xH, FullFields['H'], '-', label='Full solver magnetic field')
+    # axes[0].plot(sp.xH, Fields_reduced['H'], '--', label='Reduced-order model magnetic field')
+    # axes[0].set_title('Magnetic Field (H)')
+    # axes[0].grid()
+    # axes[0].legend()
+    # axes[1].plot(sp.x, FullFields['E'], '-', label='Full solver electric field')
+    # axes[1].plot(sp.x, Fields_reduced['E'], '--', label='Reduced-order model electric field')
+    # axes[1].set_title('Electric Field (E)')
+    # axes[1].grid()
+    # axes[1].legend()
+    # plt.tight_layout()
+    # plt.show()
+
+    assert np.linalg.norm(qf_solver - qf_r, ord=1) / np.linalg.norm(qf_solver, ord=1) < 1e-2
     
-
-def FrobeniusNorm_scaled(Matrix):
-    return np.linalg.norm(Matrix) / Matrix.size

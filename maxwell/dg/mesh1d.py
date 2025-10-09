@@ -87,8 +87,8 @@ class Mesh1D:
                         relatedHNodes_map[i] = [i]
 
                     if label == "Periodic":
-                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])) | set(relatedENodes_fromH.get(self.number_of_elements, [])))
-                        relatedHNodes_map[i] = [i, self.number_of_elements]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])) | set(relatedENodes_fromH.get(self.number_of_elements(), [])))
+                        relatedHNodes_map[i] = [i, self.number_of_elements()]
 
                     if label == "Mur":
                         relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i, [])) | set(relatedENodes_fromH.get(i+1, [])))
@@ -100,8 +100,8 @@ class Mesh1D:
                         relatedHNodes_map[i] = [i-1]
 
                     if label == "Periodic":
-                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(self.number_of_elements - i, [])) | set(relatedENodes_fromH.get(i, [])))
-                        relatedHNodes_map[i] = [self.number_of_elements - i, i]
+                        relatedENodes_map[i] = list(set(relatedENodes_fromH.get(self.number_of_elements() - i, [])) | set(relatedENodes_fromH.get(i, [])))
+                        relatedHNodes_map[i] = [self.number_of_elements() - i, i]
 
                     if label == "Mur":
                         relatedENodes_map[i] = list(set(relatedENodes_fromH.get(i-1, [])) | set(relatedENodes_fromH.get(i, [])))
