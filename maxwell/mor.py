@@ -65,7 +65,7 @@ class ModelOrderReduction:
         for i in range(number_of_modes):
             Ur[:, i] = (snapshots @ reducedEigenVectors.T[i]) / np.sqrt(reducedEigenValues[i])
 
-        Ur = Ur[:, ~np.isnan(Ur).all(axis=0)] # Remove NaN columns if any
+        # Ur = Ur[:, ~np.isnan(Ur).all(axis=0)] 
 
         Ar = Ur.T @ self.evolutionOperator @ Ur
 
@@ -73,7 +73,7 @@ class ModelOrderReduction:
     
     def buildReducedOrderModel_truncated_SVD(self):
         if not hasattr(self, 'snapshots'):
-            raise ValueError("You need to build the snapshots first using buildSnapshots_ProperOrthogonalDecomposition method.")
+            raise ValueError("You need to build the snapshots first before calling the method.")
         
         r, r_forControl = self.getReducedOrderDimension(self.snapshots)
         Ur, Ar = self.buildReducedProjectionAndReducedEvolutionOperator(self.snapshots, r)
