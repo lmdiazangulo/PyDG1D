@@ -409,6 +409,7 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     #     driver.step()
     #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
     #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
     #     plt.ylim(-1, 1)
     #     plt.grid(which='both')
     #     plt.legend()
@@ -433,5 +434,66 @@ def test_comparison_fullsolver_reducedOrderModel_POD():
     # plt.tight_layout()
     # plt.show()
 
-    assert np.linalg.norm(qf_solver - qf_r, ord=1) / np.linalg.norm(qf_solver, ord=1) < 1e-2
+    assert np.linalg.norm(qf_solver - qf_r, ord=1) / np.linalg.norm(qf_solver, ord=1) < 5e-3
     
+def test_comparison_fullsolver_ROM_specific_point():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    number_of_time_steps = 1750
+    final_time_of_simulation = number_of_time_steps * driver.dt
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+
+    q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    q_r = Ur.T @ q
+    q_r1 = Ur1.T @ q
+
+    for t in range(number_of_time_steps):
+        q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6)
+        driver.step()
+
+        assert np.isclose((driver.sp.stateVectorAsFields(Ur @ q_r))['E'][500], driver['E'][500], atol=5e-3)
+
+
+def test_comparison_fullsolver_ROM_MurBoundaries():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="Mur"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    number_of_time_steps = 1750
+    final_time_of_simulation = number_of_time_steps * driver.dt
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
+
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6, adaptativeSteps=1)
+    
+    driver.run_until(final_time_of_simulation)
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(number_of_time_steps):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=1)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.001)
+    #     plt.cla()
+
+    assert np.allclose(np.zeros(np.size(qf_solver)), qf_r, atol=1e-5)
