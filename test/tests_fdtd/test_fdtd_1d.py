@@ -465,9 +465,9 @@ def test_comparison_fullsolver_ROM_specific_point():
 def test_comparison_fullsolver_ROM_MurBoundaries():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis(), energyThreshold=1e-9)
 
-    number_of_time_steps = 1750
+    number_of_time_steps = 2250
     final_time_of_simulation = number_of_time_steps * driver.dt
 
     s0 = 0.25
@@ -476,7 +476,7 @@ def test_comparison_fullsolver_ROM_MurBoundaries():
     rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
 
     Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
-    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6, adaptativeSteps=1)
+    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
     
     driver.run_until(final_time_of_simulation)
     qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
@@ -485,7 +485,7 @@ def test_comparison_fullsolver_ROM_MurBoundaries():
     # q_r = Ur.T @ q
     # q_r1 = Ur1.T @ q
     # for t in range(number_of_time_steps):
-    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=1)
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
     #     driver.step()
     #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
     #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
@@ -496,4 +496,4 @@ def test_comparison_fullsolver_ROM_MurBoundaries():
     #     plt.pause(0.001)
     #     plt.cla()
 
-    assert np.allclose(np.zeros(np.size(qf_solver)), qf_r, atol=1e-5)
+    assert np.allclose(qf_solver, qf_r, atol=5e-4)

@@ -65,7 +65,7 @@ class ModelOrderReduction:
         for i in range(number_of_modes):
             Ur[:, i] = (snapshots @ reducedEigenVectors.T[i]) / np.sqrt(reducedEigenValues[i])
 
-        # Ur = Ur[:, ~np.isnan(Ur).all(axis=0)] 
+        Ur = Ur[:, ~np.isnan(Ur).all(axis=0)] 
 
         Ar = Ur.T @ self.evolutionOperator @ Ur
 
@@ -103,15 +103,15 @@ class ModelOrderReduction:
     def step_ROM(self, actualReducedState, actualReducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
         q_r = copy.deepcopy(actualReducedState)
         q_r = Ar @ q_r
-        q = Ur @ q_r
 
-        actualState = Ur1 @ copy.deepcopy(actualReducedStateControl)
+        previousReducedStateControl = copy.deepcopy(actualReducedStateControl)
+        dimensionDifference = np.size(actualReducedStateControl) - np.size(actualReducedState)
 
         q_r1 = copy.deepcopy(actualReducedStateControl)
         q_r1 = Ar1 @ q_r1
-        q1 = Ur1 @ q_r1
 
-        if (np.linalg.norm(q - q1) / np.linalg.norm(q1) > errorCriterionForAdaptative):
+        if (np.linalg.norm(q_r1[-dimensionDifference:])  >= errorCriterionForAdaptative * np.linalg.norm(q_r1)):
+            actualState = Ur1 @ previousReducedStateControl
             Ur_new, Ar_new, Ur1_new, Ar1_new = self.updateReducedOrderModel(copy.deepcopy(actualState), Ur, adaptativeSteps)
 
             q_r_new = Ur_new.T @ copy.deepcopy(actualState)
