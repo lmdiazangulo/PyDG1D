@@ -564,3 +564,43 @@ def test_comparison_evolutionOperator_with_DMD_evolutionOperator():
 
     # The evolution operators are not equal, however, they produce the same result when applied to the snapshot matrix Q
     # assert np.allclose(A_dmd, A, atol=1e-6)
+
+def test_comparison_fullsolver_ROM_by_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    simulation_final_time = 2
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+
+    Ur, Ar, Ur1, Ar1 = dmd_rom.buildInitialReducedOrderModel()
+    qf_r = dmd_rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, simulation_final_time, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+
+    # We need to restart the initial fields for the full solver
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = 0.0
+    
+    driver.run_until(simulation_final_time)
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(int(simulation_final_time / driver.dt)):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = dmd_rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.000001)
+    #     plt.cla()
+
+    assert np.allclose(qf_solver, qf_r, atol=5e-3)
