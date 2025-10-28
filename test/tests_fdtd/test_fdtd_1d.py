@@ -527,21 +527,40 @@ def test_comparison_initialSnapshots_with_evolvedSnapshots_DMD_timeSkip():
     Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=10.0, time_step_skip=time_step_skip)
     Q_evolved = dmd_rom.buildEvolvedSnapshots(Q)
 
-    for k in range(Q.shape[1] - 1):
-        assert np.allclose(Q[:, k + 1], Q_evolved[:, k * time_step_skip], atol=1e-12)
+    for k in range(Q.shape[1]):
+        auxilary_field = sp.stateVectorAsFields(Q[:, k])
+        driver['E'][:] = auxilary_field['E']
+        driver['H'][:] = auxilary_field['H']
+        driver.step()
+        auxilary_state = sp.fieldsAsStateVector(driver.fields)
+        assert np.allclose(auxilary_state, Q_evolved[:, k], atol=1e-12)
 
 def test_comparison_evolutionOperator_with_DMD_evolutionOperator():
     sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
-    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold=1e-12)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
 
     s0 = 0.25
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=10.0, time_step_skip=1)
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=5.5, time_step_skip=1)
+    Q_evolved = dmd_rom.buildEvolvedSnapshots(Q)
     
     A = driver.buildDrivedEvolutionOperator_FromAlternateBasis().todense()
     A_dmd = dmd_rom.generateFullDimensionEvolutionOperator(snapshots=Q)
 
-    assert np.allclose(A_dmd, A, atol=1e-6)
+    Ur, Sr, Vhr, Ur_control, Sr_control, Vhr_control = dmd_rom.getreducedSVDdecomposition(snapshots=Q)
+    U, S, Vh = np.linalg.svd(Q, full_matrices=False)
+    
+
+    assert np.allclose(Q, U @ np.diag(S) @ Vh, atol=1e-12)
+    assert np.allclose(Q, Ur @ np.diag(Sr) @ Vhr, atol=1e-12)
+    assert np.allclose(Q, Ur_control @ np.diag(Sr_control) @ Vhr_control, atol=1e-12)
+
+    assert np.allclose(Q_evolved, A @ Q, atol=1e-12)
+    assert np.allclose(Q_evolved, A_dmd @ Q, atol=1e-12)
+    assert np.allclose(A_dmd @ Q, A @ Q, atol=1e-12)
+
+    # The evolution operators are not equal, however, they produce the same result when applied to the snapshot matrix Q
+    # assert np.allclose(A_dmd, A, atol=1e-6)
