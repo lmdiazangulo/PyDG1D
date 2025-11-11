@@ -566,7 +566,7 @@ def test_comparison_evolutionOperator_with_DMD_evolutionOperator():
     # assert np.allclose(A_dmd, A, atol=1e-6)
 
 def test_comparison_fullsolver_ROM_by_DMD():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="Mur"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
     dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
 
@@ -574,7 +574,7 @@ def test_comparison_fullsolver_ROM_by_DMD():
     initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
     driver['E'][:] = initialFieldE[:]
 
-    simulation_final_time = 2
+    simulation_final_time = 2.0
 
     Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
 
@@ -604,3 +604,54 @@ def test_comparison_fullsolver_ROM_by_DMD():
     #     plt.cla()
 
     assert np.allclose(qf_solver, qf_r, atol=5e-3)
+
+def test_gaussian_PEC_ROM_by_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    initialState = driver.sp.fieldsAsStateVector(driver.fields)
+
+    simulation_final_time = 4.0
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+
+    Ur, Ar, Ur1, Ar1 = dmd_rom.buildInitialReducedOrderModel()
+    qf_r = dmd_rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, simulation_final_time, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+
+    assert np.allclose(initialState, qf_r, atol=5e-3)
+
+def test_gaussian_noise_for_initial_snapshot_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    totalGaussian = 100
+    x0_values = np.linspace(-1.0, 1.0, totalGaussian)
+    initialFieldE = np.zeros_like(sp.x)
+
+    for x0 in x0_values:
+        initialFieldE += np.exp(-((sp.x - x0)**2)/(2*s0**2))
+
+    initialFieldE /= np.max(initialFieldE)
+    driver['E'][:] = initialFieldE[:]
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=10)
+
+    A = driver.buildDrivedEvolutionOperator_FromAlternateBasis().todense()
+    A_dmd = dmd_rom.generateFullDimensionEvolutionOperator(snapshots=Q)
+
+    driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['H'][:] = 0.0
+
+    Q_simpleGaussian = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+
+    assert np.allclose(A @ Q, A_dmd @ Q, atol=5e-3)
+
+    # This one is not true, this is because DMD is a data driven method and need to be trained with similar data
+    # assert np.allclose(A @ Q_simpleGaussian, A_dmd @ Q_simpleGaussian, atol=5e-3)

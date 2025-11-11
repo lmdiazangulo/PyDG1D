@@ -98,7 +98,7 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
         for i in range(r):
             S_inv[i, i] = 1 / Sr[i]
 
-        A = snapshots_evolved @ Vhr.T @ S_inv @ Ur.T
+        A = np.matmul(np.matmul(snapshots_evolved, Vhr.T), np.matmul(S_inv, Ur.T))
 
         return A
     
@@ -118,8 +118,8 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
             S_inv_control[i, i] = 1 / Sr_control[i]
 
 
-        Ar = Ur.T @ snapshots_evolved @ Vhr.T @ S_inv 
-        Ar_control = Ur_control.T @ snapshots_evolved @ Vhr_control.T @ S_inv_control
+        Ar = np.matmul(np.matmul(Ur.T, snapshots_evolved), np.matmul(Vhr.T, S_inv))
+        Ar_control = np.matmul(np.matmul(Ur_control.T, snapshots_evolved), np.matmul(Vhr_control.T, S_inv_control))
 
         return Ur, Ar, Ur_control, Ar_control
     
@@ -151,23 +151,23 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
     
     def step_ROM(self, actualReducedState, actualReducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
         q_r = copy.deepcopy(actualReducedState)
-        q_r = Ar @ q_r
+        q_r = np.matmul(Ar, q_r)
 
         previousReducedStateControl = copy.deepcopy(actualReducedStateControl)
         dimensionDifference = np.size(actualReducedStateControl) - np.size(actualReducedState)
 
         q_r1 = copy.deepcopy(actualReducedStateControl)
-        q_r1 = Ar1 @ q_r1
+        q_r1 = np.matmul(Ar1, q_r1)
 
         if (np.linalg.norm(q_r1[-dimensionDifference:])  >= errorCriterionForAdaptative * np.linalg.norm(q_r1)):
-            actualState = Ur1 @ previousReducedStateControl
+            actualState = np.matmul(Ur1, previousReducedStateControl)
             Ur_new, Ar_new, Ur1_new, Ar1_new = self.updateReducedOrderModel(copy.deepcopy(actualState), Ur, adaptativeSteps)
 
-            q_r_new = Ur_new.T @ copy.deepcopy(actualState)
-            q_r_new = Ar_new @ q_r_new
+            q_r_new = np.matmul(Ur_new.T, copy.deepcopy(actualState))
+            q_r_new = np.matmul(Ar_new, q_r_new)
 
-            q_r1_new = Ur1_new.T @ copy.deepcopy(actualState)
-            q_r1_new = Ar1_new @ q_r1_new
+            q_r1_new = np.matmul(Ur1_new.T, copy.deepcopy(actualState))
+            q_r1_new = np.matmul(Ar1_new, q_r1_new)
 
             return q_r_new, q_r1_new, Ur_new, Ar_new, Ur1_new, Ar1_new
 
@@ -175,8 +175,9 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
     
     def run_until_ROM(self, initialState, Ur, Ar, Ur1, Ar1, finalTime, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
         q = copy.deepcopy(initialState)
-        reducedState = Ur.T @ q
-        reducedStateControl = Ur1.T @ q
+
+        reducedState = np.matmul(Ur.T, q)
+        reducedStateControl = np.matmul(Ur1.T, q)
 
         timeRange = np.arange(0.0, finalTime, self.sp.dt)
 
