@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from maxwell.driver import *
+from maxwell.mor import *
+from maxwell.mor_by_dmd import *
 from maxwell.dg.mesh1d import *
 from maxwell.dg.dg1d import *
 from maxwell.fd.fd1d import *
@@ -24,7 +26,7 @@ def plot(sp, driver):
 
 
 def test_buildDrivedEvolutionOperator():
-    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 100, boundary_label="PEC"))
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
     driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
 
     A = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
@@ -314,3 +316,342 @@ def test_tfsf_null_field():
 
     finalFieldE = driver['E'][:]
     assert np.allclose(finalFieldE, 0.0, atol=1e-3)
+
+def test_comparison_DrivedEvolutionOperator_with_OperatorWithAlternateBase():
+    for k in range(5, 51, 1):
+        sp = FD1D(mesh=Mesh1D(-1.0, 1.0, k, boundary_label="Mur"))
+        driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+
+        A = driver.buildDrivedEvolutionOperator(reduceToEssentialDoF=False)
+
+        A_alternate = driver.buildDrivedEvolutionOperator_FromAlternateBasis()
+
+        if (scipy.sparse.issparse(A_alternate)):
+            A_alternate = A_alternate.todense()
+
+        assert np.allclose(A_alternate, A)
+
+def test_snapshots_creation():
+
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 5, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    Q_skip1 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
+    Q_skip2 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=8.0, time_step_skip=2)
+    Q_skip3 = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=12.0, time_step_skip=3)
+
+    assert np.allclose(Q_skip1[:, 2], Q_skip2[:, 1])
+    assert np.allclose(Q_skip1[:, 3], Q_skip3[:, 1])
+    assert np.allclose(Q_skip2[:, 3], Q_skip3[:, 2])
+
+def test_unitary_vectors_ChangeBasis_operator():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+    
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    Q = rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+
+    for k in range(Ur1.shape[1]):
+        assert np.isclose(1, np.linalg.norm(Ur1[:,k]), rtol=1e-3)
+
+    for k in range(Ur.shape[1]):
+        assert np.isclose(1, np.linalg.norm(Ur[:,k]), rtol=1e-3)
+
+def test_orthogonality_ChangeBasis_operator():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=4.0, time_step_skip=1)
+
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+
+    assert np.allclose(Ur.T.dot(Ur), np.eye(Ur.shape[1]), atol=1e-3)
+    assert np.allclose(Ur1.T.dot(Ur1), np.eye(Ur1.shape[1]), atol=1e-2)
+
+
+def test_comparison_fullsolver_reducedOrderModel_POD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    number_of_time_steps = 1750
+    final_time_of_simulation = number_of_time_steps * driver.dt
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
+
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6)
+    
+    driver.run_until(final_time_of_simulation)
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(number_of_time_steps):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.001)
+    #     plt.cla()
+
+
+    # FullFields = driver.sp.stateVectorAsFields(qf_solver)
+    # Fields_reduced = driver.sp.stateVectorAsFields(qf_r)
+
+    # fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # axes[0].plot(sp.xH, FullFields['H'], '-', label='Full solver magnetic field')
+    # axes[0].plot(sp.xH, Fields_reduced['H'], '--', label='Reduced-order model magnetic field')
+    # axes[0].set_title('Magnetic Field (H)')
+    # axes[0].grid()
+    # axes[0].legend()
+    # axes[1].plot(sp.x, FullFields['E'], '-', label='Full solver electric field')
+    # axes[1].plot(sp.x, Fields_reduced['E'], '--', label='Reduced-order model electric field')
+    # axes[1].set_title('Electric Field (E)')
+    # axes[1].grid()
+    # axes[1].legend()
+    # plt.tight_layout()
+    # plt.show()
+
+    assert np.linalg.norm(qf_solver - qf_r, ord=1) / np.linalg.norm(qf_solver, ord=1) < 5e-3
+    
+def test_comparison_fullsolver_ROM_specific_point():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis())
+
+    number_of_time_steps = 1750
+    final_time_of_simulation = number_of_time_steps * driver.dt
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+
+    q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    q_r = Ur.T @ q
+    q_r1 = Ur1.T @ q
+
+    for t in range(number_of_time_steps):
+        q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6)
+        driver.step()
+
+        assert np.isclose((driver.sp.stateVectorAsFields(Ur @ q_r))['E'][500], driver['E'][500], atol=5e-3)
+
+
+def test_comparison_fullsolver_ROM_MurBoundaries():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="Mur"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    rom = ModelOrderReduction(sp, driver.buildDrivedEvolutionOperator_FromAlternateBasis(), energyThreshold=1e-9)
+
+    number_of_time_steps = 2250
+    final_time_of_simulation = number_of_time_steps * driver.dt
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+    rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1.0, time_step_skip=10)
+
+    Ur, Ar, Ur1, Ar1 = rom.buildReducedOrderModel_truncated_SVD()
+    qf_r = rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, final_time_of_simulation, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+    
+    driver.run_until(final_time_of_simulation)
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(number_of_time_steps):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.001)
+    #     plt.cla()
+
+    assert np.allclose(qf_solver, qf_r, atol=5e-4)
+
+def test_comparison_initialSnapshots_with_evolvedSnapshots_DMD_no_timeSkip():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold=1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=10.0, time_step_skip=1)
+    Q_evolved = dmd_rom.buildEvolvedSnapshots(Q)
+
+    for k in range(Q.shape[1] - 1):
+        assert np.allclose(Q[:, k + 1], Q_evolved[:, k], atol=1e-12)
+
+def test_comparison_initialSnapshots_with_evolvedSnapshots_DMD_timeSkip():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold=1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    time_step_skip = 10
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=10.0, time_step_skip=time_step_skip)
+    Q_evolved = dmd_rom.buildEvolvedSnapshots(Q)
+
+    for k in range(Q.shape[1]):
+        auxilary_field = sp.stateVectorAsFields(Q[:, k])
+        driver['E'][:] = auxilary_field['E']
+        driver['H'][:] = auxilary_field['H']
+        driver.step()
+        auxilary_state = sp.fieldsAsStateVector(driver.fields)
+        assert np.allclose(auxilary_state, Q_evolved[:, k], atol=1e-12)
+
+def test_comparison_evolutionOperator_with_DMD_evolutionOperator():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 10, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=5.5, time_step_skip=1)
+    Q_evolved = dmd_rom.buildEvolvedSnapshots(Q)
+    
+    A = driver.buildDrivedEvolutionOperator_FromAlternateBasis().todense()
+    A_dmd = dmd_rom.generateFullDimensionEvolutionOperator(snapshots=Q)
+
+    Ur, Sr, Vhr, Ur_control, Sr_control, Vhr_control = dmd_rom.getreducedSVDdecomposition(snapshots=Q)
+    U, S, Vh = np.linalg.svd(Q, full_matrices=False)
+    
+
+    assert np.allclose(Q, U @ np.diag(S) @ Vh, atol=1e-12)
+    assert np.allclose(Q, Ur @ np.diag(Sr) @ Vhr, atol=1e-12)
+    assert np.allclose(Q, Ur_control @ np.diag(Sr_control) @ Vhr_control, atol=1e-12)
+
+    assert np.allclose(Q_evolved, A @ Q, atol=1e-12)
+    assert np.allclose(Q_evolved, A_dmd @ Q, atol=1e-12)
+    assert np.allclose(A_dmd @ Q, A @ Q, atol=1e-12)
+
+    # The evolution operators are not equal, however, they produce the same result when applied to the snapshot matrix Q
+    # assert np.allclose(A_dmd, A, atol=1e-6)
+
+def test_comparison_fullsolver_ROM_by_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="Mur"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    simulation_final_time = 2.0
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+
+    Ur, Ar, Ur1, Ar1 = dmd_rom.buildInitialReducedOrderModel()
+    qf_r = dmd_rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, simulation_final_time, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+
+    # We need to restart the initial fields for the full solver
+    driver['E'][:] = initialFieldE[:]
+    driver['H'][:] = 0.0
+    
+    driver.run_until(simulation_final_time)
+    qf_solver = driver.sp.fieldsAsStateVector(driver.fields)
+
+    # q = copy.deepcopy(driver.sp.fieldsAsStateVector(driver.fields))
+    # q_r = Ur.T @ q
+    # q_r1 = Ur1.T @ q
+    # for t in range(int(simulation_final_time / driver.dt)):
+    #     q_r, q_r1, Ur, Ar, Ur1, Ar1 = dmd_rom.step_ROM(q_r, q_r1, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+    #     driver.step()
+    #     plt.plot(sp.x, driver['E'], label='Full solver electric field')
+    #     plt.plot(sp.x, driver.sp.stateVectorAsFields(Ur @ q_r)['E'], '--', label='Reduced-order model electric field')
+    #     plt.title(f'Time = {t * driver.dt:.4f} s')
+    #     plt.ylim(-1, 1)
+    #     plt.grid(which='both')
+    #     plt.legend()
+    #     plt.pause(0.000001)
+    #     plt.cla()
+
+    assert np.allclose(qf_solver, qf_r, atol=5e-3)
+
+def test_gaussian_PEC_ROM_by_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    initialFieldE = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['E'][:] = initialFieldE[:]
+
+    initialState = driver.sp.fieldsAsStateVector(driver.fields)
+
+    simulation_final_time = 4.0
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=2, time_step_skip=1)
+
+    Ur, Ar, Ur1, Ar1 = dmd_rom.buildInitialReducedOrderModel()
+    qf_r = dmd_rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, simulation_final_time, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)
+
+    assert np.allclose(initialState, qf_r, atol=5e-3)
+
+def test_gaussian_noise_for_initial_snapshot_DMD():
+    sp = FD1D(mesh=Mesh1D(-1.0, 1.0, 1000, boundary_label="PEC"))
+    driver = MaxwellDriver(sp, timeIntegratorType='LF2', CFL=1.0)
+    dmd_rom = ModelOrderReduction_by_DynamicModeDecomposition(sp, driver, energyThreshold = 1 - 1e-12)
+
+    s0 = 0.25
+    totalGaussian = 100
+    x0_values = np.linspace(-1.0, 1.0, totalGaussian)
+    initialFieldE = np.zeros_like(sp.x)
+
+    for x0 in x0_values:
+        initialFieldE += np.exp(-((sp.x - x0)**2)/(2*s0**2))
+
+    initialFieldE /= np.max(initialFieldE)
+    driver['E'][:] = initialFieldE[:]
+
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=10)
+
+    A = driver.buildDrivedEvolutionOperator_FromAlternateBasis().todense()
+    A_dmd = dmd_rom.generateFullDimensionEvolutionOperator(snapshots=Q)
+
+    driver['E'][:] = np.exp(-(sp.x)**2/(2*s0**2))
+    driver['H'][:] = 0.0
+
+    Q_simpleGaussian = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+
+    assert np.allclose(A @ Q, A_dmd @ Q, atol=5e-3)
+
+    # This one is not true, this is because DMD is a data driven method and need to be trained with similar data
+    # assert np.allclose(A @ Q_simpleGaussian, A_dmd @ Q_simpleGaussian, atol=5e-3)

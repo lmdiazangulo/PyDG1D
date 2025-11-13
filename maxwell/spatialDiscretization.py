@@ -26,6 +26,14 @@ class SpatialDiscretization():
         fields = self.buildFields()
         self.copyVectorToFields(q, fields)
         return fields
+    
+    def copyVectorToFields(self, vec, fields):
+        Np = self.mesh.number_of_vertices()
+        K = self.mesh.number_of_elements()
+
+        if self.dimension() == 1:
+            fields['E'][:] = vec[:(vec.size//2)+1]
+            fields['H'][:] = vec[(vec.size//2)+1:]
 
     def buildStateVector(self):
         fields = self.buildFields()

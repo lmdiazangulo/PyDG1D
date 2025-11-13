@@ -13,6 +13,8 @@ from .integrators.LF2V import *
 from .integrators.EULER import *
 
 import copy
+import scipy.sparse 
+
 
 class MaxwellDriver:
     def __init__(self, 
@@ -124,3 +126,91 @@ class MaxwellDriver:
         Mn = Mg[neigh_indices][:,neigh_indices]
         
         return A, B, C, D, Mk, Mn
+    
+    def generateOutputFromAlternateBasisVectors(self):
+        v_basis = self.sp.buildAlternateBasis()
+        q_outputs = []
+        
+        oldFields = copy.deepcopy(self.fields)
+
+        if (self.sp.dimension() == 1):
+            for i in range(len(v_basis)):
+                self.fields = self.sp.buildFields()
+                self.fields['E'][:] = v_basis[i][:len(self.sp.x)]
+                self.fields['H'][:] = v_basis[i][len(self.sp.x):]
+                self.step()
+                qi = self.sp.fieldsAsStateVector(self.fields)
+                q_outputs.append(qi)
+            
+            self.fields = oldFields
+
+        elif (self.sp.dimension() == 2):
+            for i in range(len(v_basis)):
+                self.fields = self.sp.buildFields()
+                if i < 2:
+                    self.fields['E']['x'][:] = v_basis[i]
+                elif i < 4:
+                    self.fields['E']['y'][:] = v_basis[i]
+                else:
+                    self.fields['H'][:] = v_basis[i]
+                self.step()
+
+                qi = np.concatenate([self.fields['E']['x'].flatten(order='F'), self.fields['E']['y'].flatten(order='F'), self.fields['H'].flatten(order='F')])
+                q_outputs.append(qi)
+            
+            self.fields = self.sp.buildFields()
+
+
+        return q_outputs
+    
+    def buildDrivedEvolutionOperator_FromAlternateBasis(self):
+        N = self.sp.number_of_unknowns()
+        A = scipy.sparse.lil_matrix((N, N))
+
+        v_basis = self.sp.buildAlternateBasis()
+        q_outputs = self.generateOutputFromAlternateBasisVectors()
+        Q = np.column_stack(q_outputs)
+
+        if (self.sp.dimension() == 2):
+            vector_basis = []
+            matrices_E = self.sp.buildElectricAlternateMatrixBasis()
+            matrices_H = self.sp.buildMagneticAlternateMatrixBasis()
+
+            for i, M in enumerate(matrices_E + matrices_H):
+                if i < 2:
+                    vector = np.concatenate([M.flatten(order='F'), 
+                                            np.zeros(np.size(matrices_E[2])),
+                                            np.zeros(np.size(matrices_H[0]))])
+                elif i < 4:
+                    vector = np.concatenate([np.zeros(np.size(matrices_E[0])),
+                                            M.flatten(order='F'), 
+                                            np.zeros(np.size(matrices_H[0]))])
+                else:
+                    vector = np.concatenate([np.zeros(np.size(matrices_E[0])),
+                                            np.zeros(np.size(matrices_E[2])), 
+                                            M.flatten(order='F')])
+                vector_basis.append(vector)
+
+            V = np.column_stack(vector_basis)
+
+        else:
+            V = np.column_stack(v_basis)
+
+        # I need to add now the respective map to 2D
+        column_nodes_map = self.sp.mesh.buildEvolutionOperator_Column_map()
+
+        for col_idx in range(V.shape[1]):
+            v_col = V[:, col_idx]
+            nonzero_indices = np.nonzero(v_col)[0]
+            if len(nonzero_indices) == 0:
+                continue  
+
+            for k in nonzero_indices:  
+                affected_indices = column_nodes_map.get(k, [])
+
+                for i in affected_indices:
+                    A[i, k] = Q[i, col_idx]  
+
+        A = A.tocsr()            
+
+        return A
