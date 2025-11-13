@@ -618,7 +618,7 @@ def test_gaussian_PEC_ROM_by_DMD():
 
     simulation_final_time = 4.0
 
-    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=1, time_step_skip=1)
+    Q = dmd_rom.buildSnapshots_fromInitialState(driver.sp.fieldsAsStateVector(driver.fields), finalTime=2, time_step_skip=1)
 
     Ur, Ar, Ur1, Ar1 = dmd_rom.buildInitialReducedOrderModel()
     qf_r = dmd_rom.run_until_ROM(driver.sp.fieldsAsStateVector(driver.fields), Ur, Ar, Ur1, Ar1, simulation_final_time, errorCriterionForAdaptative=1e-6, adaptativeSteps=10)

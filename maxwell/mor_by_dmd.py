@@ -58,13 +58,9 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
         r = np.searchsorted(cumulative_energy, energyThreshold) + 1
         return r
     
-    def getReducedOrderDimension(self, snapshots):
-        symmetricSnapshotMatrix = snapshots.T @ snapshots
-        eigenValues = np.linalg.eigvalsh(symmetricSnapshotMatrix)
-        eigenValues = eigenValues[::-1]
-
-        dimensionROM = self.energyCriterionForTruncation(eigenValues, self.energyThreshold, order=1)
-        dimensionROM_forControl = self.energyCriterionForTruncation(eigenValues, (99 + self.energyThreshold) / 100, order=1)
+    def getReducedOrderDimension(self, eigenValues):
+        dimensionROM = self.energyCriterionForTruncation(eigenValues, self.energyThreshold, order=2)
+        dimensionROM_forControl = self.energyCriterionForTruncation(eigenValues, (99 + self.energyThreshold) / 100, order=2)
 
         if dimensionROM == dimensionROM_forControl:
             dimensionROM_forControl = min(dimensionROM + 1, len(eigenValues))
@@ -76,7 +72,7 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
             raise ValueError("You need to build the snapshots first before calling the method.")
         
         U, S, Vh = np.linalg.svd(snapshots, full_matrices=False)
-        r, r_control = self.getReducedOrderDimension(snapshots)
+        r, r_control = self.getReducedOrderDimension(S)
 
         Ur = U[:, :r]
         Sr = S[:r]
@@ -149,7 +145,7 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
 
         return Ur_new, Ar_new, Ur1_new, Ar1_new
     
-    def step_ROM(self, actualReducedState, actualReducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
+    def step_ROM(self, actualReducedState, actualReducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-3, adaptativeSteps=10):
         q_r = copy.deepcopy(actualReducedState)
         q_r = np.matmul(Ar, q_r)
 
@@ -184,4 +180,4 @@ class ModelOrderReduction_by_DynamicModeDecomposition:
         for t in timeRange:
             reducedState, reducedStateControl, Ur, Ar, Ur1, Ar1 = self.step_ROM(reducedState, reducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative, adaptativeSteps)
 
-        return Ur @ reducedState
+        return np.matmul(Ur, reducedState)

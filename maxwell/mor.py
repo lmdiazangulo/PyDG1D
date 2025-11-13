@@ -40,7 +40,7 @@ class ModelOrderReduction:
         return r
     
     def getReducedOrderDimension(self, snapshots):
-        symmetricSnapshotMatrix = snapshots.T @ snapshots
+        symmetricSnapshotMatrix = np.matmul(snapshots.T, snapshots)
         eigenValues = np.linalg.eigvalsh(symmetricSnapshotMatrix)
         eigenValues = eigenValues[::-1]
 
@@ -53,7 +53,7 @@ class ModelOrderReduction:
         return dimensionROM, dimensionROM_forControl
     
     def buildReducedProjectionAndReducedEvolutionOperator(self, snapshots, number_of_modes):
-        symmetricSnapshotMatrix = snapshots.T @ snapshots
+        symmetricSnapshotMatrix = np.matmul(snapshots.T, snapshots)
         vals, vecs = scipy.sparse.linalg.eigsh(symmetricSnapshotMatrix, k=number_of_modes, which='LM')
         
         idx = np.argsort(vals)[::-1]
@@ -63,7 +63,7 @@ class ModelOrderReduction:
         Ur = np.zeros((np.size(snapshots.T[0]), number_of_modes))
 
         for i in range(number_of_modes):
-            Ur[:, i] = (snapshots @ reducedEigenVectors.T[i]) / np.sqrt(reducedEigenValues[i])
+            Ur[:, i] = (np.matmul(snapshots, reducedEigenVectors.T[i])) / np.sqrt(reducedEigenValues[i])
 
         Ur = Ur[:, ~np.isnan(Ur).all(axis=0)] 
 
@@ -102,23 +102,23 @@ class ModelOrderReduction:
     
     def step_ROM(self, actualReducedState, actualReducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
         q_r = copy.deepcopy(actualReducedState)
-        q_r = Ar @ q_r
+        q_r = np.matmul(Ar, q_r)
 
         previousReducedStateControl = copy.deepcopy(actualReducedStateControl)
         dimensionDifference = np.size(actualReducedStateControl) - np.size(actualReducedState)
 
         q_r1 = copy.deepcopy(actualReducedStateControl)
-        q_r1 = Ar1 @ q_r1
+        q_r1 = np.matmul(Ar1, q_r1)
 
         if (np.linalg.norm(q_r1[-dimensionDifference:])  >= errorCriterionForAdaptative * np.linalg.norm(q_r1)):
-            actualState = Ur1 @ previousReducedStateControl
+            actualState = np.matmul(Ur1, previousReducedStateControl)
             Ur_new, Ar_new, Ur1_new, Ar1_new = self.updateReducedOrderModel(copy.deepcopy(actualState), Ur, adaptativeSteps)
 
-            q_r_new = Ur_new.T @ copy.deepcopy(actualState)
-            q_r_new = Ar_new @ q_r_new
+            q_r_new = np.matmul(Ur_new.T, copy.deepcopy(actualState))
+            q_r_new = np.matmul(Ar_new, q_r_new)
 
-            q_r1_new = Ur1_new.T @ copy.deepcopy(actualState)
-            q_r1_new = Ar1_new @ q_r1_new
+            q_r1_new = np.matmul(Ur1_new.T, copy.deepcopy(actualState))
+            q_r1_new = np.matmul(Ar1_new, q_r1_new)
 
             return q_r_new, q_r1_new, Ur_new, Ar_new, Ur1_new, Ar1_new
 
@@ -126,12 +126,12 @@ class ModelOrderReduction:
     
     def run_until_ROM(self, initialState, Ur, Ar, Ur1, Ar1, finalTime, errorCriterionForAdaptative=1e-4, adaptativeSteps=10):
         q = copy.deepcopy(initialState)
-        reducedState = Ur.T @ q
-        reducedStateControl = Ur1.T @ q
+        reducedState = np.matmul(Ur.T, q)
+        reducedStateControl = np.matmul(Ur1.T, q)
 
         timeRange = np.arange(0.0, finalTime, self.sp.dt)
 
         for t in timeRange:
             reducedState, reducedStateControl, Ur, Ar, Ur1, Ar1 = self.step_ROM(reducedState, reducedStateControl, Ur, Ar, Ur1, Ar1, errorCriterionForAdaptative, adaptativeSteps)
 
-        return Ur @ reducedState
+        return np.matmul(Ur, reducedState)
