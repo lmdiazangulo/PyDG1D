@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
+from collections import deque
 
 from .dg2d_tools import *
 from .mesh2d import Mesh2D
@@ -78,6 +79,7 @@ class Maxwell2D(SpatialDiscretization):
 
         one = np.ones(n_fp)
         EToE, EToF = msh.connectivityMatrices()
+        periodic_EToE = np.array(EToE, copy=True)
         for k1 in range(k_elem):
             for f1 in range(n_faces):
                 # find neighbor
@@ -104,7 +106,12 @@ class Maxwell2D(SpatialDiscretization):
                     np.abs((x1 - x2.transpose())**2 + (y1-y2.transpose())**2))
                 idM, idP = np.where(distance <= NODETOL*refd)
                 vmapP[idM, f1, k1] = vidP[idP]
-                mapP[idM, f1, k1] = idP + (f2-1)*n_fp+(k2-1)*n_faces*n_fp
+                mapP[idM, f1, k1] = idP + f2*n_fp + k2*n_faces*n_fp
+
+        if msh.boundary_label == "Periodic":
+            periodic_EToE = self._connect_periodic_boundary_faces(
+                vmapM, vmapP, mapP, EToE, EToF
+            )
 
         vmapM = vmapM.ravel('F')
         vmapP = vmapP.ravel('F')
@@ -115,6 +122,108 @@ class Maxwell2D(SpatialDiscretization):
         self.vmapP = vmapP
         self.vmapB = vmapB
         self.mapB = mapB
+        self.etoe = periodic_EToE
+
+    def _connect_periodic_boundary_faces(self, vmapM, vmapP, mapP, EToE, EToF):
+        n_faces = self.n_faces
+        n_fp = self.n_fp
+        face_data = self._build_periodic_face_data(vmapM, EToE)
+
+        for face in face_data:
+            partner = self._find_periodic_partner(face, face_data)
+            if partner is None:
+                raise ValueError(
+                    "Could not find periodic partner for boundary face "
+                    f"(element={face['element']}, face={face['face']})."
+                )
+
+            refd = face["refd"]
+            tangent_M = np.outer(face["tangent"], np.ones(n_fp))
+            tangent_P = np.outer(partner["tangent"], np.ones(n_fp))
+            distance = np.abs(tangent_M - tangent_P.transpose())
+            idM, idP = np.where(distance <= NODETOL * max(refd, 1.0))
+            if len(idM) != n_fp:
+                raise ValueError(
+                    "Periodic face node matching failed for "
+                    f"(element={face['element']}, face={face['face']})."
+                )
+
+            vmapP[idM, face["face"], face["element"]] = partner["vid"][idP]
+            mapP[idM, face["face"], face["element"]] = (
+                idP + partner["face"] * n_fp + partner["element"] * n_faces * n_fp
+            )
+
+            EToE[face["element"], face["face"]] = partner["element"]
+
+        return EToE
+
+    def _build_periodic_face_data(self, vmapM, EToE):
+        xmin = np.min(self.x)
+        xmax = np.max(self.x)
+        ymin = np.min(self.y)
+        ymax = np.max(self.y)
+        face_data = []
+
+        for element in range(self.mesh.number_of_elements()):
+            for face in range(self.n_faces):
+                if EToE[element, face] != element:
+                    continue
+
+                vid = vmapM[:, face, element]
+                x_face = self.x.ravel('F')[vid]
+                y_face = self.y.ravel('F')[vid]
+                axis, side, tangent = self._classify_periodic_face(
+                    x_face, y_face, xmin, xmax, ymin, ymax
+                )
+
+                v1 = self.mesh.EToV[element, face]
+                v2 = self.mesh.EToV[element, np.mod(face + 1, self.n_faces)]
+                refd = np.sqrt(
+                    (self.mesh.vx[v1] - self.mesh.vx[v2]) ** 2
+                    + (self.mesh.vy[v1] - self.mesh.vy[v2]) ** 2
+                )
+
+                face_data.append(
+                    {
+                        "element": element,
+                        "face": face,
+                        "vid": vid,
+                        "axis": axis,
+                        "side": side,
+                        "tangent": tangent,
+                        "sorted_tangent": np.sort(tangent),
+                        "refd": refd,
+                    }
+                )
+
+        return face_data
+
+    def _classify_periodic_face(self, x_face, y_face, xmin, xmax, ymin, ymax):
+        tol = 100 * NODETOL
+        if np.all(np.abs(x_face - xmin) <= tol):
+            return "x", "min", y_face
+        if np.all(np.abs(x_face - xmax) <= tol):
+            return "x", "max", y_face
+        if np.all(np.abs(y_face - ymin) <= tol):
+            return "y", "min", x_face
+        if np.all(np.abs(y_face - ymax) <= tol):
+            return "y", "max", x_face
+        raise ValueError("Boundary face is not aligned with a periodic box side.")
+
+    def _find_periodic_partner(self, face, face_data):
+        opposite_side = "max" if face["side"] == "min" else "min"
+        tol = NODETOL * max(face["refd"], 1.0)
+        for candidate in face_data:
+            if candidate["element"] == face["element"] and candidate["face"] == face["face"]:
+                continue
+            if candidate["axis"] != face["axis"] or candidate["side"] != opposite_side:
+                continue
+            if not np.isclose(candidate["refd"], face["refd"]):
+                continue
+            if np.max(np.abs(candidate["sorted_tangent"] - face["sorted_tangent"])) > tol:
+                continue
+            return candidate
+        return None
 
     def get_minimum_node_distance(self):
         points, _ = jacobi_gauss(0, 0, self.n_order)
@@ -154,6 +263,64 @@ class Maxwell2D(SpatialDiscretization):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         return 3 * Np * K
+
+    def reorder_by_elements(self, A):
+        N = A.shape[0]
+        K = self.mesh.number_of_elements()
+        Np = self.number_of_nodes_per_element()
+        n_block = Np * K
+        new_order = np.arange(N, dtype=int)
+
+        for i in range(N):
+            fld = i // n_block
+            within = i % n_block
+            elem = within // Np
+            node = within % Np
+            new_order[elem * 3 * Np + fld * Np + node] = i
+
+        if len(A.shape) == 1:
+            A1 = [A[i] for i in new_order]
+        elif len(A.shape) == 2:
+            A1 = [[A[i][j] for j in new_order] for i in new_order]
+        else:
+            raise ValueError("Invalid array shape for reorder_by_elements.")
+
+        return np.array(A1)
+
+    def buildLocalAndNeighborIndices(self, element, neighs):
+        Np = self.number_of_nodes_per_element()
+        block_size = 3 * Np
+        adjacency = getattr(self, "etoe", self.mesh.connectivityMatrices()[0])
+
+        visited = {element}
+        queue = deque([(element, 0)])
+        halo_elements = set()
+
+        while queue:
+            current, depth = queue.popleft()
+            if depth == neighs:
+                continue
+
+            for neighbor in np.unique(adjacency[current]):
+                neighbor = int(neighbor)
+                if neighbor == current:
+                    continue
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    halo_elements.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+
+        local_indices = np.arange(element * block_size, (element + 1) * block_size)
+        neigh_indices = np.array([], dtype=int)
+        if halo_elements:
+            neigh_indices = np.concatenate(
+                [
+                    np.arange(neighbor * block_size, (neighbor + 1) * block_size)
+                    for neighbor in sorted(halo_elements)
+                ]
+            )
+
+        return local_indices, neigh_indices
 
     def convertToVector(self, fields):
         Np = self.number_of_nodes_per_element()

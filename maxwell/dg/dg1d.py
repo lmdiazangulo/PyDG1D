@@ -335,20 +335,3 @@ class DG1D(SpatialDiscretization):
                    
         q = self.fieldsAsStateVector(fields)
         return q.T.dot(P).dot(q)
-
-    def buildConnectedOperators(self, element=0, neighbors=1):
-        
-        neighs = neighbors
-            
-        local_indices, neigh_indices = self.buildLocalAndNeighborIndices(element, neighs)
-
-        G = self.reorder_by_elements(self.buildEvolutionOperator())
-        Mg =  self.reorder_by_elements(self.buildGlobalMassMatrix())
-        A = G[local_indices][:,local_indices]
-        B = G[local_indices][:,neigh_indices]
-        C = G[neigh_indices][:,local_indices]
-        D = G[neigh_indices][:,neigh_indices]
-        Mk = Mg[local_indices][:,local_indices]
-        Mn = Mg[neigh_indices][:,neigh_indices]
-        
-        return A, B, C, D, Mk, Mn

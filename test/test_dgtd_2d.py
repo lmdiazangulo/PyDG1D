@@ -34,21 +34,8 @@ def test_pec():
 
     driver = MaxwellDriver(sp, CFL=1)
     driver['Ez'][:] = resonant_cavity_ez_field(sp.x, sp.y, 0)
-<<<<<<< Updated upstream
-    
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)  
-    # ax.triplot(sp.mesh.getTriangulation(), c='k', lw=1.0)
-    # plt.show()
-
-    for _ in range(40):       
-        # sp.plot_field(N, driver['Ez'])
-        # plt.pause(0.001)
-        # plt.cla()
-
+    for _ in range(40):
         driver.step()
-=======
->>>>>>> Stashed changes
 
     ez_expected = resonant_cavity_ez_field(sp.x, sp.y, driver.timeIntegrator.time)
     R = np.corrcoef(ez_expected, driver['Ez'])

@@ -52,5 +52,22 @@ class SpatialDiscretization():
 
         return local_indices, neigh_indices
 
+    def buildConnectedOperators(self, element=0, neighbors=1):
+        local_indices, neigh_indices = self.buildLocalAndNeighborIndices(
+            element, neighbors
+        )
+
+        G = self.reorder_by_elements(self.buildEvolutionOperator())
+        Mg = self.reorder_by_elements(self.buildGlobalMassMatrix())
+
+        A = G[local_indices][:, local_indices]
+        B = G[local_indices][:, neigh_indices]
+        C = G[neigh_indices][:, local_indices]
+        D = G[neigh_indices][:, neigh_indices]
+        Mk = Mg[local_indices][:, local_indices]
+        Mn = Mg[neigh_indices][:, neigh_indices]
+
+        return A, B, C, D, Mk, Mn
+
     def number_of_unknowns(self):
         return len(self.buildStateVector())

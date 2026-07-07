@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend so plt.show()/plt.pause() never block test runs.
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pytest
@@ -1208,12 +1210,13 @@ def test_materials_epsilon():
     driver['E'][:] = initialFieldE[:]
     for _ in range(500):
         driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.001)
-        plt.cla()
+        # plt.plot(sp.x, driver['E'],'b')
+        # plt.plot(sp.x, driver['H'],'r')
+        # plt.ylim(-1, 1)
+        # plt.grid(which='both')
+        # plt.pause(0.001)
+        # plt.cla()
+
 
 # @pytest.mark.skip(reason="Test still being written.")
 def test_materials_thin_layer():
@@ -1236,9 +1239,9 @@ def test_materials_thin_layer():
     driver['E'][:] = initialFieldE[:]
     for _ in range(500):
         driver.step()
-        plt.plot(sp.x, driver['E'],'b')
-        plt.plot(sp.x, driver['H'],'r')
-        plt.ylim(-1, 1)
-        plt.grid(which='both')
-        plt.pause(0.001)
-        plt.cla()
+        # plt.plot(sp.x, driver['E'],'b')
+        # plt.plot(sp.x, driver['H'],'r')
+        # plt.ylim(-1, 1)
+        # plt.grid(which='both')
+        # plt.pause(0.001)
+        # plt.cla()
