@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 
 from .dg2d_tools import *
 from .mesh2d import Mesh2D
@@ -27,6 +28,8 @@ class Maxwell2D(SpatialDiscretization):
         self.x, self.y = nodes_coordinates(n_order, mesh)
 
         self.lift = lift(n_order)
+        V = vandermonde(n_order, r, s)
+        self.mass = np.linalg.inv(V @ V.T)
 
         eToE, eToF = mesh.connectivityMatrices()
         va = self.mesh.EToV[:, 0]
@@ -143,7 +146,84 @@ class Maxwell2D(SpatialDiscretization):
 
     def number_of_nodes_per_element(self):
         return int((self.n_order + 1) * (self.n_order + 2) / 2)
-    
+
+    def dimension(self):
+        return 2
+
+    def number_of_unknowns(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        return 3 * Np * K
+
+    def convertToVector(self, fields):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        return np.concatenate([
+            fields['Ez'].reshape(Np * K, order='F'),
+            fields['Hx'].reshape(Np * K, order='F'),
+            fields['Hy'].reshape(Np * K, order='F'),
+        ])
+
+    def copyVectorToFields(self, vec, fields):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        n = Np * K
+        fields['Ez'][:, :] = vec[:n].reshape(Np, K, order='F')
+        fields['Hx'][:, :] = vec[n:2*n].reshape(Np, K, order='F')
+        fields['Hy'][:, :] = vec[2*n:].reshape(Np, K, order='F')
+
+    def setFieldWithIndex(self, fields, i, val):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        n_block = Np * K
+        node = i % Np
+        elem = int(np.floor(i / Np)) % K
+        if i < n_block:
+            fields['Ez'][node, elem] = val
+        elif i < 2 * n_block:
+            fields['Hx'][node, elem] = val
+        else:
+            fields['Hy'][node, elem] = val
+        return fields
+
+    def fieldsAsStateVector(self, fields):
+        return self.convertToVector(fields)
+
+    def buildGlobalMassMatrix(self):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        n_block = Np * K
+        N = 3 * n_block
+        M = np.zeros((N, N))
+        for k in range(K):
+            Jk = np.mean(self.jacobian[:, k])
+            block = self.mass * Jk
+            ez_ini = k * Np
+            ez_end = (k + 1) * Np
+            M[ez_ini:ez_end, ez_ini:ez_end] = self.epsilon[k] * block
+            hx_ini = n_block + k * Np
+            hx_end = n_block + (k + 1) * Np
+            M[hx_ini:hx_end, hx_ini:hx_end] = self.mu[k] * block
+            hy_ini = 2 * n_block + k * Np
+            hy_end = 2 * n_block + (k + 1) * Np
+            M[hy_ini:hy_end, hy_ini:hy_end] = self.mu[k] * block
+        return M
+
+    def getEnergy(self, field, material=None):
+        Np = self.number_of_nodes_per_element()
+        K = self.mesh.number_of_elements()
+        assert field.shape == (Np, K)
+        if material is None:
+            material = np.ones(K)
+        energy = 0.0
+        for k in range(K):
+            Jk = np.mean(self.jacobian[:, k])
+            energy += 0.5 * material[k] * np.inner(
+                field[:, k].dot(self.mass),
+                field[:, k] * Jk
+            )
+        return energy
+
     def buildEvolutionOperator(self):
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
@@ -455,7 +535,7 @@ class Maxwell2D(SpatialDiscretization):
 
 
 
-    def plot_field(self, Nout, field):
+    def plot_field(self, Nout, field, ax=None, cmap='viridis'):
         # Build equally spaced grid on reference triangle
         Npout = int((Nout+1)*(Nout+2)/2)
         rout = np.zeros((Npout))
@@ -496,13 +576,18 @@ class Maxwell2D(SpatialDiscretization):
         yout = interp.dot(self.y) 
         uout = interp.dot(field)
 
-        levels = np.linspace(-1, 1, 200)
-        # Render and format solution field
-        plt.tricontourf(
-            xout.ravel('F'), 
-            yout.ravel('F'), 
-            uout.ravel('F'), 
-            triangles=TRI, 
-            cmap='viridis',
-            levels=levels
+        xflat = xout.ravel('F')
+        yflat = yout.ravel('F')
+        uflat = uout.ravel('F')
+        triang = mtri.Triangulation(xflat, yflat, TRI)
+
+        target = ax if ax is not None else plt.gca()
+        vmax = np.max(np.abs(uflat))
+        if vmax == 0.0:
+            vmax = 1.0
+        pcm = target.tripcolor(
+            triang, uflat, shading='gouraud', cmap=cmap,
+            vmin=-vmax, vmax=vmax
         )
+        target.set_aspect('equal')
+        return pcm

@@ -1,6 +1,7 @@
 
 from maxwell.dg.dg2d import *
 from maxwell.dg.mesh2d import *
+from maxwell.driver import MaxwellDriver
 
 TEST_DATA_FOLDER = 'testData/'
 
@@ -415,6 +416,22 @@ def test_partial_rhs_assembly_equals_full():
     print (fullEvolOp)
 
     assert np.allclose(fullEvolOp, stiffnessOp + zeroNormalOp + oneNormalOp + twoNormalOp, rtol=1e-3)
+
+def test_build_drived_evolution_operator_k2():
+    sp = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K2.neu'))
+    dr = MaxwellDriver(sp, CFL=0.1)
+    G = dr.buildDrivedEvolutionOperator()
+    assert G.shape[0] == G.shape[1] == sp.number_of_unknowns()
+    assert np.all(np.isfinite(G))
+
+
+def test_get_energy_k2():
+    sp = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER + 'Maxwell2D_K2.neu'))
+    fields = sp.buildFields()
+    fields['Ez'][:, :] = 1.0
+    energy = sp.getEnergy(fields['Ez'], material=sp.epsilon)
+    assert energy > 0.0
+
 
 def test_full_evolution_operator():
     evolOp = Maxwell2D(1, readFromGambitFile(TEST_DATA_FOLDER+'Maxwell2D_K2.neu')).buildEvolutionOperator()
