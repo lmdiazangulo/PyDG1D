@@ -2,7 +2,7 @@ import numpy as np
 from ..material import *
 
 class Mesh1D:
-    def __init__(self, xmin, xmax, k_elem, boundary_label = "PEC", material_map = []):
+    def __init__(self, xmin, xmax, k_elem, boundary_label = "PEC", material_map = None):
         
         assert k_elem > 0
         _, vx, _, EToV = mesh_generator(xmin, xmax, k_elem)
@@ -11,6 +11,8 @@ class Mesh1D:
         self.vx = vx
         self.EToV = EToV
         self.boundary_label = boundary_label
+        if material_map is None:
+            material_map = MaterialMap()
         self.matmap = material_map
 
         if type(self.boundary_label) == str:
