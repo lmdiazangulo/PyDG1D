@@ -6,7 +6,8 @@ from .mesh1d import Mesh1D
 
 
 class DG1D(SpatialDiscretization):
-    def __init__(self, n_order: int, mesh: Mesh1D, fluxPenalty=1.0, epsilon=None,sigma=None):
+    def __init__(self, n_order: int, mesh: Mesh1D, fluxPenalty=1.0, epsilon=None,sigma=None,
+                 lorentz=None):
         SpatialDiscretization.__init__(self, mesh)
         
         assert n_order > 0
@@ -15,9 +16,6 @@ class DG1D(SpatialDiscretization):
         self.alpha = fluxPenalty
         self.n_faces = 2
         self.n_fp = 1   
-        
-        if self.mesh.boundary_label["LEFT"] != self.mesh.boundary_label["RIGHT"]:
-            raise ValueError("Boundaries must be of the same type.")
 
 
         # Epsilon implementation in 1D
@@ -39,6 +37,23 @@ class DG1D(SpatialDiscretization):
         
         
         self.mu = np.ones(mesh.number_of_elements())
+
+        # Single-pole Lorentz dispersion model (Jiang et al. 2018):
+        #   dP/dt = J
+        #   dJ/dt = -2 gamma J - omega_1^2 P + omega_p^2 E
+        #   D = epsilon_inf E + P
+        # `epsilon` plays the role of epsilon_inf (and is the permittivity
+        # used by the numerical fluxes).
+        self.lorentz = lorentz
+        if lorentz is not None:
+            self.omega_p = self._element_property(
+                lorentz.get("omega_p", 0.0), "omega_p")
+            self.omega_1 = self._element_property(
+                lorentz.get("omega_1", 0.0), "omega_1")
+            self.gamma = self._element_property(
+                lorentz.get("gamma", 0.0), "gamma")
+            self.omega_p_sq = self.omega_p**2
+            self.omega_1_sq = self.omega_1**2
 
         self.x = nodes_coordinates(n_order, mesh.EToV, mesh.vx)
         self.nx = normals(mesh.number_of_elements())
@@ -76,6 +91,18 @@ class DG1D(SpatialDiscretization):
     def number_of_nodes_per_element(self):
         return self.n_order + 1
 
+    def _element_property(self, value, name):
+        """Broadcast a scalar or validate a per-element media property."""
+        K = self.mesh.number_of_elements()
+        value = np.asarray(value, dtype=float)
+        if value.ndim == 0:
+            return np.full(K, float(value))
+        if value.shape != (K,):
+            raise ValueError(
+                "The dimensions of the %s vector must align with the "
+                "number of elements in the mesh." % name)
+        return value
+
     def get_nodes(self):
         return set_nodes(self.n_order, self.mesh.vx[self.mesh.EToV])
 
@@ -87,8 +114,13 @@ class DG1D(SpatialDiscretization):
                       self.mesh.number_of_elements()])
         H = np.zeros(E.shape)
 
+        fields = {"E": E, "H": H}
 
-        return {"E": E, "H": H}
+        if self.lorentz is not None:
+            fields["P"] = np.zeros(E.shape)
+            fields["J"] = np.zeros(E.shape)
+
+        return fields
 
     def get_impedance(self):
         Z_imp = np.zeros(self.x.shape)
@@ -97,33 +129,46 @@ class DG1D(SpatialDiscretization):
 
         return Z_imp
 
-    def fieldsOnBoundaryConditions(self, E, H):
-        label = self.mesh.boundary_label["LEFT"]
-        Eb = E.transpose().take(self.vmap_b)
-        Hb = H.transpose().take(self.vmap_b)
+    def _boundaryValues(self, label, Eb, Hb, nxb):
         if label == "PEC":
-            Ebc = - Eb
-            Hbc = Hb
+            return -Eb, Hb
         elif label == "PMC":
-            Hbc = - Hb
-            Ebc = Eb
+            return Eb, -Hb
         elif label == "Null":
-            Hbc = Hb
-            Ebc = Eb
+            return Eb, Hb
         elif label == "Double":
-            Hbc = -(Eb + Hb)/2
-            Ebc = -(Eb - Hb)/2
+            return -(Eb + Hb)/2, -(Eb - Hb)/2
         elif label == "ABC":
-            Ebc = (Eb + self.nx.take(self.map_b) * Hb)*0.5
-            Hbc = (Hb + self.nx.take(self.map_b) * Eb)*0.5
+            return (Eb + nxb * Hb)*0.5, (Hb + nxb * Eb)*0.5
         elif label == "SMA":
-            Hbc = Hb * 0.0
-            Ebc = Eb * 0.0
-        elif label == "Periodic":
-            Ebc = E.transpose().take(self.vmap_b[::-1])
-            Hbc = H.transpose().take(self.vmap_b[::-1])
+            return Eb * 0.0, Hb * 0.0
         else:
             raise ValueError("Invalid boundary label.")
+
+    def fieldsOnBoundaryConditions(self, E, H):
+        Eb = E.transpose().take(self.vmap_b)
+        Hb = H.transpose().take(self.vmap_b)
+        labels = (self.mesh.boundary_label["LEFT"],
+                  self.mesh.boundary_label["RIGHT"])
+
+        if labels[0] == labels[1]:
+            if labels[0] == "Periodic":
+                return (E.transpose().take(self.vmap_b[::-1]),
+                        H.transpose().take(self.vmap_b[::-1]))
+            nxb = self.nx.take(self.map_b)
+            return self._boundaryValues(labels[0], Eb, Hb, nxb)
+
+        if "Periodic" in labels:
+            raise ValueError(
+                "Periodic boundary conditions must be applied at both ends.")
+
+        Ebc = np.zeros_like(Eb)
+        Hbc = np.zeros_like(Hb)
+        nxb = self.nx.take(self.map_b)
+        for end, label in enumerate(labels):
+            sl = slice(end*self.n_fp, (end+1)*self.n_fp)
+            Ebc[sl], Hbc[sl] = self._boundaryValues(
+                label, Eb[sl], Hb[sl], nxb[sl])
         return Ebc, Hbc
 
     def computeFluxE(self, E, H):
@@ -155,6 +200,9 @@ class DG1D(SpatialDiscretization):
 
         J[:, :] = E * self.sigma
 
+        if self.lorentz is not None:
+            J += fields['J']
+
         flux_E = self.computeFluxE(E, H)
         rhs_drH = np.matmul(self.diff_matrix, H)
         rhsE = 1/self.epsilon * \
@@ -179,7 +227,18 @@ class DG1D(SpatialDiscretization):
         rhsE = self.computeRHSE(fields)
         rhsH = self.computeRHSH(fields)
 
-        return {'E': rhsE, 'H': rhsH}
+        rhs = {'E': rhsE, 'H': rhsH}
+
+        if self.lorentz is not None:
+            E = fields['E']
+            P = fields['P']
+            J = fields['J']
+            rhs['P'] = J.copy()
+            rhs['J'] = (-2 * self.gamma[None, :] * J
+                        - self.omega_1_sq[None, :] * P
+                        + self.omega_p_sq[None, :] * E)
+
+        return rhs
 
     def convertToVector(self, fields):
         return np.concatenate((
@@ -204,6 +263,10 @@ class DG1D(SpatialDiscretization):
         return fields
 
     def buildEvolutionOperator(self):
+        if self.lorentz is not None:
+            raise NotImplementedError(
+                "The evolution operator is only implemented for the "
+                "non-dispersive Maxwell system (E and H fields).")
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         N = self.number_of_unknowns()
@@ -248,6 +311,10 @@ class DG1D(SpatialDiscretization):
             return f[field].size
 
     def buildStiffnessMatrix(self):
+        if self.lorentz is not None:
+            raise NotImplementedError(
+                "Stiffness and flux operators are only implemented for the "
+                "non-dispersive Maxwell system (E and H fields).")
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         N = self.number_of_unknowns()
@@ -271,6 +338,10 @@ class DG1D(SpatialDiscretization):
 
 
     def buildFluxMatrix(self):
+        if self.lorentz is not None:
+            raise NotImplementedError(
+                "Stiffness and flux operators are only implemented for the "
+                "non-dispersive Maxwell system (E and H fields).")
         Np = self.number_of_nodes_per_element()
         K = self.mesh.number_of_elements()
         N = self.number_of_unknowns()

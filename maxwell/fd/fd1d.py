@@ -3,6 +3,8 @@ import numpy as np
 # import sys, os
 # sys.path.insert(0, os.path.abspath('..'))
 
+from scipy.linalg import solve_banded
+
 from ..spatialDiscretization import *
 from ..dg.mesh1d import Mesh1D
 
@@ -10,7 +12,7 @@ import copy
 
 
 class FD1D(SpatialDiscretization):
-    def __init__(self, mesh: Mesh1D):
+    def __init__(self, mesh: Mesh1D, epsilon=None, lorentz=None):
         SpatialDiscretization.__init__(self, mesh)
 
         self.x = mesh.vx
@@ -24,6 +26,42 @@ class FD1D(SpatialDiscretization):
         self.c0 = 1.0
         self.tfsf = False
         self.source = None
+
+        # Relative permittivity at infinite frequency (epsilon_inf in the
+        # Lorentz model).
+        if epsilon is None:
+            self.epsilon = np.ones(len(self.x))
+        else:
+            self.epsilon = self._node_property(epsilon, "permittivity")
+
+        # Single-pole Lorentz dispersion model (Jiang et al. 2018):
+        #   dP/dt = J
+        #   dJ/dt = -2 gamma J - omega_1^2 P + omega_p^2 E
+        #   D = epsilon_inf E + P
+        self.lorentz = lorentz
+        if lorentz is not None:
+            self.omega_p = self._node_property(
+                lorentz.get("omega_p", 0.0), "omega_p")
+            self.omega_1 = self._node_property(
+                lorentz.get("omega_1", 0.0), "omega_1")
+            self.gamma = self._node_property(
+                lorentz.get("gamma", 0.0), "gamma")
+            self.omega_p_sq = self.omega_p**2
+            self.omega_1_sq = self.omega_1**2
+
+        self._trapezoidal_cache = None
+
+    def _node_property(self, value, name):
+        """Broadcast a scalar or validate a per-node media property."""
+        N = len(self.x)
+        value = np.asarray(value, dtype=float)
+        if value.ndim == 0:
+            return np.full(N, float(value))
+        if value.shape != (N,):
+            raise ValueError(
+                "The dimensions of the %s vector must align with the "
+                "number of nodes in the mesh." % name)
+        return value
 
     def TFSF_conditions(self, setup):
 
@@ -41,7 +79,13 @@ class FD1D(SpatialDiscretization):
         if (self.source != None and self.tfsf):
             self.buildIncidentFields()
 
-        return {"E": E, "H": H}
+        fields = {"E": E, "H": H}
+
+        if self.lorentz is not None:
+            fields["P"] = np.zeros(E.shape)
+            fields["J"] = np.zeros(E.shape)
+
+        return fields
 
     def buildIncidentFields(self):
         self.Einc = np.ndarray(self.x.shape)
@@ -61,6 +105,11 @@ class FD1D(SpatialDiscretization):
         rhsE = np.zeros(fields['E'].shape)
 
         rhsE[1:-1] = - (1.0/self.dxH) * (H[1:] - H[:-1])
+
+        if self.lorentz is not None:
+            rhsE[1:-1] -= fields['J'][1:-1]
+
+        rhsE[1:-1] /= self.epsilon[1:-1]
 
         if self.tfsf == True:
 
@@ -140,7 +189,132 @@ class FD1D(SpatialDiscretization):
         rhsE = self.computeRHSE(fields)
         rhsH = self.computeRHSH(fields)
 
-        return {'E': rhsE, 'H': rhsH}
+        rhs = {'E': rhsE, 'H': rhsH}
+
+        if self.lorentz is not None:
+            E = fields['E']
+            P = fields['P']
+            J = fields['J']
+            rhs['P'] = J.copy()
+            rhs['J'] = (-2.0 * self.gamma * J
+                        - self.omega_1_sq * P
+                        + self.omega_p_sq * E)
+
+        return rhs
+
+    def _build_trapezoidal_cache(self, dt):
+        """Pre-compute the time independent pieces of the trapezoidal scheme.
+
+        Implements Eq. (4.2) of Jiang et al. (2018) for a single-pole Lorentz
+        medium. The polarization variables are eliminated analytically, which
+        leaves a symmetric tridiagonal system for the new electric field.
+        """
+        N = len(self.x)
+        h = self.x[1] - self.x[0]
+        assert np.allclose(self.dx, h, rtol=1e-8, atol=0.0), \
+            "The trapezoidal FDTD scheme requires a uniform mesh."
+
+        if self.lorentz is not None:
+            a = self.gamma * dt
+            b = 0.5 * self.omega_1_sq * dt
+            c = 0.5 * self.omega_p_sq * dt
+            kappa = 1.0 + a + 0.5 * b * dt
+            eps_star = self.epsilon + 0.5 * dt * c / kappa
+        else:
+            a = np.zeros(N)
+            b = np.zeros(N)
+            c = np.zeros(N)
+            kappa = np.ones(N)
+            eps_star = self.epsilon.copy()
+
+        lam = dt * dt / (4.0 * h * h)
+
+        ab = np.zeros((3, N - 2))
+        ab[0, 1:] = -lam
+        ab[1, :] = eps_star[1:-1] + 2.0 * lam
+        ab[2, :-1] = -lam
+
+        self._trapezoidal_cache = {
+            'dt': dt, 'h': h, 'lam': lam, 'ab': ab, 'a': a, 'b': b,
+            'c': c, 'kappa': kappa, 'eps_star': eps_star}
+
+        return self._trapezoidal_cache
+
+    def _electric_boundary_value(self, label, inner_new, boundary_old,
+                                 inner_old, h, dt):
+        if label == "PEC":
+            return 0.0
+        elif label == "Mur":
+            return inner_old + (self.c0 * dt - h) / (self.c0 * dt + h) * \
+                (inner_new - boundary_old)
+        else:
+            raise NotImplementedError(
+                "The trapezoidal FDTD scheme supports PEC and Mur "
+                "boundaries, not '%s'." % label)
+
+    def computeTrapezoidalStep(self, fields, dt):
+        """One step of the (2, 2) trapezoidal FDTD scheme of Eq. (4.2).
+
+        Jiang et al. (2018), "Dispersion analysis of finite difference and
+        discontinuous Galerkin schemes for Maxwell's equations in linear
+        Lorentz media".  The scheme is unconditionally stable and second
+        order accurate in time and space.
+        """
+        if self.tfsf:
+            raise NotImplementedError(
+                "The trapezoidal FDTD scheme does not support TFSF sources.")
+
+        N = len(self.x)
+        E = fields['E']
+        H = fields['H']
+
+        if self.lorentz is not None:
+            P = fields['P']
+            J = fields['J']
+        else:
+            P = np.zeros(N)
+            J = np.zeros(N)
+
+        cache = self._trapezoidal_cache
+        if cache is None or cache['dt'] != dt:
+            cache = self._build_trapezoidal_cache(dt)
+
+        h = cache['h']
+        lam = cache['lam']
+        a, b, c = cache['a'], cache['b'], cache['c']
+        kappa = cache['kappa']
+
+        prevE = E.copy()
+
+        SDH = np.zeros(N)
+        SDH[1:-1] = -(H[1:] - H[:-1]) / h
+
+        Lap = np.zeros(N)
+        Lap[1:-1] = (E[2:] - 2.0 * E[1:-1] + E[:-2]) / (h * h)
+
+        SP = P + 0.5 * dt * J
+        SJ = J * (1.0 - a) - b * P + c * E
+        p0 = SP + 0.5 * dt * (SJ - b * SP) / kappa
+
+        base = (self.epsilon * E + P) + dt * SDH + lam * h * h * Lap - p0
+
+        Enew = E.copy()
+        if N > 2:
+            Enew[1:-1] = solve_banded((1, 1), cache['ab'], base[1:-1])
+
+        labels = self.mesh.boundary_label
+        Enew[0] = self._electric_boundary_value(
+            labels['LEFT'], Enew[1], prevE[0], prevE[1], self.dx[0], dt)
+        Enew[-1] = self._electric_boundary_value(
+            labels['RIGHT'], Enew[-2], prevE[-1], prevE[-2], self.dx[-1], dt)
+
+        H += -0.5 * dt / h * ((E[1:] - E[:-1]) + (Enew[1:] - Enew[:-1]))
+
+        if self.lorentz is not None:
+            fields['J'][:] = (SJ - b * SP + c * Enew) / kappa
+            fields['P'][:] = SP + 0.5 * dt * fields['J']
+
+        E[:] = Enew
 
     def updateIncidentFieldE(self):
         self.Einc[1:-1] = self.Einc[1:-1] - self.dt * \

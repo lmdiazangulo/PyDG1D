@@ -11,6 +11,7 @@ from .integrators.LSERK134 import *
 from .integrators.LF2 import *
 from .integrators.LF2V import *
 from .integrators.EULER import *
+from .integrators.Trapezoidal import *
 
 import copy
 
@@ -36,7 +37,23 @@ class MaxwellDriver:
         self.sp.dt = self.dt       
 
         self.fields = sp.buildFields()
-            
+
+        # Lorentz media add the polarization fields P and J, which need a
+        # time integrator able to evolve every field of the state vector.
+        if 'P' in self.fields:
+            if timeIntegratorType not in ('TRAP', 'LSERK4', 'LSERK74',
+                                          'LSERK134'):
+                raise ValueError(
+                    "Lorentz media require a time integrator that evolves "
+                    "the polarization fields: use 'TRAP' (FDTD) or "
+                    "'LSERK4'/'LSERK74'/'LSERK134' (DGTD).")
+            if timeIntegratorType == 'TRAP' and \
+                    not hasattr(sp, 'computeTrapezoidalStep'):
+                raise ValueError(
+                    "The 'TRAP' integrator requires a spatial "
+                    "discretization with a computeTrapezoidalStep method "
+                    "(FD1D).")
+
         # Init time integrator
         if timeIntegratorType == 'EULER':
             self.timeIntegrator = EULER(self.sp, self.fields)   
@@ -60,6 +77,8 @@ class MaxwellDriver:
             self.timeIntegrator = IGLRK4(self.sp, self.fields)
         elif timeIntegratorType == 'AM2':
             self.timeIntegrator = AM2(self.sp, self.fields)
+        elif timeIntegratorType == 'TRAP':
+            self.timeIntegrator = Trapezoidal(self.sp, self.fields)
         else:
             raise ValueError('Invalid time integrator')
 
@@ -81,6 +100,10 @@ class MaxwellDriver:
         return self.fields[key]
     
     def buildDrivedEvolutionOperator(self, reduceToEssentialDoF=True):
+        if 'P' in self.fields or 'J' in self.fields:
+            raise NotImplementedError(
+                "The derived evolution operator is not implemented for "
+                "dispersive (Lorentz) media.")
         N = self.sp.number_of_unknowns()
         A = np.zeros((N,N))
         
